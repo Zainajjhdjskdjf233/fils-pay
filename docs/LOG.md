@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 1:06 AM (30 Oct 2026)
-Summary: Errors 6/58 fixed · Hidden 31 found · Features 0/2 done · Deploy: not started
+Updated: 1:09 AM (30 Oct 2026)
+Summary: Errors 7/58 fixed · Hidden 31 found · Features 0/2 done · Deploy: not started
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -127,7 +127,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: high (case file: "a key rotation flow that doesn't do what you'd expect")
 - Proposed fix: in the same transaction `UPDATE api_keys SET revoked_at = now() WHERE id = $1 AND merchant_id = $2`.
 - Expected result: after rotate, old key → 401, new key → 200.
-- Status: open
+- Status: fixed (9da617a)
 
 ### E08 — FP-240b: incoming acquirer callbacks accepted without a signature
 - Where: apps/api/src/webhooks/inboundVerify.ts:32, :40-43, :52-56; apps/api/src/config.ts:259
@@ -817,6 +817,19 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Decision: keep accepting `submittedAt` but ignore it — Why: the web checkout (CheckoutPage.tsx:59,63) still sends it; rejecting it would break checkout; ignoring it removes the trust — Alternative: remove the field from web and API (more files).
 - Note: the comment at apps/api/src/paymentLinks/status.ts:24-25 ("read/pay can disagree, known") is no longer true: both use the server clock now.
 - Commit: 41f2313
+
+### E07 — 1:08 AM
+- Changed:
+  - apps/api/src/admin/apiKeys.ts:38-43: added `UPDATE api_keys SET revoked_at = now(), revoked_reason = 'rotated' WHERE id = $1 AND merchant_id = $2 AND revoked_at IS NULL` on the same transaction client as the new key and the audit row.
+  - apps/api/src/apiKeys/issue.ts:135-136: removed the false comment "it does, around line 47 — am".
+  - apps/api/src/routes/admin.test.ts:798-800 and :826-833, :858-859: the existing rotation test asserted the bug ("the previous key stays active during the overlap window", `revoked_at` null). Corrected to expect 401 for the old key and `revoked_reason = 'rotated'`; test renamed.
+- Test: admin.test.ts rotation tests. Before (corrected test, old code): `✖ ... the previous key must stop working after rotation`. After: admin.test.ts `pass 41 fail 0`, including "a forced audit-write failure rolls back an API key rotation entirely".
+- Regression: full-db-test.sh → failing names identical to baseline; Go 53 pass 0 fail.
+- Actual result: matches expected.
+- Why the old test was wrong (H13 trap): the only support for a "grace period" is AM's comment in 0037:27-29 ("see ADMIN.md") and "intended (am, 2026-05)" in admin.test.ts:798. docs/ADMIN.md has no grace period (grep), `revoke_after` (0056) is read nowhere, YA's comment at admin.test.ts:799 says "there was never a grace period". Against it: 0037:12-14, issue.ts:22, adminMerchants.ts:175 all say rotate = revoke. CASE-FILE Item 03: "a key rotation flow that doesn't do what you'd expect".
+- Second review (Copilot): not run — `copilot not found`. fix-reviewer: APPROVE; atomic via withTransaction (withTransaction.ts:28-35); verify.ts:19 checks `revoked_at IS NULL` so the cut-off is instant; changing the test was justified (no doc supports a grace period); no other rotate flow exists; calling `revokeApiKey` would be smaller but it uses `pool`, outside the transaction. Suggested removing two stale comments. Our answer: agree; both removed before commit.
+- Decision: revoke immediately, no grace period — Why: every design source says rotate = revoke; a grace window keeps a leaked key alive — Alternative: set `revoke_after = now() + 24h` and build the missing sweep job (bigger, and no doc asks for it).
+- Commit: 9da617a
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)

@@ -228,3 +228,44 @@ The new line takes "now" from the server, so nobody outside can move the clock b
 That payment is refused, which is the safe side for money. The shop can send a new link; trusting the buyer's clock would let anyone pay any expired link.
 
 Commit: 41f2313
+
+## N07 — Rotating an API key did not stop the old key
+
+### The idea
+An API key is a password a shop's software uses to talk to FilsPay. Rotating a key means "give me a new key and kill the old one". Like changing a lock after you lose a key.
+
+### The problem
+The admin "rotate" button made a new key but never killed the old one.
+- A leaked key kept working after the admin rotated it.
+- A test even checked that the old key still worked, calling it a "grace period" that no document defines.
+
+### The fix
+- apps/api/src/admin/apiKeys.ts: the rotation now marks the old key as revoked, reason "rotated", in the same database transaction.
+- apps/api/src/routes/admin.test.ts: the test now expects the old key to fail.
+- Smallest change: one UPDATE inside the transaction that already existed.
+
+### The code
+Before (apps/api/src/admin/apiKeys.ts:31-38):
+```ts
+const issued = await issueApiKeyInTx(client, config, { ..., rotatedFromKeyId: input.apiKeyId });
+await insertAdminAuditLog(client, { ... });
+```
+After:
+```ts
+const issued = await issueApiKeyInTx(client, config, { ..., rotatedFromKeyId: input.apiKeyId });
+await client.query(
+  `UPDATE api_keys SET revoked_at = now(), revoked_reason = 'rotated'
+    WHERE id = $1 AND merchant_id = $2 AND revoked_at IS NULL`, [input.apiKeyId, input.merchantId]);
+await insertAdminAuditLog(client, { ... });
+```
+The new query kills the old key at the same moment the new key is made. If anything fails, both changes are undone together.
+
+### The proof
+- Before: admin.test.ts rotation test (corrected) → the old key still got 200 after rotation.
+- After: the old key gets 401; all 41 admin tests pass, including the "audit failure undoes the whole rotation" test.
+
+### If the judges ask
+"You changed an existing test. Isn't that cheating?"
+The test protected the bug. The database design (0037:12-14), the code comment (issue.ts:22) and the route comment all say rotation revokes the old key, and the "grace period" it cited does not exist in ADMIN.md.
+
+Commit: 9da617a

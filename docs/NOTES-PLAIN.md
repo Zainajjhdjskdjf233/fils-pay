@@ -37,3 +37,9 @@ Where: apps/api/src/paymentLinks/cancel.ts:16 · Commit: 5710a31
 A payment link has an end time, like a coupon. When a buyer pressed pay, the browser told the server what time it was, and the server believed it. So anyone could send an old time and pay a link that had already expired, which is exactly ticket FP-187. We changed the server to use its own clock and ignore the time the browser sends. A test that paid an expired link with a fake 2020 time used to succeed; now it is refused and no money moves.
 
 Where: apps/api/src/paymentLinks/pay.ts:62 · Commit: 41f2313
+
+## N07 — Rotating an API key did not stop the old key
+
+Shops use an API key, like a password, so their systems can talk to FilsPay. If a key leaks, an admin presses "rotate" to get a new key and kill the old one. But the rotate button only made the new key; the old, leaked key kept working. Even a test said this was fine, pointing to a "grace period" that no document describes. We made rotation kill the old key in the same step, and the old key is now refused.
+
+Where: apps/api/src/admin/apiKeys.ts:38 · Commit: 9da617a
