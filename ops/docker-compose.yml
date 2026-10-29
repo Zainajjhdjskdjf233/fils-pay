@@ -70,8 +70,8 @@ services:
     build:
       context: ..
       dockerfile: ops/Dockerfile.node
-    # WEBHOOK_SECRET_ENCRYPTION_KEY isn't needed in dev; the api uses a built-in
-    # dev key unless NODE_ENV=production. (copilot, pasted by FH — unverified)
+    # WEBHOOK_SECRET_ENCRYPTION_KEY is required in every environment (32 bytes,
+    # base64); there is no built-in key (LOG.md E51). Not set here yet: see E02.
     command: ["npx", "tsx", "apps/api/src/index.ts"]
     ports:
       - "3000:3000"
