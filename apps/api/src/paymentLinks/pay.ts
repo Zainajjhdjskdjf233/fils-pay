@@ -29,8 +29,9 @@ interface LinkStatusRow {
   expires_at: Date;
 }
 
-/** A pay request is judged against when the buyer pressed pay, so a
- * retry that lands after midnight is not penalised. */
+/** DEPRECATED (FP-187, LOG.md E06): never use this on the pay route; a
+ * client-sent time must not decide expiry. Kept only because pay.test.ts
+ * still tests it (removal needs Zainab's approval). */
 export function expiryReferenceTime(submittedAt?: string): Date {
   if (!submittedAt) return new Date();
   const parsed = new Date(submittedAt);
@@ -57,7 +58,9 @@ export async function payPaymentLink(
   config: { paymentLinkReservationTimeoutSeconds: number },
   input: PayPaymentLinkInput,
 ): Promise<PayPaymentLinkResult> {
-  const expiryCheckTime = expiryReferenceTime(input.submittedAt);
+  // FP-187: expiry is judged by the server clock only. A buyer-sent submittedAt
+  // is never trusted on this public route.
+  const expiryCheckTime = new Date();
 
   // Step 1 — claim. A single UPDATE is already atomic; no explicit
   // transaction needed.
