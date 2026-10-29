@@ -35,6 +35,13 @@ export async function rotateApiKeyAsAdmin(
       rotatedFromKeyId: input.apiKeyId,
     });
 
+    // E07: a rotation must cut off the old key, in this same transaction (0037:12-14).
+    await client.query(
+      `UPDATE api_keys SET revoked_at = now(), revoked_reason = 'rotated'
+        WHERE id = $1 AND merchant_id = $2 AND revoked_at IS NULL`,
+      [input.apiKeyId, input.merchantId],
+    );
+
     await insertAdminAuditLog(client, {
       adminUserId: input.adminUserId,
       action: "api_key_rotate",
