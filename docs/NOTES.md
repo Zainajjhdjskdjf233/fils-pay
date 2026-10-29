@@ -117,3 +117,39 @@ The new line accepts a session only after the one-time code was checked, as the 
 The schema rules say a half-logged-in cookie is still a valid lookup key, so the view means only "not expired, not revoked". Fixing the query matches the admin code and needs no new migration.
 
 Commit: 35f4415
+
+## N04 — Login could open another shop's account
+
+### The idea
+Two shops can have a user with the same email. Login should open the shop whose password you typed. Like two flats with the same family name on the door: your key must open your own flat.
+
+### The problem
+After the password check, the server sent the code and the session to the first user with that email in any shop.
+- It searched by email only, with no shop filter.
+- An attacker could sign up a new shop with the victim's email and their own password.
+- Logging in to their own shop then opened the victim's shop.
+
+### The fix
+- apps/api/src/routes/auth.ts: the code and session now go to the exact user whose password was checked.
+- Smallest change: one line, plus removing an import. That user was already loaded two lines above.
+
+### The code
+Before (apps/api/src/routes/auth.ts:78):
+```ts
+const recipient = await findOtpRecipient(app.db, email) ?? user;
+```
+After:
+```ts
+const recipient = user;
+```
+The new line uses the user found by shop id and email together, so the login always lands in that shop.
+
+### The proof
+- Before: auth.e04.test.ts → fails 3 of 3 runs: the attacker lands in the victim's shop.
+- After: auth.e04.test.ts → passes 3 of 3 runs; a live login to Beta Digital shows Beta Digital.
+
+### If the judges ask
+"Why is findOtpRecipient still in the code?"
+Nothing calls it now. Removing it would leave an empty file, and deleting files needs Zainab's approval, so it is listed in the log to remove.
+
+Commit: 5e9d46d

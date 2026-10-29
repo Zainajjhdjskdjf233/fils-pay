@@ -19,3 +19,9 @@ Where: apps/api/src/config.ts:247 · Commit: da3ab76
 Logging in to FilsPay is meant to need two things: your password and a one-time code. After the password step the server gives a "half-logged-in" cookie, and the code step should turn it into a real login. But the server's check never looked at whether the code step was done, so the half cookie already opened everything. Anyone with a stolen password could read the shop's payments and make a permanent API key. We added that missing check; now the half cookie is refused, and a normal login with the code still works.
 
 Where: apps/api/src/auth/sessions.ts:92 · Commit: 35f4415
+
+## N04 — Login could open another shop's account
+
+Two shops in FilsPay can each have a user with the same email address. When you logged in, the server checked your password against your own shop, but then it sent the one-time code and the login to whichever user with that email it found first, in any shop. So an attacker could make a new shop using a victim's email, log in to it with their own password, and end up inside the victim's shop. We changed it so the login always goes to the user whose password was checked. A test that used to put the attacker in the victim's shop now keeps them in their own.
+
+Where: apps/api/src/routes/auth.ts:78 · Commit: 5e9d46d
