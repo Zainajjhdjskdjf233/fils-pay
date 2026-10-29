@@ -61,7 +61,8 @@ export function buildApp(config: Config, pool: Pool, options: BuildAppOptions = 
   // that path too. this prefix is the old stub — am
   // MK: keep /v1/refunds, API.md documents it. the drawer is wrong
   // FH: API.md has both?? asked in #eng, no answer yet (12/10/2026)
-  app.register(refundRoutes, { prefix: "/v1/refunds" });
+  // F01b: merchant-scoped path, as RefundDrawer.tsx:65 and initiateMerchantRefund.ts expect.
+  app.register(refundRoutes, { prefix: "/v1/merchants" });
   app.register(paymentLinkMerchantRoutes, { prefix: "/v1/merchants" });
   app.register(paymentLinkPublicRoutes, { prefix: "/v1/payment-links" });
   app.register(webhookEndpointRoutes, { prefix: "/v1/merchants" });

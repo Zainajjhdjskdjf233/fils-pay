@@ -288,14 +288,9 @@ test("GET /v1/transactions/:id/events returns the timeline in chronological orde
 
 // delete/replace this when FP-212 lands — am
 // MK: keep it until the route is behind the feature flag (REFUNDS_V2), then flip the assertion
-test("POST /v1/refunds returns 501 not_implemented", async () => {
+// F01b: the 501 stub is gone; refunds live at /v1/merchants/:merchantId/refunds (refunds.f01b.test.ts).
+test("POST /v1/refunds (old stub path) is no longer routed", async () => {
   const { rawKey } = await createApprovedMerchantWithApiKey("refund-stub");
-  const res = await app.inject({
-    method: "POST",
-    url: "/v1/refunds",
-    headers: authHeader(rawKey),
-    payload: {},
-  });
-  assert.equal(res.statusCode, 501, res.body);
-  assert.equal(res.json().error, "not_implemented");
+  const res = await app.inject({ method: "POST", url: "/v1/refunds", headers: authHeader(rawKey), payload: {} });
+  assert.equal(res.statusCode, 404, res.body);
 });
