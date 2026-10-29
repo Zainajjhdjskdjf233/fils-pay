@@ -1639,3 +1639,30 @@ test("an mdr recalculation whose audit row cannot be written never makes the cal
     "an unloggable action must be BLOCKED, not merely unlogged",
   );
 });
+
+// E10: every impersonation grant is view-only ("Always support", impersonation.ts:91),
+// whatever the operator's admin role. finance/super_admin used to map to finance/owner.
+test("testE10_financeAndSuperAdminImpersonationCannotWrite", async () => {
+  for (const role of ["finance", "super_admin"] as const) {
+    const admin = await signedInAdmin(role, `e10-${role}`);
+    const { merchantId } = await createMerchant(`e10-${role}`);
+    const startRes = await app.inject({
+      method: "POST",
+      url: `/v1/admin/merchants/${merchantId}/impersonate`,
+      headers: { cookie: admin.cookie },
+    });
+    assert.equal(startRes.statusCode, 201, startRes.body);
+    const impCookie = parseCookie(startRes.headers["set-cookie"], config.impersonationCookieName);
+
+    const readRes = await app.inject({ method: "GET", url: "/v1/transactions", headers: { cookie: impCookie } });
+    assert.equal(readRes.statusCode, 200, `${role} impersonation can still read: ${readRes.body}`);
+
+    const write = await app.inject({
+      method: "POST",
+      url: `/v1/merchants/${merchantId}/payment-links`,
+      headers: { cookie: impCookie },
+      payload: { amountFils: 1000, expiresAt: new Date(Date.now() + 3_600_000).toISOString() },
+    });
+    assert.equal(write.statusCode, 403, `${role} impersonation must not write: ${write.statusCode} ${write.body}`);
+  }
+});
