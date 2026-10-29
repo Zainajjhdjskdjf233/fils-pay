@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 1:12 AM (30 Oct 2026)
-Summary: Errors 8/58 fixed · Hidden 31 found · Features 0/2 done · Deploy: not started
+Updated: 1:14 AM (30 Oct 2026)
+Summary: Errors 9/59 fixed · Hidden 31 found · Features 0/2 done · Deploy: not started
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -147,7 +147,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: high (money out without a checker)
 - Proposed fix: add `requireAdminRole("finance","super_admin")`; compare `adminUserId`; include reversal in the threshold.
 - Expected result: support → 403; same user cannot approve own credit even with a different name.
-- Status: open
+- Status: fixed (1f6c885) — threshold policy and per-admin cap left open (see section 5)
 
 ### E10 — Impersonation gives write power (super_admin → owner, finance → finance)
 - Where: apps/api/src/admin/impersonation.ts:85-89, :117-123; routes/adminMerchants.ts:327-329; auth/requireMerchantAuth.ts:129-133
@@ -720,6 +720,10 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: `select m.display_name, mu.email ... where mu.email='owner@alpharetail.example'` → `Alpha Retail Co|...`, `Beta Digital Services|...` (12:51 AM); db/seed fixtures.
 - Meaning: trap / clue (planted test case for E04).
 
+### H32 — docs/ADMIN.md says support admins can issue small credits; code, UI and comments say they cannot
+- What: docs/ADMIN.md:9 says support can "issue small credits" and :50 says small credits "post immediately". The admin UI hides the form from support (apps/admin/src/pages/merchants/MerchantDetailPage.tsx:362-366), apps/admin/src/api/credits.ts:7 says the server blocks support, and admin/credits.ts:203 says "a support caller gets a 403". The server did not block it until E09 (1f6c885). CASE-FILE.md says nothing about credit roles (grep).
+- Meaning: misleading doc / decision for Zainab (E09 Decision).
+
 ## 4. Features (from the brief)
 
 ### F01 — Finish refunds end to end (FP-212)
@@ -851,6 +855,18 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Second review (Copilot): not run — `copilot not found`. fix-reviewer: APPROVE; no bypass (empty header, array header, ms timestamps, negative/NaN/huge t all rejected); nothing in the repo sends to this endpoint, and ops/.env.docker sets a secret, so docker now requires signatures; flagged stale ARCHITECTURE.md:91 (fixed in this commit). Remaining gaps, confirmed separate and not blockers: HMAC over JSON.stringify of the parsed body instead of raw bytes (fragile, not a bypass); replays inside 300s are covered by E27 (unique callback_id); `outcome` not validated (routes/acquirerCallbacks.ts:72) → new entry E59. Our answer: agree.
 - Decision: keep the env switch but default it to true — Why: the code says it is a rollout switch for an unsigned sandbox; removing it touches more files — Alternative: remove the switch entirely (signatures always required).
 - Commit: 602aff0
+
+### E09 — 1:14 AM
+- Changed:
+  - apps/api/src/routes/adminCredits.ts:62-66: `POST /merchants/:id/credits` gets `{ preHandler: requireAdminRole("finance", "super_admin") }`.
+  - apps/api/src/admin/creditApproval.ts:11-12: `approver.displayName === requester.displayName` → `approver.adminUserId === requester.adminUserId`.
+- Test: new apps/api/src/admin/creditApproval.e09.test.ts (2 tests) and `testE09_supportAdminCannotCreateCredit` appended to apps/api/src/routes/adminCredits.test.ts. Before: 3 of 3 fail (support create → `actual: 201`; same id + different name allowed; two different "Ahmed" blocked). After: all pass; adminCredits.test.ts + credits.test.ts `pass 21 fail 0`; check.sh 188 pass.
+- Regression: full-db-test.sh → failing names identical to baseline; Go 53 pass 0 fail.
+- Actual result: matches expected.
+- Second review (Copilot): not run — `copilot not found`. fix-reviewer: APPROVE; approve already passes `requested_by_admin_user_id` (credits.ts:327) so both sides are ids; the admin UI already hides the credit form from support (apps/admin/src/pages/merchants/MerchantDetailPage.tsx:362-366, "Your role cannot issue credits"); every other money route already has a role check. Open, not part of E09: the threshold counts only the base amount (max overage ≈ MDR on 50 BD) and one finance admin can post any number of sub-threshold credits (needs a cap — policy). Our answer: agree; recorded as Decision + H32.
+- Decision: support admins can no longer create credits — Why: under the threshold a credit posts to the ledger with no checker; the code comment (credits.ts:203), the admin UI and the approve/reject routes all say finance/super_admin — Alternative: let support create but never auto-post (always require approval). docs/ADMIN.md:9 says support "can issue small credits" (H32); Zainab should confirm which rule the business wants.
+- Decision: threshold stays base-only — Why: policy question (FH vs MK comment at credits.ts:225-226), not the root cause; bounded overage — Alternative: compare base + fee reversal.
+- Commit: 1f6c885
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)

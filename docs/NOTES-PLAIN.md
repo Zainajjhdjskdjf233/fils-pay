@@ -49,3 +49,9 @@ Where: apps/api/src/admin/apiKeys.ts:38 · Commit: 9da617a
 The bank sends FilsPay messages such as "this payment was fraud", and each message should carry a secret signature, like a wax seal on a letter. FilsPay did not require the seal by default, accepted old sealed letters again and again, and with an empty secret anyone could make a seal. So anyone on the internet could put a fake fraud note on any payment. We made the seal required, refused letters older than five minutes, and refused everything when no secret is set. Tests now show unsigned and replayed messages are refused and no note is saved.
 
 Where: apps/api/src/webhooks/inboundVerify.ts:57 · Commit: 602aff0
+
+## N09 — Support staff could give shops free money, and the "two people" check looked at names
+
+FilsPay admins can give a shop a credit, and big credits need a second person to approve. But the lowest admin role, support, could create credits, and small ones were paid straight away with no second person. The "second person" check also compared names instead of people, so one admin could approve their own credit with a slightly different name. We now allow only finance and super admins to create credits, and the check compares each admin's unique id. Tests show support is refused and no credit is written.
+
+Where: apps/api/src/routes/adminCredits.ts:66, apps/api/src/admin/creditApproval.ts:12 · Commit: 1f6c885

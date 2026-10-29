@@ -316,3 +316,40 @@ Now a letter must have a stamp, a real secret must exist, and the stamp must be 
 Yes, the signature alone cannot stop that. The fix for that is a unique callback id, which is entry E27 and is next in our list.
 
 Commit: 602aff0
+
+## N09 — Support staff could give shops free money, and the "two people" check looked at names
+
+### The idea
+A credit is money FilsPay gives a shop, for example after an outage. Big credits need a second person to approve. Like a bank where a large cash withdrawal needs a manager's signature.
+
+### The problem
+The lowest admin role (support) could create credits, and small ones were paid at once.
+- The create route checked "is this an admin?" but not "which role?".
+- The "second person" check compared display names, which are not unique.
+- So one person could approve their own credit by changing their name, and two different people called "Ahmed" blocked each other.
+
+### The fix
+- apps/api/src/routes/adminCredits.ts: creating a credit now needs the finance or super_admin role, like approve and reject.
+- apps/api/src/admin/creditApproval.ts: the check compares the admin's unique id.
+- Smallest change: one role check and one compared field.
+
+### The code
+Before (apps/api/src/admin/creditApproval.ts:11):
+```ts
+if (approver.displayName === requester.displayName) {
+```
+After:
+```ts
+if (approver.adminUserId === requester.adminUserId) {
+```
+The new line compares the person, not the name, so nobody can approve their own credit and two people with the same name are not blocked.
+
+### The proof
+- Before: E09 tests → support creates a credit (201); same person with a new name approves; two "Ahmed"s blocked.
+- After: support gets 403 and no credit row is written; the id tests pass; all 21 credit tests pass.
+
+### If the judges ask
+"ADMIN.md says support can issue small credits. Why did you block them?"
+Small credits are paid at once with no second person, so allowing support breaks the money control. The code comments and the admin website already say support cannot; we recorded the doc conflict for the team to confirm.
+
+Commit: 1f6c885
