@@ -59,8 +59,11 @@ export async function adminCreditRoutes(app: FastifyInstance): Promise<void> {
       },
     );
 
+    // E09: creating a credit can post money straight to the ledger (under the
+    // approval threshold), so it needs the same roles as approve/reject.
     scope.post<{ Params: MerchantIdParams; Body: unknown }>(
       "/merchants/:id/credits",
+      { preHandler: requireAdminRole("finance", "super_admin") },
       async (request, reply) => {
         const adminAuth = request.adminAuth;
         if (!adminAuth) throw new UnauthorizedError("unauthenticated");

@@ -403,3 +403,20 @@ test("GET /v1/admin/credits filters by status", async () => {
     );
   }
 });
+
+// ------------------------------------------------------------- E09
+
+// E09: a support admin must not create (and so auto-post) a credit.
+test("testE09_supportAdminCannotCreateCredit", async () => {
+  const support = await signedInAdmin("support", "e09-support-create");
+  const merchantId = await createMerchant("e09-support-create");
+  const res = await app.inject({
+    method: "POST",
+    url: `/v1/admin/merchants/${merchantId}/credits`,
+    headers: { cookie: support.cookie },
+    payload: { reasonCode: "goodwill", effectiveDate: todayIso(), baseAmountFils: 1_000 },
+  });
+  assert.equal(res.statusCode, 403, res.body);
+  const rows = await pool.query(`SELECT 1 FROM credit_requests WHERE merchant_id = $1`, [merchantId]);
+  assert.equal(rows.rowCount, 0, "no credit row may be written");
+});
