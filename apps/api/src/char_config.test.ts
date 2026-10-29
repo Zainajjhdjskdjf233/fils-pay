@@ -19,5 +19,5 @@ test("char_loadConfig_defaults", () => {
   assert.equal(cfg.otpMaxAttempts, 5);
   assert.equal(cfg.webhookMaxAttempts, 8);
   assert.equal(cfg.paymentLinkReservationTimeoutSeconds, 60);
-  assert.equal(cfg.acquirerCallbackRequireSignature, false);
+  assert.equal(cfg.acquirerCallbackRequireSignature, true);
 });

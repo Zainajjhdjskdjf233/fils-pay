@@ -1,4 +1,4 @@
-import { createHmac } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 
 /** Verifies the signature on an inbound acquirer callback. */
 
@@ -29,8 +29,14 @@ function parseAcquirerSignatureHeader(header: string): ParsedAcquirerSignatureHe
   return { timestamp, signature };
 }
 
-/** There is no timestamp reason: freshness is not checked for inbound callbacks. */
-export type VerifyAcquirerCallbackFailureReason = "malformed_header" | "signature_mismatch";
+/** Max age (either direction) of a callback timestamp, so a captured callback cannot be replayed later. */
+export const ACQUIRER_CALLBACK_TOLERANCE_SECONDS = 300;
+
+export type VerifyAcquirerCallbackFailureReason =
+  | "malformed_header"
+  | "signature_mismatch"
+  | "timestamp_out_of_tolerance"
+  | "no_secret_configured";
 
 export interface VerifyAcquirerCallbackResult {
   valid: boolean;
@@ -38,8 +44,9 @@ export interface VerifyAcquirerCallbackResult {
 }
 
 function constantTimeEquals(a: string, b: string): boolean {
-  return Buffer.from(a).length === Buffer.from(b).length &&
-    Buffer.compare(Buffer.from(a), Buffer.from(b)) === 0;
+  const left = Buffer.from(a);
+  const right = Buffer.from(b);
+  return left.length === right.length && timingSafeEqual(left, right);
 }
 
 /** Verifies the acquirer callback signature when present and required. */
@@ -47,8 +54,11 @@ export function verifyAcquirerCallbackSignature(
   payload: unknown,
   header: string | undefined,
   secret: string,
-  requireSignature = false,
+  requireSignature = true,
+  nowSeconds = Math.floor(Date.now() / 1000),
 ): VerifyAcquirerCallbackResult {
+  // An empty secret would let anyone compute a "valid" HMAC.
+  if (!secret) return { valid: false, reason: "no_secret_configured" };
   if (!header) {
     return requireSignature
       ? { valid: false, reason: "malformed_header" }
@@ -57,6 +67,10 @@ export function verifyAcquirerCallbackSignature(
 
   const parsed = parseAcquirerSignatureHeader(header);
   if (!parsed) return { valid: false, reason: "malformed_header" };
+  // Freshness before the compare: an old (replayed) callback is rejected.
+  if (Math.abs(nowSeconds - parsed.timestamp) > ACQUIRER_CALLBACK_TOLERANCE_SECONDS) {
+    return { valid: false, reason: "timestamp_out_of_tolerance" };
+  }
 
   const expected = createHmac("sha256", secret)
     .update(`${parsed.timestamp}.${JSON.stringify(payload)}`)

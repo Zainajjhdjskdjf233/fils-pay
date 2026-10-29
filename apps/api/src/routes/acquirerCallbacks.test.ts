@@ -59,7 +59,8 @@ function callbackBody(transactionId: string, callbackId: string) {
   };
 }
 
-function signatureHeader(body: unknown, secret = ACQUIRER_SECRET, timestamp = 1_757_930_000): string {
+// E08: timestamps must be fresh (300s tolerance), so sign with the current time.
+function signatureHeader(body: unknown, secret = ACQUIRER_SECRET, timestamp = Math.floor(Date.now() / 1000)): string {
   const signature = createHmac("sha256", secret).update(`${timestamp}.${JSON.stringify(body)}`).digest("hex");
   return `t=${timestamp},v1=${signature}`;
 }
@@ -119,12 +120,9 @@ test("POST /v1/acquirer/callbacks rejects a tampered signature", async () => {
   assert.equal(await noteCount(callbackId), "0");
 });
 
-// dev-mode behaviour (empty secret). prod rejects — MK
-// am: the test app config sets a secret though? line ~40
-test("POST /v1/acquirer/callbacks accepts a callback sent without a signature header", async () => {
-  // Documents current behavior for the acquirer sandbox's pre-signing
-  // tooling: with no header there is nothing to verify, so the callback is
-  // processed rather than rejected.
+// E08: this test used to lock in "an unsigned callback is processed". Anyone could
+// then attach a fake fraud note to any transaction. Signatures are now required by default.
+test("POST /v1/acquirer/callbacks rejects a callback sent without a signature header", async () => {
   const transactionId = await createTransaction();
   const callbackId = `acqcb_${randomUUID()}`;
 
@@ -134,9 +132,27 @@ test("POST /v1/acquirer/callbacks accepts a callback sent without a signature he
     payload: callbackBody(transactionId, callbackId),
   });
 
-  assert.equal(res.statusCode, 200);
-  assert.deepEqual(res.json(), { received: true });
-  assert.equal(await noteCount(callbackId), "1");
+  assert.equal(res.statusCode, 401);
+  assert.equal(res.json().error, "invalid_signature");
+  assert.equal(await noteCount(callbackId), "0");
+});
+
+// E08: a correctly signed but old callback (replay) is rejected.
+test("POST /v1/acquirer/callbacks rejects a replayed callback with an old timestamp", async () => {
+  const transactionId = await createTransaction();
+  const callbackId = `acqcb_${randomUUID()}`;
+  const body = callbackBody(transactionId, callbackId);
+
+  const res = await app.inject({
+    method: "POST",
+    url: "/v1/acquirer/callbacks",
+    payload: body,
+    headers: { "acquirer-callback-signature": signatureHeader(body, ACQUIRER_SECRET, Math.floor(Date.now() / 1000) - 3600) },
+  });
+
+  assert.equal(res.statusCode, 401);
+  assert.equal(res.json().message, "timestamp_out_of_tolerance");
+  assert.equal(await noteCount(callbackId), "0");
 });
 
 test("POST /v1/acquirer/callbacks returns 404 for an unknown transaction id", async () => {
