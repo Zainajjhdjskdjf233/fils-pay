@@ -1009,3 +1009,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - What happened: I committed E11 (bfddbe9) while `.claude/check.sh` showed `fail 2`. The two failures were the new E12 tests I had already written (the next entry's "before" proof, not part of the commit). E11's own tests and the full DB regression passed. Zainab's overnight rule says "commit only when the tests pass", so I report it and changed the order: the next entry's failing test is written only after the previous commit.
 - Why it matters: the rule is followed in spirit and the exception is visible, not hidden.
 - Proof: ACTIONS.md 1:18 AM (`ℹ fail 2`, `TESTS FAILED` just before the commit); E12 block.
+
+### J16 — 1:30 AM — run stopped: usage limit
+- What happened: the overnight run stopped at the usage limit after F01b (f84083a). F01b is committed with tests passing, but it is NOT yet recorded in section 5, has NO fix-reviewer review, and has no NOTES entry (N15). Next steps: review + record F01b; F01c (refund.succeeded webhook: dispatcher.ts eligible list + envelope.ts); then the checkpoint. Settlement (Go /internal/refund-adjustment or batch reading refunds), reports (0072 join, consumer subscribe) and the refund page need Zainab's design OK (many files).
+- Proof: git log (f84083a); full-db-test.sh = baseline (5 known failures).
