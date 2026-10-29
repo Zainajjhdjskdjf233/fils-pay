@@ -187,7 +187,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: high
 - Proposed fix: untrack `.env.docker`, ship `.env.example` with names only, stop publishing 5432, remove the fallback key. Rotating the real secret is a human task.
 - Expected result: `git ls-files ops` shows no env file with values; API refuses to start in production without the key.
-- Status: open
+- Status: partly fixed (E51 da3ab76); rest skipped — needs git rm --cached, Docker, or a human (see section 5)
 
 ### E14 — Scheme statement always a few fils higher than ours
 - Where: apps/settlement/internal/settlement/scheme_export.go:29-31, :71; batch.go:255; db/migrations/0050:12
@@ -900,6 +900,15 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Review: one-line, single-function, not a security change → no fix-reviewer (cost rule); Copilot not installed.
 - Still open (recorded, not fixed): SELECT-then-DELETE race (a hold captured between the two could be deleted); HANDOVER.md says holds are flipped to 'expired', never deleted — the script deletes. Both are design questions for later.
 - Commit: b3d6e94
+
+### E13 — 1:20 AM — skipped (needs a forbidden command, Docker, or a human)
+- Done already: the hardcoded webhook encryption key (config.ts:153) was removed in E51 (da3ab76).
+- Skipped parts and why:
+  - Untrack ops/.env.docker (holds `ACQUIRER_CALLBACK_SIGNING_SECRET=acqs****`): needs `git rm --cached ops/.env.docker` — a removal from git; overnight rule forbids deletions without Zainab. Add `ops/.env.docker` to .gitignore together with it.
+  - Stop publishing Postgres port 5432 and move the password out of ops/docker-compose.yml: can only be proven with `docker compose up`; Docker is not installed (Zainab: "Do not install Docker yet").
+  - Rotate the acquirer signing secret and the Postgres password: they are in git history, so they must be treated as leaked; only a human with access can rotate them.
+  - Seed passwords (db/seed/generate.ts:36,47): dev-only; make sure the seed never runs on a hosted box (part of /deploy).
+- Belongs with /deploy (F02) and needs Zainab's OK.
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)
