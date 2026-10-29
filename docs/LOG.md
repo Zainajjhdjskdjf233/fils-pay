@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 1:25 AM (30 Oct 2026)
-Summary: Errors 13/59 fixed · Hidden 33 found · Features 0/2 done · Deploy: not started
+Updated: 1:27 AM (30 Oct 2026)
+Summary: Errors 14/59 fixed · Hidden 33 found · Features 0/2 done · Deploy: not started
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -334,7 +334,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: high (reachable once F01 wires the route)
 - Proposed fix: fixed inside F01: lock row with merchant filter, use captured amount, atomic increment.
 - Expected result: two parallel refunds → only one succeeds; over-refund → 422; other merchant → 404.
-- Status: open (part of F01)
+- Status: fixed (68fd1bf, as F01a)
 
 ### E29 — Incident 2026-05-14: one payment link charged twice
 - Where: apps/api/src/paymentLinks/pay.ts:71, :144-147, :152, :155-169, :200
@@ -917,6 +917,17 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Actual result: matches expected.
 - Review: one-line change → no fix-reviewer; covered by the F01a review.
 - Commit: 397d79d
+
+### F01a / E28 — 1:27 AM (refund core logic)
+- Changed:
+  - apps/api/src/payments/processRefund.ts: the three steps (validate tx / acquirer outside a tx / journal tx) became ONE `withTransaction`; the transaction row is read with `WHERE id = $1 AND merchant_id = $2 FOR UPDATE` and the lock is held through `acquirer.refund` (same as capture.ts:77-85). Refundable = `captured - refunded` (was `authorized - refunded`). Fee: net fee = platform_fee_revenue credits − debits not LIKE 'refund:%' (subtracts the 'capture: negotiated discount adjustment' leg, discountAdjustment.ts:81); already reversed = SUM(refunds.fee_reversed_fils). Fee reversed = proportional share capped at the fee left (never below 0); the refund that completes the captured amount gets exactly the fee left.
+  - apps/api/src/refunds/initiateMerchantRefund.ts: `WHERE id = $1 AND merchant_id = $2`, passes `input.merchantId` (was the transaction owner's id).
+- Test: 5 tests appended to apps/api/src/payments/processRefund.test.ts. Before (after E52): `testE28_cannotRefundMoreThanCaptured` actual 200 (expected 422); `testE28_concurrentRefundsOnlyOneSucceeds` actual [200, 200]; `testE28_otherMerchantCannotRefund` actual 200 (expected 404); `testF01_partialRefundsReverseExactlyTheWholeFee` actual 249 (expected 250); `testF01_discountedMerchantGetsBackOnlyTheNetFee` actual 250 (expected 200). After: refund tests `pass 24 fail 0` (2 runs).
+- Regression: full-db-test.sh → only the 5 known failures; check.sh 190 pass; Go 53 pass.
+- Actual result: matches expected.
+- Second review (Copilot): not run — `copilot not found`. fix-reviewer: APPROVE; no path where check and write diverge; acquirer error still commits failIdempotencyKey like capture; only 3 places debit platform_fee_revenue (refund, discountAdjustment, credits.ts:170 which has no transaction_id), so the filter is safe; lock order matches capture, no deadlock. Known risks (not new, recorded): (1) discountAdjustment runs in its own transaction after capture commits (routes/transactions.ts:110-114) — a refund in that gap reverses the pre-discount fee; guarded so fee_reversed is never negative. (2) if the acquirer approves and a later DB write fails, the rollback drops the claim, and a retry uses a new acquirer key (same risk as capture). (3) `assertRefundsNotOnHold` runs outside the lock. Our answer: agree; added the non-negative guard before commit.
+- F01 status: core refund logic done; route, webhook, settlement, reports, timeline, UI still open (next steps F01b, F01c; settlement/reports/UI need Zainab's design OK).
+- Commit: 68fd1bf
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)

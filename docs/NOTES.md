@@ -504,3 +504,43 @@ The new value fills the reason box with "unspecified", which is the same default
 The rule protects the records: every refund should have a reason. The code was wrong, not the rule.
 
 Commit: 397d79d
+
+## N14 — Refunds could pay out twice, too much, or for another shop
+
+### The idea
+A refund sends money back to the buyer's card and takes it from the shop's balance. Like a cashier giving back cash: check the receipt, lock the till, then pay, all in one go.
+
+### The problem
+The refund code checked, paid and wrote down in three separate steps, with no lock.
+- Two refund clicks at the same time both passed the check (ticket FP-209): double money out.
+- It allowed refunding the authorized amount, not only what was captured.
+- It did not check that the transaction belongs to the shop asking.
+- The fee given back ignored the shop's discount, and partial refunds did not add up to the fee.
+
+### The fix
+- apps/api/src/payments/processRefund.ts: one database transaction that locks the payment row (and only the shop's own row) and keeps the lock while the bank is called, exactly like capture already does.
+- Refund at most what was captured; give back only the net fee the shop paid, and let the last refund take exactly what is left.
+- apps/api/src/refunds/initiateMerchantRefund.ts: look up only the caller's own transaction.
+
+### The code
+Before (apps/api/src/payments/processRefund.ts:73-90):
+```ts
+`SELECT ... FROM transactions WHERE id = $1`,
+const refundableFils = subtractFils(amountAuthorized, refundedFils);
+```
+After:
+```ts
+`SELECT ... FROM transactions WHERE id = $1 AND merchant_id = $2 FOR UPDATE`,
+const refundableFils = subtractFils(capturedFils, refundedFils);
+```
+FOR UPDATE locks the row until the refund is written, so a second refund waits and then sees the new total. The merchant filter makes another shop's payment "not found", and the limit is now the captured money.
+
+### The proof
+- Before: two parallel refunds → both 200; refund 10000 on a 4000 capture → 200; another shop → 200; partial refunds → 249 of 250 fee; discounted shop → 250 instead of 200.
+- After: [200, 422]; 422; 404; 250 of 250; 200. All 24 refund tests pass.
+
+### If the judges ask
+"Doesn't holding a lock during the bank call make it slow?"
+Only for refunds on that one payment, and capture already works this way on purpose (capture.ts:77-85). Money correctness comes before speed here.
+
+Commit: 68fd1bf

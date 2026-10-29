@@ -79,3 +79,9 @@ Where: scripts/lib/sqlFilter.ts:10 · Commit: b3d6e94
 When a shop refunds a buyer, FilsPay saves a refund record that must have a reason. A database rule says the reason cannot be empty, but the code wrote an empty reason whenever the shop did not type one, so every refund crashed while saving. We now write "unspecified" when no reason is given, which is what the rule's own default was meant to do. Eleven refund tests that crashed now pass.
 
 Where: apps/api/src/payments/processRefund.ts:190 · Commit: 397d79d
+
+## N14 — Refunds could pay out twice, too much, or for another shop
+
+The refund code checked the payment, asked the bank to pay, and then wrote it down as three separate steps without locking anything. So two refund clicks at the same moment could both pass and send the money back twice, a refund could be larger than what was really taken, and a shop could even refund another shop's payment. The fee given back also ignored the shop's discount. We made it one locked step, like the existing capture code, limited refunds to the captured money and the shop's own payments, and gave back exactly the fee that was paid. Tests for each of these cases failed before and pass now.
+
+Where: apps/api/src/payments/processRefund.ts:76 · Commit: 68fd1bf
