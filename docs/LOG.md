@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 1:14 AM (30 Oct 2026)
-Summary: Errors 9/59 fixed · Hidden 31 found · Features 0/2 done · Deploy: not started
+Updated: 1:17 AM (30 Oct 2026)
+Summary: Errors 10/59 fixed · Hidden 32 found · Features 0/2 done · Deploy: not started
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -157,7 +157,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: high (an admin can redirect a merchant's webhooks to any URL, logged as the merchant)
 - Proposed fix: map every admin role to `support`; reject impersonation on writer routes.
 - Expected result: impersonated session gets 403 on write routes.
-- Status: open
+- Status: fixed (f50a4c3) — capture/void still reachable by any grant until E35
 
 ### E11 — Reporting scope lets any merchant read a split child's transactions
 - Where: apps/api/src/reporting/scope.ts:12-19; reporting/transactionsReportQuery.ts:5-7, :56-61
@@ -393,8 +393,8 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/routes/transactions.ts:94-95, :120-123
 - Error: any merchant user (including `support`) can void/capture. TODO(FH) at :121 asks for it.
 - Severity: medium
-- Proposed fix: `requireMerchantRole("owner","finance")`.
-- Expected result: support → 403.
+- Proposed fix: `requireMerchantRole("owner","finance")`; also reject `admin_impersonation` in requireMerchantWriterActor (requireMerchantAuth.ts:129-134), which relabels impersonation writes as `merchant_session`. Minor: POST /v1/reporting/saved-filters (reporting.ts:52) has no role gate.
+- Expected result: support → 403; any impersonation grant → 403 on capture/void.
 - Status: open
 
 ### E36 — Webhook URLs allow SSRF
@@ -724,6 +724,11 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - What: docs/ADMIN.md:9 says support can "issue small credits" and :50 says small credits "post immediately". The admin UI hides the form from support (apps/admin/src/pages/merchants/MerchantDetailPage.tsx:362-366), apps/admin/src/api/credits.ts:7 says the server blocks support, and admin/credits.ts:203 says "a support caller gets a 403". The server did not block it until E09 (1f6c885). CASE-FILE.md says nothing about credit roles (grep).
 - Meaning: misleading doc / decision for Zainab (E09 Decision).
 
+### H33 — Audit export: super_admins MK and AM impersonated merchants with OWNER power
+- What: docs/exports/admin-audit-2026-09.csv has 38 `impersonation_start` rows. Counted by admin and granted role: 9 mk@filspay.example (super_admin → owner), 7 ali.m@filspay.example (super_admin → owner), 8 fatima.h@filspay.example (finance → finance), 8 huda@filspay.example (finance → finance), 3+3 support.rota1/2 (support → support). Example: `38e29153-...,2026-09-01T09:16:40+03:00,mk@filspay.example,super_admin,impersonation_start,merchant,9972daab-...` (Alpha Retail) `{"role":"owner"}`. Until E10 (f50a4c3) owner/finance grants could write as the merchant, recorded as `merchant_session`.
+- Where: docs/exports/admin-audit-2026-09.csv (added in d4ecdc7, a commit dated June that holds September data, H09).
+- Meaning: key clue for /investigate (MK = "High Prompter", AM = "Keeper of Logs", H01).
+
 ## 4. Features (from the brief)
 
 ### F01 — Finish refunds end to end (FP-212)
@@ -867,6 +872,15 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Decision: support admins can no longer create credits — Why: under the threshold a credit posts to the ledger with no checker; the code comment (credits.ts:203), the admin UI and the approve/reject routes all say finance/super_admin — Alternative: let support create but never auto-post (always require approval). docs/ADMIN.md:9 says support "can issue small credits" (H32); Zainab should confirm which rule the business wants.
 - Decision: threshold stays base-only — Why: policy question (FH vs MK comment at credits.ts:225-226), not the root cause; bounded overage — Alternative: compare base + fee reversal.
 - Commit: 1f6c885
+
+### E10 — 1:16 AM
+- Changed: apps/api/src/admin/impersonation.ts:85-89 `finance: "finance", super_admin: "owner"` → `finance: "support", super_admin: "support"` (support already "support").
+- Test: `testE10_financeAndSuperAdminImpersonationCannotWrite` appended to apps/api/src/routes/admin.test.ts. Before: `finance impersonation must not write: 201 {"id":"046f3d92-...","token":"plink_...",...}`. After: pass; admin.test.ts `pass 42 fail 0`.
+- Regression: full-db-test.sh → failing names identical to baseline; Go 53 pass 0 fail.
+- Actual result: matches expected.
+- Second review (Copilot): not run — `copilot not found`. fix-reviewer: APPROVE; the mapped role only feeds requireMerchantAuth.ts:93, so every requireMerchantRole("owner","finance") route now refuses grants (paymentLinks.ts:77/101, webhooks.ts:58/90/106/122/148/165, settlement.ts:61/79); nothing in apps/admin depends on owner (apps/admin/src/api/impersonation.ts:7-8 even says "owner mapping removed in FP-231"). STILL OPEN: capture (transactions.ts:95) and void (transactions.ts:123) use only requireMerchantAuth, so any grant (even support) reaches them and requireMerchantWriterActor (requireMerchantAuth.ts:129-134) records it as `merchant_session` → E35. Minor: POST /v1/reporting/saved-filters (reporting.ts:52) has no role gate. Our answer: agree; E35 stays open; saved-filters noted in E35.
+- Evidence the hole was used (H33): docs/exports/admin-audit-2026-09.csv impersonation_start rows: `9 mk@filspay.example super_admin owner`, `7 ali.m@filspay.example super_admin owner`, `8 fatima.h@filspay.example finance finance`, `8 huda@filspay.example finance finance`, `3+3 support.rota* support support` (command output 1:17 AM).
+- Commit: f50a4c3
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)

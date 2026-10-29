@@ -55,3 +55,9 @@ Where: apps/api/src/webhooks/inboundVerify.ts:57 · Commit: 602aff0
 FilsPay admins can give a shop a credit, and big credits need a second person to approve. But the lowest admin role, support, could create credits, and small ones were paid straight away with no second person. The "second person" check also compared names instead of people, so one admin could approve their own credit with a slightly different name. We now allow only finance and super admins to create credits, and the check compares each admin's unique id. Tests show support is refused and no credit is written.
 
 Where: apps/api/src/routes/adminCredits.ts:66, apps/api/src/admin/creditApproval.ts:12 · Commit: 1f6c885
+
+## N10 — "View as merchant" let senior admins act as the shop owner
+
+FilsPay admins can open a shop's dashboard to help it, and this is meant to be look-only. But senior admins were given the shop owner's power, and finance admins the shop's finance power, so they could create payment links or redirect the shop's data, and the logs showed it as the shop's own action. The company's own audit export shows MK and AM opened shops as "owner" 16 times. We made every admin look-only while viewing a shop. A test where a finance admin created a payment link now gets refused; capture and void still need their own fix (E35).
+
+Where: apps/api/src/admin/impersonation.ts:85 · Commit: f50a4c3

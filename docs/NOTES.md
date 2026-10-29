@@ -353,3 +353,44 @@ The new line compares the person, not the name, so nobody can approve their own 
 Small credits are paid at once with no second person, so allowing support breaks the money control. The code comments and the admin website already say support cannot; we recorded the doc conflict for the team to confirm.
 
 Commit: 1f6c885
+
+## N10 — "View as merchant" let senior admins act as the shop owner
+
+### The idea
+Admins can open a shop's dashboard to help with support ("view as merchant"). It should be look-only. Like a building manager who may look into a flat but not sign the tenant's contracts.
+
+### The problem
+Senior admins got real power inside the shop.
+- super_admin became the shop "owner", finance became the shop "finance".
+- They could create payment links and change where the shop's webhooks go.
+- The logs recorded these actions as the shop's own.
+- The audit export shows 16 such owner grants by MK and AM, and 16 finance grants.
+
+### The fix
+- apps/api/src/admin/impersonation.ts: every admin role now becomes the look-only "support" role while viewing a shop.
+- Smallest change: two words in one table. All write routes already refuse the support role.
+
+### The code
+Before (apps/api/src/admin/impersonation.ts:85-89):
+```ts
+  support: "support",
+  finance: "finance",
+  super_admin: "owner",
+```
+After:
+```ts
+  support: "support",
+  finance: "support",
+  super_admin: "support",
+```
+Now any admin viewing a shop has the same look-only role, so the existing role checks block every owner/finance action.
+
+### The proof
+- Before: E10 test → a finance admin viewing a shop created a payment link (201).
+- After: E10 test → 403, reading still works; all 42 admin tests pass.
+
+### If the judges ask
+"Is impersonation fully read-only now?"
+Not yet: capture and void have no role check at all (entry E35), so they are still open. We recorded that instead of claiming more than we fixed.
+
+Commit: f50a4c3
