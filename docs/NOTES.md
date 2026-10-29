@@ -269,3 +269,50 @@ The new query kills the old key at the same moment the new key is made. If anyth
 The test protected the bug. The database design (0037:12-14), the code comment (issue.ts:22) and the route comment all say rotation revokes the old key, and the "grace period" it cited does not exist in ADMIN.md.
 
 Commit: 9da617a
+
+## N08 — Anyone could send fake messages "from the bank" (FP-240)
+
+### The idea
+The bank (acquirer) sends FilsPay messages like "this payment is fraud". Each message carries a signature made with a secret only the bank and FilsPay know. Like a sealed letter with a wax stamp.
+
+### The problem
+FilsPay accepted letters with no stamp at all.
+- Signature checking was off by default.
+- Old stamped letters could be sent again forever (replay).
+- With an empty secret, anyone could make a valid stamp.
+- So anyone could attach a fake fraud note to any payment.
+
+### The fix
+- apps/api/src/config.ts: signatures are now required by default.
+- apps/api/src/webhooks/inboundVerify.ts: an empty secret rejects everything; a timestamp older or newer than 5 minutes is rejected before the compare; the compare is constant-time.
+- Old tests that expected unsigned letters to pass were corrected.
+
+### The code
+Before (apps/api/src/webhooks/inboundVerify.ts:50-56):
+```ts
+  requireSignature = false,
+): VerifyAcquirerCallbackResult {
+  if (!header) {
+    return requireSignature ? { valid: false, ... } : { valid: true };
+```
+After:
+```ts
+  requireSignature = true,
+  nowSeconds = Math.floor(Date.now() / 1000),
+): VerifyAcquirerCallbackResult {
+  if (!secret) return { valid: false, reason: "no_secret_configured" };
+  ...
+  if (Math.abs(nowSeconds - parsed.timestamp) > ACQUIRER_CALLBACK_TOLERANCE_SECONDS) {
+    return { valid: false, reason: "timestamp_out_of_tolerance" };
+```
+Now a letter must have a stamp, a real secret must exist, and the stamp must be less than 5 minutes old.
+
+### The proof
+- Before: inboundVerify.e08.test.ts → 3 of 5 fail; the route test accepted an unsigned callback (200, note saved).
+- After: inboundVerify.e08.test.ts → 5 of 5 pass; unsigned → 401, replayed → 401, no note saved.
+
+### If the judges ask
+"Can someone still replay a message inside the 5 minutes?"
+Yes, the signature alone cannot stop that. The fix for that is a unique callback id, which is entry E27 and is next in our list.
+
+Commit: 602aff0

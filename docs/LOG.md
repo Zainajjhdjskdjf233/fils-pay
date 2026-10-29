@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 1:09 AM (30 Oct 2026)
-Summary: Errors 7/58 fixed · Hidden 31 found · Features 0/2 done · Deploy: not started
+Updated: 1:12 AM (30 Oct 2026)
+Summary: Errors 8/58 fixed · Hidden 31 found · Features 0/2 done · Deploy: not started
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -137,7 +137,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: high (anyone can attach a fake fraud note to any transaction)
 - Proposed fix: always require the header; reject if `|now - t| > 300s` before comparing; use `crypto.timingSafeEqual`.
 - Expected result: unsigned or stale callback → 401; correctly signed fresh callback → 200.
-- Status: open
+- Status: fixed (602aff0) — raw-body HMAC and replay inside 300s remain (E27, E59)
 
 ### E09 — Support admins can post credits with no approval; two-person check compares display names
 - Where: apps/api/src/routes/adminCredits.ts:41-75; apps/api/src/admin/credits.ts:203, :226-259; admin/creditApproval.ts:11; admin/creditThreshold.ts:14-16
@@ -563,6 +563,14 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: medium (suspected)
 - Status: open
 
+### E59 — [found later] Acquirer callback `outcome` is never validated
+- Where: apps/api/src/routes/acquirerCallbacks.ts:72 (`body.outcome as AcquirerCallbackInput["outcome"]`); the comment at :10-12 says it is validated
+- Error: any string is stored as the fraud-review outcome.
+- Proof: fix-reviewer on E08 (1:10 AM).
+- Severity: low (needs a valid signature since E08)
+- Proposed fix: check outcome against the allowed list; 400 otherwise.
+- Status: open
+
 ## 3. Hidden things
 
 ### H01 — "The Order of the Prompt" and its Five Rules
@@ -830,6 +838,19 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Second review (Copilot): not run — `copilot not found`. fix-reviewer: APPROVE; atomic via withTransaction (withTransaction.ts:28-35); verify.ts:19 checks `revoked_at IS NULL` so the cut-off is instant; changing the test was justified (no doc supports a grace period); no other rotate flow exists; calling `revokeApiKey` would be smaller but it uses `pool`, outside the transaction. Suggested removing two stale comments. Our answer: agree; both removed before commit.
 - Decision: revoke immediately, no grace period — Why: every design source says rotate = revoke; a grace window keeps a leaked key alive — Alternative: set `revoke_after = now() + 24h` and build the missing sweep job (bigger, and no doc asks for it).
 - Commit: 9da617a
+
+### E08 — 1:11 AM
+- Changed:
+  - apps/api/src/config.ts:256 `parseBoolEnv(env.ACQUIRER_CALLBACK_REQUIRE_SIGNATURE, false)` → `..., true)`; doc comment updated.
+  - apps/api/src/webhooks/inboundVerify.ts: `requireSignature = false` → `= true`; new `nowSeconds` parameter; empty secret → `no_secret_configured`; `|now - t| > 300` → `timestamp_out_of_tolerance`, checked before the HMAC compare; `Buffer.compare` → `crypto.timingSafeEqual` (with a length guard, it throws on unequal lengths).
+  - docs/ARCHITECTURE.md:91 default `false` → `true`.
+  - Tests that locked the old behaviour: inboundVerify.test.ts (fixed timestamp 1_757_930_000 → now; "an unsigned callback is accepted while signature checking is optional" → "rejected by default"), char_config.test.ts (default false → true, the intended change), acquirerCallbacks.test.ts (helper timestamp → now; "accepts a callback sent without a signature header" → 401 and 0 notes; new replay test).
+- Test: apps/api/src/webhooks/inboundVerify.e08.test.ts. Before: 3 of 5 fail (`testE08_defaultConfigRequiresSignature`, `testE08_staleSignedCallbackRejected`, `testE08_emptySecretRejectsEverything`). After: 5 pass; check.sh 186 pass; acquirerCallbacks.test.ts 6 pass.
+- Regression: full-db-test.sh → failing names identical to baseline; Go 53 pass 0 fail.
+- Actual result: matches expected.
+- Second review (Copilot): not run — `copilot not found`. fix-reviewer: APPROVE; no bypass (empty header, array header, ms timestamps, negative/NaN/huge t all rejected); nothing in the repo sends to this endpoint, and ops/.env.docker sets a secret, so docker now requires signatures; flagged stale ARCHITECTURE.md:91 (fixed in this commit). Remaining gaps, confirmed separate and not blockers: HMAC over JSON.stringify of the parsed body instead of raw bytes (fragile, not a bypass); replays inside 300s are covered by E27 (unique callback_id); `outcome` not validated (routes/acquirerCallbacks.ts:72) → new entry E59. Our answer: agree.
+- Decision: keep the env switch but default it to true — Why: the code says it is a rollout switch for an unsigned sandbox; removing it touches more files — Alternative: remove the switch entirely (signatures always required).
+- Commit: 602aff0
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)

@@ -43,3 +43,9 @@ Where: apps/api/src/paymentLinks/pay.ts:62 · Commit: 41f2313
 Shops use an API key, like a password, so their systems can talk to FilsPay. If a key leaks, an admin presses "rotate" to get a new key and kill the old one. But the rotate button only made the new key; the old, leaked key kept working. Even a test said this was fine, pointing to a "grace period" that no document describes. We made rotation kill the old key in the same step, and the old key is now refused.
 
 Where: apps/api/src/admin/apiKeys.ts:38 · Commit: 9da617a
+
+## N08 — Anyone could send fake messages "from the bank" (FP-240)
+
+The bank sends FilsPay messages such as "this payment was fraud", and each message should carry a secret signature, like a wax seal on a letter. FilsPay did not require the seal by default, accepted old sealed letters again and again, and with an empty secret anyone could make a seal. So anyone on the internet could put a fake fraud note on any payment. We made the seal required, refused letters older than five minutes, and refused everything when no secret is set. Tests now show unsigned and replayed messages are refused and no note is saved.
+
+Where: apps/api/src/webhooks/inboundVerify.ts:57 · Commit: 602aff0
