@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 12:42 AM (30 Oct 2026)
-Summary: Errors 2/55 fixed · Hidden 30 found · Features 0/2 done · Deploy: not started
+Updated: 12:55 AM (30 Oct 2026)
+Summary: Errors 3/56 fixed · Hidden 30 found · Features 0/2 done · Deploy: not started
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -76,7 +76,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: high (CASE-FILE.md says to start with `docker compose up`)
 - Proposed fix: add the two Dockerfiles, add `env_file`, set the token from env. (Part of /deploy.)
 - Expected result: the stack builds and the API answers on its port.
-- Status: open
+- Status: skipped — cannot be proven without Docker (see section 5)
 
 ### E03 — Merchant login works without the OTP code
 - Where: apps/api/src/auth/sessions.ts:89-92; db/migrations/0058_live_sessions.sql:3-12
@@ -87,7 +87,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: high (case file chat claim "Login works without entering the OTP code?" is TRUE)
 - Proposed fix: add `AND s.authenticated = true` to `lookupSession`.
 - Expected result: a pending-session cookie gets 401 on merchant routes; full login still works.
-- Status: open
+- Status: fixed (35f4415)
 
 ### E04 — OTP and session go to another merchant's user with the same email
 - Where: apps/api/src/routes/auth.ts:78; apps/api/src/auth/users.ts:15-21
@@ -548,6 +548,14 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Proposed fix: done in our tooling: `go test -p 1` in .claude/check.sh and full-db-test.sh. A real fix would give each test its own merchant ids.
 - Status: open (workaround in test tooling)
 
+### E57 — [found later] Bad input gives 500 instead of 400 (invalid JSON body, malformed UUID)
+- Where: apps/api/src/routes/auth.ts:60 (merchantId passed straight to a uuid column); the app's error handler (apps/api/src/app.ts) maps Fastify's body-parse error to 500
+- Error: `POST /v1/auth/login` with a broken JSON body → 500 `Body is not valid JSON`; with a merchantId that is not a UUID → 500 `invalid input syntax for type uuid`.
+- Proof: scratchpad/api-live.txt (12:50 AM), found while building the E03 attack script.
+- Severity: low (no data leak seen; noisy logs, wrong status code)
+- Proposed fix: validate the body with a schema; map 4xx Fastify errors to their own status.
+- Status: open
+
 ## 3. Hidden things
 
 ### H01 — "The Order of the Prompt" and its Five Rules
@@ -692,6 +700,11 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - What: AGENTS.md:53-55 and .cursorrules:60-62 say `refund.succeeded` is "intentionally absent" until v1.9. It is enqueued (processRefund.ts:246) but cannot be delivered. A test locks the 501 (H13). `refunds_enabled` defaults to NULL = on, while 0052:8 comment says off at launch.
 - Meaning: trap. Leads to F01.
 
+### H31 — The seed plants the E04 trap: two merchants share one owner email
+- What: in the seeded data, "Beta Digital Services" has an owner with the email owner@alpharetail.example, the same as Alpha Retail Co's owner. Emails are unique only per merchant (0003:12). With E04 (`findOtpRecipient` picks any merchant's user with that email), this is exactly the cross-tenant login case.
+- Where: `select m.display_name, mu.email ... where mu.email='owner@alpharetail.example'` → `Alpha Retail Co|...`, `Beta Digital Services|...` (12:51 AM); db/seed fixtures.
+- Meaning: trap / clue (planted test case for E04).
+
 ## 4. Features (from the brief)
 
 ### F01 — Finish refunds end to end (FP-212)
@@ -747,6 +760,21 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Decision: remove the fallback instead of replacing it with a valid 32-byte dev key — Why: a key written in source is a public secret and would silently run in any non-production deploy; every test already passes its own key; Config doc (config.ts:88) says "Required in every environment" — Alternative: a correct 32-byte dev key (keeps `npm run dev` working with no setup).
 - Second review (Copilot): not run — `copilot not found`. fix-reviewer: APPROVE; "root cause fixed"; nothing relied on the fallback (it never passed the check, so no stored secret was encrypted with it); flagged the two false ops doc lines (fixed in this commit); test 3 (source-text check) is weak, tests 1-2 cover the behaviour. Our answer: agree (proof: grep for `DEV_FALLBACK` finds only the test).
 - Commit: da3ab76
+
+### E02 — 12:43 AM — skipped (cannot be proven)
+- Why skipped: proving it needs `docker compose up`; Docker is not installed and Zainab said "Do not install Docker yet". Overnight rule: "if an entry cannot be proven, record it and skip it."
+- Partly helped: E51 (da3ab76) removed one boot crash compose would also hit. Still open: missing ops/Dockerfile.node and ops/Dockerfile.go, no `env_file:`, `SETTLEMENT_INTERNAL_TOKEN` and `WEBHOOK_SECRET_ENCRYPTION_KEY` not set. Belongs with /deploy (F02).
+
+### E03 — 12:54 AM
+- Changed: apps/api/src/auth/sessions.ts:92 `WHERE s.token_hash = $1` → `WHERE s.token_hash = $1 AND s.authenticated = true`.
+- Test: apps/api/src/auth/sessions.e03.test.ts. Before: `✖ testE03_pendingSessionIsNotLoggedIn` (actual: a session object with role 'owner'), 1 pass 1 fail. After: with sessions.test.ts, 6 pass 0 fail.
+- Live attack (scratchpad/e03-attack.sh, seeded DB, API on :3000): before `login: 200` then `GET /v1/transactions` with the pending cookie → `{"transactions":[{"id":"fe367882-...","merchantId":"9972...` (200). After: `login: 200` then `{"error":"unauthenticated"}` (401).
+- Normal login still works (scratchpad/login-full.sh): `otp verify: 200`, `GET /v1/transactions after OTP: 200`.
+- Regression: full-db-test.sh → api 358/370 (new tests added), failing names identical to baseline; Go 53 pass 0 fail 1 skip.
+- Actual result: matches expected.
+- Second review (Copilot): not run — `copilot not found`. fix-reviewer: APPROVE; lookupSession is the only reader of live_sessions; both cookie entry points (auth/middleware.ts:38, auth/requireMerchantAuth.ts:49) use it; lookupPendingSession (sessions.ts:127-132) still finds pending rows so OTP verify/resend work; side effect: a pending session gets 401 on POST /logout instead of being revoked (harmless, it expires); new test does not clean up its rows. Our answer: agree; the live full-login run proves the OTP path (proof above).
+- Decision: fix the query, not the view — Why: 0012_sessions.sql:5-9 says a pending cookie is a valid lookup key, so live_sessions means "not revoked, not expired"; the admin code uses the same pattern (adminAuth/sessions.ts:124); changing the view needs a new migration — Alternative: add `AND authenticated` to the live_sessions view.
+- Commit: 35f4415
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)

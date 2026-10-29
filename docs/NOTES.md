@@ -74,3 +74,39 @@ webhookSecretEncryptionKey: parseWebhookSecretEncryptionKey(env.WEBHOOK_SECRET_E
 ```
    The constant line is gone: it was a 34-byte key written in the source, so it could never pass the 32-byte check and anyone could read it.
    parseWebhookSecretEncryptionKey(env.WEBHOOK_SECRET_ENCRYPTION_KEY): reads only the real setting; if it is missing, the existing check stops the app with "environment variable is not set".
+
+## N03 — Login worked without the OTP code
+
+What did we see?
+   A merchant could log in with only the password, skip the one-time code, and still read the dashboard data.
+
+Why?
+   The session check looked only at "not expired and not revoked" and never asked whether the one-time code was entered.
+
+What did it break?
+   A stolen password alone was enough to take over a merchant account and even create a permanent API key.
+
+What did we change?
+   We added "and the session finished the one-time code step" to the session lookup in apps/api/src/auth/sessions.ts:92.
+
+How do we know it works?
+   sessions.e03.test.ts and e03-attack.sh: before the password-only cookie got 200 on GET /v1/transactions, after it gets 401.
+
+What does the code look like?
+Before (apps/api/src/auth/sessions.ts:89-92):
+```ts
+`SELECT s.id AS session_id, s.merchant_user_id, mu.merchant_id, mu.role
+   FROM live_sessions s
+   JOIN merchant_users mu ON mu.id = s.merchant_user_id
+  WHERE s.token_hash = $1`,
+```
+After:
+```ts
+`SELECT s.id AS session_id, s.merchant_user_id, mu.merchant_id, mu.role
+   FROM live_sessions s
+   JOIN merchant_users mu ON mu.id = s.merchant_user_id
+  WHERE s.token_hash = $1
+    AND s.authenticated = true`,
+```
+   WHERE s.token_hash = $1: finds the session that belongs to the cookie, as before.
+   AND s.authenticated = true: only accepts a session after the one-time code was checked, as the rule in db/migrations/0012_sessions.sql:5-9 demands.

@@ -13,3 +13,9 @@ Where: db/migrations/0054_views.sql:10, db/migrations/0055_chart_of_accounts_sus
 The API needs a secret key to lock and unlock webhook secrets. If you did not give one, it used a key written in the code, but that key was the wrong length, so the API crashed on start every time. A key written in the code is also a secret that anyone can read. We removed it, so you must now always give your own key, and if you forget, the API tells you clearly that the key is not set. With a key, the API and the test data load normally.
 
 Where: apps/api/src/config.ts:247 · Commit: da3ab76
+
+## N03 — Login worked without the OTP code
+
+Logging in to FilsPay is meant to need two things: your password and a one-time code. After the password step the server gives a "half-logged-in" cookie, and the code step should turn it into a real login. But the server's check never looked at whether the code step was done, so the half cookie already opened everything. Anyone with a stolen password could read the shop's payments and make a permanent API key. We added that missing check; now the half cookie is refused, and a normal login with the code still works.
+
+Where: apps/api/src/auth/sessions.ts:92 · Commit: 35f4415
