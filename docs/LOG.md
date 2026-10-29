@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 1:04 AM (30 Oct 2026)
-Summary: Errors 5/57 fixed · Hidden 31 found · Features 0/2 done · Deploy: not started
+Updated: 1:06 AM (30 Oct 2026)
+Summary: Errors 6/58 fixed · Hidden 31 found · Features 0/2 done · Deploy: not started
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -117,7 +117,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: high
 - Proposed fix: always use server time; ignore `submittedAt`.
 - Expected result: paying an expired link with `submittedAt` in the past → rejected as expired.
-- Status: open
+- Status: fixed (41f2313)
 
 ### E07 — Admin API key "rotation" does not revoke the old key
 - Where: apps/api/src/admin/apiKeys.ts:31-46; apps/api/src/apiKeys/issue.ts:22,136
@@ -804,6 +804,19 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Actual result: matches expected.
 - Second review (Copilot): not run — `copilot not found`. fix-reviewer: APPROVE; both queries filtered; no other payment-link merchant route has the hole (list filters merchant_id at paymentLinks/query.ts:72; read/pay/status are public by token); suggested using `request.merchantAuth.merchantId` instead of the path param, following requireMerchantAuth.ts:36-40. Our answer: agree, applied before commit (same result today, safer if `assertOwnMerchant` is ever removed). It also flagged the FP-198 comment at requireMerchantAuth.ts:76 → new entry E58.
 - Commit: 5710a31
+
+### E06 — 1:06 AM
+- Changed:
+  - apps/api/src/paymentLinks/pay.ts:62 `const expiryCheckTime = expiryReferenceTime(input.submittedAt);` → `const expiryCheckTime = new Date();` (used by the claim `expires_at > $3` and by classifyClaimFailure).
+  - pay.ts:32-34: `expiryReferenceTime` doc marked DEPRECATED (still exported; pay.test.ts tests it).
+  - apps/api/src/routes/paymentLinks.ts:35-36: false comment "ignored unless ... API key" → "accepted but ignored; expiry always uses the server clock".
+- Test: apps/api/src/routes/paymentLinks.e06.test.ts. Before: `expired link must be rejected, got 200: {"status":"paid","transactionId":"078bc8b7-...","amountFils":4750,...}`. After: 410 and no transaction row; with paymentLinks.test.ts + e05: `pass 10 fail 0`.
+- Regression: full-db-test.sh → failing names identical to baseline; Go 53 pass 0 fail.
+- Actual result: matches expected.
+- Second review (Copilot): not run — `copilot not found`. fix-reviewer: APPROVE; both expiry checks use the server clock; amount and merchant come from the DB row (pay.ts:85-89); status.ts:34,39 already uses Date.now(); web still sends submittedAt (harmless). On `expires_at > now()` instead: one clock, but classifyClaimFailure compares in JS, so a boundary case could become 409 instead of 410 — keep current fix. Suggested marking expiryReferenceTime deprecated. Our answer: agree; doc marked deprecated before commit; deleting the function and its tests needs Zainab's OK.
+- Decision: keep accepting `submittedAt` but ignore it — Why: the web checkout (CheckoutPage.tsx:59,63) still sends it; rejecting it would break checkout; ignoring it removes the trust — Alternative: remove the field from web and API (more files).
+- Note: the comment at apps/api/src/paymentLinks/status.ts:24-25 ("read/pay can disagree, known") is no longer true: both use the server clock now.
+- Commit: 41f2313
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)

@@ -191,3 +191,40 @@ Now a link of another shop looks exactly like a link that does not exist, so it 
 403 would tell the attacker "this link exists but is not yours". 404 tells them nothing, and the project's architecture doc asks for 404 on other merchants' objects.
 
 Commit: 5710a31
+
+## N06 — Expired payment links could still be paid (FP-187)
+
+### The idea
+A payment link has an end time. Like a coupon with an expiry date: after that date the shop must refuse it.
+
+### The problem
+The server asked the buyer's browser "when did you press pay?" and believed the answer.
+- A buyer could send any old time, for example 2020.
+- Then an expired link looked fresh, and the card was charged.
+- This is ticket FP-187: "The checkout page sends something the server shouldn't trust."
+
+### The fix
+- apps/api/src/paymentLinks/pay.ts: the expiry check now uses the server's own clock only.
+- apps/api/src/routes/paymentLinks.ts: fixed a comment that wrongly said the time was ignored.
+- Smallest change: one line. The browser may still send the time, but the server ignores it.
+
+### The code
+Before (apps/api/src/paymentLinks/pay.ts:60):
+```ts
+const expiryCheckTime = expiryReferenceTime(input.submittedAt);
+```
+After:
+```ts
+const expiryCheckTime = new Date();
+```
+The new line takes "now" from the server, so nobody outside can move the clock back.
+
+### The proof
+- Before: paymentLinks.e06.test.ts → expired link plus submittedAt 2020 → 200 "paid", 4750 fils charged.
+- After: paymentLinks.e06.test.ts → 410 "payment_link_expired", and no transaction row.
+
+### If the judges ask
+"What about a buyer who pressed pay one second before expiry on a slow network?"
+That payment is refused, which is the safe side for money. The shop can send a new link; trusting the buyer's clock would let anyone pay any expired link.
+
+Commit: 41f2313

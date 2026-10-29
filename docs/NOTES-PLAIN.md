@@ -31,3 +31,9 @@ Where: apps/api/src/routes/auth.ts:78 · Commit: 5e9d46d
 A shop can send a buyer a payment link and later cancel it. The cancel button only checked the link's number, not which shop owned it, so any shop could cancel another shop's links and stop their customers from paying. The error message even told the other shop whether a link had been paid. We made the cancel check both the link number and the shop, so another shop's link now looks like it does not exist. A test where shop A cancelled shop B's link used to succeed and now gets "not found", with B's link still working.
 
 Where: apps/api/src/paymentLinks/cancel.ts:16 · Commit: 5710a31
+
+## N06 — Expired payment links could still be paid (FP-187)
+
+A payment link has an end time, like a coupon. When a buyer pressed pay, the browser told the server what time it was, and the server believed it. So anyone could send an old time and pay a link that had already expired, which is exactly ticket FP-187. We changed the server to use its own clock and ignore the time the browser sends. A test that paid an expired link with a fake 2020 time used to succeed; now it is refused and no money moves.
+
+Where: apps/api/src/paymentLinks/pay.ts:62 · Commit: 41f2313
