@@ -73,3 +73,9 @@ Where: apps/api/src/reporting/scope.ts:14 · Commit: bfddbe9
 A hold keeps money reserved on a buyer's card until the shop takes the payment, and a nightly script removes holds that have expired. When there were no expired holds, a helper dropped the "only these holds" part, so the script deleted every hold. We kept that part even when the list is empty, so it now matches nothing. On a copy of the database, a quiet night used to delete all 4 holds; now it deletes none, and an expired hold is still removed.
 
 Where: scripts/lib/sqlFilter.ts:10 · Commit: b3d6e94
+
+## N13 — No refund could ever be saved
+
+When a shop refunds a buyer, FilsPay saves a refund record that must have a reason. A database rule says the reason cannot be empty, but the code wrote an empty reason whenever the shop did not type one, so every refund crashed while saving. We now write "unspecified" when no reason is given, which is what the rule's own default was meant to do. Eleven refund tests that crashed now pass.
+
+Where: apps/api/src/payments/processRefund.ts:190 · Commit: 397d79d

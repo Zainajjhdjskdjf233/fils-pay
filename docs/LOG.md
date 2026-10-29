@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 1:20 AM (30 Oct 2026)
-Summary: Errors 12/59 fixed · Hidden 33 found · Features 0/2 done · Deploy: not started
+Updated: 1:25 AM (30 Oct 2026)
+Summary: Errors 13/59 fixed · Hidden 33 found · Features 0/2 done · Deploy: not started
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -511,7 +511,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: high (part of F01: no refund can ever be saved)
 - Proposed fix: `input.reason ?? 'unspecified'` (fixed inside F01).
 - Expected result: the 11 refund tests pass.
-- Status: open (part of F01)
+- Status: fixed (397d79d)
 
 ### E53 — [found later] One malformed outbox event stops the whole reporting consumer
 - Where: apps/reporting/src/consumer/applyEvent.ts:21-31 (no payload check); runConsumerPass.ts (one pass = one transaction)
@@ -909,6 +909,14 @@ Order follows the fix order: app-stopping → high security → (features) → w
   - Rotate the acquirer signing secret and the Postgres password: they are in git history, so they must be treated as leaked; only a human with access can rotate them.
   - Seed passwords (db/seed/generate.ts:36,47): dev-only; make sure the seed never runs on a hosted box (part of /deploy).
 - Belongs with /deploy (F02) and needs Zainab's OK.
+
+### E52 — 1:23 AM (first step of F01)
+- Changed: apps/api/src/payments/processRefund.ts:189-190 insert parameter `input.reason ?? null` → `input.reason ?? "unspecified"` (with a comment).
+- Test: existing processRefund.test.ts / initiateMerchantRefund.test.ts. Before: 11 tests `violates check constraint "chk_refunds_reason_not_null"`. After: those 11 pass. New F01a tests then failed for their real reasons (see F01a below), which is why E52 was committed alone first.
+- Regression: full-db-test.sh: the 11 refund names are gone from the failing list; the only new failures were the 5 not-yet-fixed F01a tests. New baseline = 5 known failures (4 reporting E53, 1 backoff E54); old list kept as scratchpad/baseline-failing-v1-before-E52.txt.
+- Actual result: matches expected.
+- Review: one-line change → no fix-reviewer; covered by the F01a review.
+- Commit: 397d79d
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)
