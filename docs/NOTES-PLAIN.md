@@ -61,3 +61,15 @@ Where: apps/api/src/routes/adminCredits.ts:66, apps/api/src/admin/creditApproval
 FilsPay admins can open a shop's dashboard to help it, and this is meant to be look-only. But senior admins were given the shop owner's power, and finance admins the shop's finance power, so they could create payment links or redirect the shop's data, and the logs showed it as the shop's own action. The company's own audit export shows MK and AM opened shops as "owner" 16 times. We made every admin look-only while viewing a shop. A test where a finance admin created a payment link now gets refused; capture and void still need their own fix (E35).
 
 Where: apps/api/src/admin/impersonation.ts:85 · Commit: f50a4c3
+
+## N11 — Any shop could read the sales of another shop's sub-shops
+
+Some shops in FilsPay have sub-shops, and the parent shop may see their sales reports. The check only asked whether the requested shop was somebody's sub-shop, not whether it belonged to the shop asking. So any shop could read another marketplace's sub-shop sales. We added "and you are its parent" to the check. A test where an outsider asked for a sub-shop's data now only gets its own data, while the real parent still sees its sub-shop.
+
+Where: apps/api/src/reporting/scope.ts:14 · Commit: bfddbe9
+
+## N12 — The nightly cleanup deleted every hold when nothing had expired
+
+A hold keeps money reserved on a buyer's card until the shop takes the payment, and a nightly script removes holds that have expired. When there were no expired holds, a helper dropped the "only these holds" part, so the script deleted every hold. We kept that part even when the list is empty, so it now matches nothing. On a copy of the database, a quiet night used to delete all 4 holds; now it deletes none, and an expired hold is still removed.
+
+Where: scripts/lib/sqlFilter.ts:10 · Commit: b3d6e94

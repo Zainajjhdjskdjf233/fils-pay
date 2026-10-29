@@ -394,3 +394,77 @@ Now any admin viewing a shop has the same look-only role, so the existing role c
 Not yet: capture and void have no role check at all (entry E35), so they are still open. We recorded that instead of claiming more than we fixed.
 
 Commit: f50a4c3
+
+## N11 — Any shop could read the sales of another shop's sub-shops
+
+### The idea
+A marketplace shop can have sub-shops ("split children") that share its payouts. The parent may see the children's sales reports. Like a mall manager who may see each store's takings, but a stranger may not.
+
+### The problem
+The report check only asked "is this some shop's child?", not "is it YOUR child?".
+- Any shop could put a child's id in the report filter.
+- It then got up to 500 of that child's transactions.
+
+### The fix
+- apps/api/src/reporting/scope.ts: the check now also requires that the caller is the child's parent.
+- apps/api/src/reporting/transactionsReportQuery.ts: fixed a comment that wrongly said the id was always replaced.
+- Smallest change: one extra condition in one query.
+
+### The code
+Before (apps/api/src/reporting/scope.ts:13):
+```ts
+`SELECT 1 AS ok FROM merchant_split_children WHERE child_merchant_id = $1`,
+```
+After:
+```ts
+`SELECT 1 AS ok FROM merchant_split_children WHERE child_merchant_id = $1 AND parent_merchant_id = $2`,
+```
+Now only the real parent gets the child's report; anyone else only ever gets their own data.
+
+### The proof
+- Before: scope.e11.test.ts → an outsider got the child's id back.
+- After: scope.e11.test.ts → the outsider gets its own id; the real parent still gets the child.
+
+### If the judges ask
+"Why return the caller's own data instead of an error?"
+That is what the function already did for unknown ids, so the API does not reveal which ids are children. We kept the existing behaviour and only closed the hole.
+
+Commit: bfddbe9
+
+## N12 — The nightly cleanup deleted every hold when nothing had expired
+
+### The idea
+A hold reserves money on a card until the payment is taken. A nightly script removes holds that expired. Like a cleaner who should throw out only the milk that is past its date.
+
+### The problem
+On a night with nothing expired, the script deleted every hold.
+- It built "delete holds with these ids", but with an empty list the "with these ids" part was dropped.
+- The command became "delete all holds".
+
+### The fix
+- scripts/lib/sqlFilter.ts: an empty list is now kept as a filter that matches nothing.
+- Smallest change: remove one line. It also protects any other script that uses this helper.
+
+### The code
+Before (scripts/lib/sqlFilter.ts:9-11):
+```ts
+if (Array.isArray(val)) {
+  if (val.length === 0) continue;
+  values.push(val);
+```
+After:
+```ts
+if (Array.isArray(val)) {
+  values.push(val);
+```
+Now an empty list becomes "id is in an empty list", which matches nothing, so nothing is deleted.
+
+### The proof
+- Before: live run on a database copy with 4 valid holds → "matched 0, deleted 4", 0 holds left.
+- After: "matched 0, deleted 0", 4 holds left; with one expired hold, exactly 1 is deleted.
+
+### If the judges ask
+"Is the script fully safe now?"
+The empty-list disaster is fixed. A small race remains (a hold captured between the check and the delete), and the handover says holds should be marked expired, not deleted; both are recorded as open.
+
+Commit: b3d6e94
