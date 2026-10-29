@@ -478,3 +478,84 @@ test("unknown transaction ids answer 404", async () => {
   assert.equal(result.statusCode, 404);
   assert.deepEqual(result.body, { error: "transaction_not_found" });
 });
+
+// ------------------------------------------------------------- F01a / E28 / E52
+
+/** An approving acquirer that waits, so two refunds really overlap. */
+function slowApprovingAcquirer(ms: number): AcquirerSimulator {
+  const base = fixedAcquirer("approved");
+  return { ...base, refund: (req) => new Promise((r) => setTimeout(() => r(base.refund(req)), ms)) };
+}
+
+test("testE28_cannotRefundMoreThanCaptured", async () => {
+  const { rawKey, merchantId } = await createApprovedMerchantWithApiKey("e28-over");
+  const txn = await capturedTransaction(rawKey, 10_000, 4_000);
+  const res = await processRefund(pool, approvingAcquirer, {
+    transactionId: txn.id, merchantId, amountFils: toFils(10_000),
+    idempotencyKey: randomUUID(), actor: await apiKeyActor(merchantId),
+  });
+  assert.equal(res.statusCode, 422, JSON.stringify(res.body));
+  const row = await pool.query(`SELECT 1 FROM refunds WHERE transaction_id = $1`, [txn.id]);
+  assert.equal(row.rowCount, 0);
+});
+
+test("testE28_concurrentRefundsOnlyOneSucceeds", async () => {
+  const { rawKey, merchantId } = await createApprovedMerchantWithApiKey("e28-race");
+  const txn = await capturedTransaction(rawKey, 10_000);
+  const actor = await apiKeyActor(merchantId);
+  const slow = slowApprovingAcquirer(150);
+  const results = await Promise.all([1, 2].map(() =>
+    processRefund(pool, slow, { transactionId: txn.id, merchantId, amountFils: toFils(6_000), idempotencyKey: randomUUID(), actor }),
+  ));
+  const codes = results.map((r) => r.statusCode).sort();
+  assert.deepEqual(codes, [200, 422], JSON.stringify(results.map((r) => r.body)));
+  const t = await pool.query<{ refunded_fils: string }>(`SELECT refunded_fils FROM transactions WHERE id = $1`, [txn.id]);
+  assert.equal(Number(t.rows[0]!.refunded_fils), 6_000);
+});
+
+test("testE28_otherMerchantCannotRefund", async () => {
+  const a = await createApprovedMerchantWithApiKey("e28-owner");
+  const b = await createApprovedMerchantWithApiKey("e28-other");
+  const txn = await capturedTransaction(a.rawKey, 5_000);
+  const res = await processRefund(pool, approvingAcquirer, {
+    transactionId: txn.id, merchantId: b.merchantId, amountFils: toFils(1_000),
+    idempotencyKey: randomUUID(), actor: await apiKeyActor(b.merchantId),
+  });
+  assert.equal(res.statusCode, 404, JSON.stringify(res.body));
+});
+
+test("testF01_partialRefundsReverseExactlyTheWholeFee", async () => {
+  const { rawKey, merchantId } = await createApprovedMerchantWithApiKey("f01-sum", 250);
+  const txn = await capturedTransaction(rawKey, 10_000);
+  const actor = await apiKeyActor(merchantId);
+  for (const amount of [3_333, 3_333, 3_334]) {
+    const res = await processRefund(pool, approvingAcquirer, {
+      transactionId: txn.id, merchantId, amountFils: toFils(amount), idempotencyKey: randomUUID(), actor,
+    });
+    assert.equal(res.statusCode, 200, JSON.stringify(res.body));
+  }
+  const fee = await pool.query<{ charged: string; reversed: string }>(
+    `SELECT (SELECT COALESCE(SUM(amount_fils),0) FROM ledger_entries WHERE transaction_id = $1
+               AND account_id = 'platform_fee_revenue' AND direction = 'credit')::text AS charged,
+            (SELECT COALESCE(SUM(fee_reversed_fils),0) FROM refunds WHERE transaction_id = $1)::text AS reversed`,
+    [txn.id],
+  );
+  assert.equal(Number(fee.rows[0]!.reversed), Number(fee.rows[0]!.charged), "a full refund in parts gives back exactly the fee");
+});
+
+test("testF01_discountedMerchantGetsBackOnlyTheNetFee", async () => {
+  const { rawKey, merchantId } = await createApprovedMerchantWithApiKey("f01-discount", 250);
+  await pool.query(`UPDATE merchants SET negotiated_discount_bps = 2000 WHERE id = $1`, [merchantId]);
+  const txn = await capturedTransaction(rawKey, 10_000);
+  const net = await pool.query<{ net: string }>(
+    `SELECT (COALESCE(SUM(amount_fils) FILTER (WHERE direction = 'credit'), 0)
+           - COALESCE(SUM(amount_fils) FILTER (WHERE direction = 'debit'), 0))::text AS net
+       FROM ledger_entries WHERE transaction_id = $1 AND account_id = 'platform_fee_revenue'`,
+    [txn.id],
+  );
+  const res = await processRefund(pool, approvingAcquirer, {
+    transactionId: txn.id, merchantId, amountFils: toFils(10_000), idempotencyKey: randomUUID(), actor: await apiKeyActor(merchantId),
+  });
+  assert.equal(res.statusCode, 200, JSON.stringify(res.body));
+  assert.equal((res.body as { feeReversedFils: number }).feeReversedFils, Number(net.rows[0]!.net), "reverse the fee actually paid");
+});
