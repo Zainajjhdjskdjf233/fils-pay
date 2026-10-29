@@ -7,7 +7,8 @@ export function buildWhere(
   for (const [col, val] of Object.entries(filters)) {
     if (val === undefined || val === null) continue;
     if (Array.isArray(val)) {
-      if (val.length === 0) continue;
+      // E12: never drop an empty-array filter. `col = ANY('{}')` matches no rows;
+      // skipping it turned "delete these 0 ids" into "DELETE FROM table".
       values.push(val);
       parts.push(`${col} = ANY($${idx}::uuid[])`);
       idx++;
