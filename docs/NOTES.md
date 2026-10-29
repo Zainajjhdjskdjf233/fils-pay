@@ -153,3 +153,41 @@ The new line uses the user found by shop id and email together, so the login alw
 Nothing calls it now. Removing it would leave an empty file, and deleting files needs Zainab's approval, so it is listed in the log to remove.
 
 Commit: 5e9d46d
+
+## N05 — One shop could cancel another shop's payment link
+
+### The idea
+A payment link is a page a shop sends to a buyer to pay one bill. Like a numbered ticket: only the shop that printed it should be able to tear it up.
+
+### The problem
+Any logged-in shop could cancel any other shop's payment link if it knew the link's id.
+- The cancel query matched the link id only, not the shop.
+- The error message also told a shop if another shop's link was paid or canceled.
+
+### The fix
+- apps/api/src/paymentLinks/cancel.ts: both queries now also require "this link belongs to the logged-in shop".
+- apps/api/src/routes/paymentLinks.ts: passes the logged-in shop's id from the login data, not from the URL.
+- Smallest change: one extra condition in each of the two queries.
+
+### The code
+Before (apps/api/src/paymentLinks/cancel.ts:16 and :26):
+```ts
+WHERE id = $1 AND status = 'active'
+`SELECT status FROM payment_links WHERE id = $1`
+```
+After:
+```ts
+WHERE id = $1 AND merchant_id = $2 AND status = 'active'
+`SELECT status FROM payment_links WHERE id = $1 AND merchant_id = $2`
+```
+Now a link of another shop looks exactly like a link that does not exist, so it cannot be canceled and nothing about it leaks.
+
+### The proof
+- Before: paymentLinks.e05.test.ts → shop A cancels shop B's link and gets 204 (success).
+- After: paymentLinks.e05.test.ts → 404, and B's link is still active; the 8 old payment link tests still pass.
+
+### If the judges ask
+"Why answer 404 and not 403?"
+403 would tell the attacker "this link exists but is not yours". 404 tells them nothing, and the project's architecture doc asks for 404 on other merchants' objects.
+
+Commit: 5710a31

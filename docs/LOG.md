@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 1:02 AM (30 Oct 2026)
-Summary: Errors 4/57 fixed · Hidden 31 found · Features 0/2 done · Deploy: not started
+Updated: 1:04 AM (30 Oct 2026)
+Summary: Errors 5/57 fixed · Hidden 31 found · Features 0/2 done · Deploy: not started
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -107,7 +107,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: high (case file chat claim "I cancelled merchant B's payment link from merchant A's dashboard" is TRUE)
 - Proposed fix: pass merchantId; add `AND merchant_id = $2` to both queries.
 - Expected result: A cancelling B's link gets 404; B's link stays active.
-- Status: open
+- Status: fixed (5710a31)
 
 ### E06 — FP-187: checkout trusts the client's `submittedAt`, so expired links can be paid
 - Where: apps/api/src/paymentLinks/pay.ts:34-38, :60, :73; routes/paymentLinks.ts:157,166; apps/web/src/pages/checkout/CheckoutPage.tsx:59
@@ -556,6 +556,13 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Proposed fix: validate the body with a schema; map 4xx Fastify errors to their own status.
 - Status: open
 
+### E58 — [found later] Session vs impersonation order may mix identities (FP-198 comment)
+- Where: apps/api/src/auth/requireMerchantAuth.ts:76 (comment FP-198), auth order at :49-90
+- Error: a comment warns that the order of the session check and the impersonation check can mix identities when both cookies are present. Not yet proven.
+- Proof: fix-reviewer on E05 (1:03 AM); to verify with a test that sends both cookies.
+- Severity: medium (suspected)
+- Status: open
+
 ## 3. Hidden things
 
 ### H01 — "The Order of the Prompt" and its Five Rules
@@ -785,6 +792,18 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Second review (Copilot): not run — `copilot not found`. fix-reviewer: APPROVE; no other path resolves a merchant user by email across merchants (OTP resend uses the session's user, admin login uses admin_users, invite redeem matches code AND email, no password-reset route); `password_hash` never reaches the logger; dead `findOtpRecipient` is low risk but its doc comment invites reuse. Our answer: agree; deleting users.ts needs Zainab's OK (it would leave an empty file), so it is left and listed as open below.
 - Decision: leave `findOtpRecipient` (apps/api/src/auth/users.ts:11-24) unused instead of deleting it — Why: removing it empties the file, and deleting files needs Zainab's approval — Alternative: delete apps/api/src/auth/users.ts (to do after her OK).
 - Commit: 5e9d46d
+
+### E05 — 1:04 AM
+- Changed:
+  - apps/api/src/paymentLinks/cancel.ts:11 input `{ id }` → `{ id; merchantId }`.
+  - cancel.ts:16 `WHERE id = $1 AND status = 'active'` → `WHERE id = $1 AND merchant_id = $2 AND status = 'active'`.
+  - cancel.ts:26 `SELECT status FROM payment_links WHERE id = $1` → `... WHERE id = $1 AND merchant_id = $2` (no more 409 "status: paid" leak about other merchants' links).
+  - apps/api/src/routes/paymentLinks.ts:107 passes `merchantId: request.merchantAuth!.merchantId`.
+- Test: apps/api/src/routes/paymentLinks.e05.test.ts. Before (2 runs): `A cancelling B's link must look like "not found": 204`. After: pass, together with paymentLinks.test.ts (`pass 9 fail 0`). (An earlier run with an empty DB name was discarded as proof, J14.)
+- Regression: full-db-test.sh → failing names identical to baseline; Go 53 pass 0 fail.
+- Actual result: matches expected.
+- Second review (Copilot): not run — `copilot not found`. fix-reviewer: APPROVE; both queries filtered; no other payment-link merchant route has the hole (list filters merchant_id at paymentLinks/query.ts:72; read/pay/status are public by token); suggested using `request.merchantAuth.merchantId` instead of the path param, following requireMerchantAuth.ts:36-40. Our answer: agree, applied before commit (same result today, safer if `assertOwnMerchant` is ever removed). It also flagged the FP-198 comment at requireMerchantAuth.ts:76 → new entry E58.
+- Commit: 5710a31
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)

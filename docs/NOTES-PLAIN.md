@@ -25,3 +25,9 @@ Where: apps/api/src/auth/sessions.ts:92 · Commit: 35f4415
 Two shops in FilsPay can each have a user with the same email address. When you logged in, the server checked your password against your own shop, but then it sent the one-time code and the login to whichever user with that email it found first, in any shop. So an attacker could make a new shop using a victim's email, log in to it with their own password, and end up inside the victim's shop. We changed it so the login always goes to the user whose password was checked. A test that used to put the attacker in the victim's shop now keeps them in their own.
 
 Where: apps/api/src/routes/auth.ts:78 · Commit: 5e9d46d
+
+## N05 — One shop could cancel another shop's payment link
+
+A shop can send a buyer a payment link and later cancel it. The cancel button only checked the link's number, not which shop owned it, so any shop could cancel another shop's links and stop their customers from paying. The error message even told the other shop whether a link had been paid. We made the cancel check both the link number and the shop, so another shop's link now looks like it does not exist. A test where shop A cancelled shop B's link used to succeed and now gets "not found", with B's link still working.
+
+Where: apps/api/src/paymentLinks/cancel.ts:16 · Commit: 5710a31
