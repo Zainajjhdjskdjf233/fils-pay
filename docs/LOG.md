@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 12:38 AM (30 Oct 2026)
-Summary: Errors 1/55 fixed · Hidden 30 found · Features 0/2 done · Deploy: not started
+Updated: 12:42 AM (30 Oct 2026)
+Summary: Errors 2/55 fixed · Hidden 30 found · Features 0/2 done · Deploy: not started
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -501,7 +501,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: high (app does not start with default settings)
 - Proposed fix: remove the fallback (also closes part of E13: a public key in the code) and require the env var always, with a clear message and `.env.example`; or a 32-byte dev key. Decision for Zainab.
 - Expected result: API starts when the key is set; fails with a clear message when it is not; no hardcoded key in code.
-- Status: open
+- Status: fixed (da3ab76)
 
 ### E52 — [found later] Every refund fails: code inserts reason = NULL, migration 0070 forbids NULL
 - Where: apps/api/src/payments/processRefund.ts:48, :180, :189 (`input.reason ?? null`); db/migrations/0070_refund_reason_default.sql:6-9
@@ -538,6 +538,15 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Proof: scratchpad/seed.txt; scratchpad/api-run3.txt `Server listening at http://192.168.100.103:3000`.
 - Severity: low (dev only; hosting needs 0.0.0.0 anyway, so make it configurable by HOST)
 - Status: open
+
+### E56 — [found later] Go DB tests are flaky when packages run in parallel
+- Where: apps/settlement/internal/ledger/refresh_test.go:61-67 and internal/settlement/*_test.go (both write merchant_balances in the same DB)
+- Error: `go test ./...` runs packages at the same time on one database. `TestRefreshBalanceCache_OverwritesDriftedCache` then sometimes reads another package's rows: `diff.CachedBefore = 25000, want 888888`.
+- Root cause: tests share one DB and pick rows that other packages also touch. CLAUDE.md.bak:18 even says "locally they share the DB, so run them sequentially".
+- Proof: 12:41 AM, 3 parallel runs → 1 failing package; 3 runs with `-p 1` → 0 failing (command output in ACTIONS.md).
+- Severity: low (test-only)
+- Proposed fix: done in our tooling: `go test -p 1` in .claude/check.sh and full-db-test.sh. A real fix would give each test its own merchant ids.
+- Status: open (workaround in test tooling)
 
 ## 3. Hidden things
 
@@ -725,6 +734,19 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Decision: kind 'asset' for the two suspense accounts — Why: 0007 models its suspense account `scheme_rounding_residue` as asset and the CHECK allows only asset/liability/revenue — Alternative: add a 'suspense' kind (changes 0007's CHECK, bigger change).
 - Review: not a security or money change; no second review.
 - Commit: bb92a30
+
+### E51 — 12:42 AM
+- Changed:
+  - apps/api/src/config.ts:153: removed `const DEV_FALLBACK_WEBHOOK_KEY_B64 = "dGVz..."` (decodes to 34 bytes).
+  - apps/api/src/config.ts:247-248: `parseWebhookSecretEncryptionKey(env.WEBHOOK_SECRET_ENCRYPTION_KEY || (nodeEnv !== "production" ? DEV_FALLBACK_WEBHOOK_KEY_B64 : undefined))` → `parseWebhookSecretEncryptionKey(env.WEBHOOK_SECRET_ENCRYPTION_KEY)`.
+  - ops/docker-compose.yml:73-74 and ops/README.md:58: the "built-in dev key" claims replaced with "always required".
+- Test: apps/api/src/config.e51.test.ts. Before: `✖ testE51_missingKeyInDevelopmentSaysNotSet` (actual "got 34"), `✖ testE51_noHardcodedFallbackKey`, 1 pass 2 fail. After: 3 pass. check.sh: 181 pass, `CHECK OK`.
+- App: no key → `Error: loadConfig: WEBHOOK_SECRET_ENCRYPTION_KEY environment variable is not set`; with `openssl rand -base64 32` → `Server listening at http://127.0.0.1:3000`, `GET /v1/transactions` → 401.
+- Regression: full-db-test.sh → TS failing names identical to baseline. Go run showed 1 failure in `TestRefreshBalanceCache_OverwritesDriftedCache` (ledger); E51 changed no Go code; re-runs: parallel 1 of 3 runs failed, `-p 1` 3 of 3 passed → new entry E56 (shared-DB race between Go test packages). Test scripts now run Go with `-p 1`.
+- Actual result: matches expected.
+- Decision: remove the fallback instead of replacing it with a valid 32-byte dev key — Why: a key written in source is a public secret and would silently run in any non-production deploy; every test already passes its own key; Config doc (config.ts:88) says "Required in every environment" — Alternative: a correct 32-byte dev key (keeps `npm run dev` working with no setup).
+- Second review (Copilot): not run — `copilot not found`. fix-reviewer: APPROVE; "root cause fixed"; nothing relied on the fallback (it never passed the check, so no stored secret was encrypted with it); flagged the two false ops doc lines (fixed in this commit); test 3 (source-text check) is weak, tests 1-2 cover the behaviour. Our answer: agree (proof: grep for `DEV_FALLBACK` finds only the test).
+- Commit: da3ab76
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)
