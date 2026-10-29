@@ -186,7 +186,8 @@ export async function processRefund(
         prepared.requestedAmount,
         feeReversedFils,
         acquirerResult.acquirerReference,
-        input.reason ?? null,
+        // E52: 0070 forbids NULL; an explicit NULL skips the column DEFAULT.
+        input.reason ?? "unspecified",
         input.actor.type,
         input.actor.id,
       ],
