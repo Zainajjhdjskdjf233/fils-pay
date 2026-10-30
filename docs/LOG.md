@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
 Updated: 05:11 PM (30 Oct 2026)
-Summary: Errors 86/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Summary: Errors 85/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1241,7 +1241,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/config.ts:139-145 `Number.parseInt` + `Number.isFinite`.
 - Error: PORT=3000oops starts on 3000; a typo silently becomes a different setting (`node -e` → 3000).
 - Proof: the second review (items 32-45, pasted by Zainab at 4:23 PM); checked by me in the code (04:30 PM).
-- Severity: medium · Status: fixed (see section 5, E163)
+- Severity: medium · Status: partly fixed (see section 5, E163; OTP/argon2/timer ranges still open)
 
 ## 3. Hidden things
 
