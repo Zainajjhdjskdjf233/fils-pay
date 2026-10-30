@@ -2605,4 +2605,4 @@ The three boxes now always share the form width equally.
 "How do we know the before pictures are fair?"
 Same database, same API and same pages for both; only the frontend code differs (a12d4c7 vs now). docs/ui/README.md explains every step.
 
-Commit: PENDING_N70
+Commit: b22520f

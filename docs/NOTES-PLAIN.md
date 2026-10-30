@@ -420,4 +420,4 @@ Where: apps/api/src/routes/reporting.ts:35 · Commit: 383d417
 
 On the payment page, the expiry and CVV boxes were wider than the form, so on a phone the CVV box went off the screen and the month box was tiny. We made the three boxes share the row equally, so they fit on any screen. In the dashboard and admin tables, digits now all have the same width, so amounts line up. Before and after screenshots of 13 screens are in docs/ui.
 
-Where: apps/web/src/pages/checkout/CheckoutPage.css:44 · Commit: PENDING_N70
+Where: apps/web/src/pages/checkout/CheckoutPage.css:44 · Commit: b22520f

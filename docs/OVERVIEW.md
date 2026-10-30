@@ -23,7 +23,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:52 PM
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
 - Dilmune Cloud: not yet
 - Decisions waiting for Zainab: 24 (search "for Zainab to review" in LOG.md)
-- Fork: up to date
+- Fork: needs a push (VS Code: Git: Push to... → mine)
 
 ## 2. Stages
 - ✅ Understand
@@ -2845,5 +2845,5 @@ The three boxes now always share the form width equally.
 "How do we know the before pictures are fair?"
 Same database, same API and same pages for both; only the frontend code differs (a12d4c7 vs now). docs/ui/README.md explains every step.
 
-Commit: PENDING_N70
+Commit: b22520f
 
