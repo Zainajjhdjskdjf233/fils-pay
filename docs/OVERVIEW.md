@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 4:07 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 4:10 PM
 
 ## Contents
 1. Status now
@@ -48,7 +48,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:07 PM
 | docs/ACTIONS.md | Every command and edit with the time, written by a hook |
 | docs/CASE-MAP.md ⬜ | Who did what, with proof |
 | docs/FINDINGS.md ⬜ | Root cause of every problem |
-| docs/AI-SETUP.md ⬜ | How we set up and checked the AI |
+| docs/AI-SETUP.md ✅ | How we set up and checked the AI |
 | docs/SUBMISSION.md ⬜ | Live URL, capacity, 3 annotated transcript excerpts |
 | docs/SLIDES.md ⬜ | Slide deck outline |
 | CLAUDE.md, .claude/ | Our AI setup files |
