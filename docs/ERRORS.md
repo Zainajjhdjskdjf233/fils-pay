@@ -70,7 +70,7 @@ Summary: 43 of 60 fixed.
 | E44 | Reconciliation "pending" estimate uses float and the wrong rate | Fixed |
 | E50 | Fee at capture ignores the negotiated discount that settlement applies | Skipped |
 | E53 | One malformed outbox event stops the whole reporting consumer | Fixed |
-| E58 | Session vs impersonation order may mix identities (FP-198 comment) | Open |
+| E58 | Session vs impersonation order may mix identities (FP-198 comment) — not reproduced: a test with both cookies shows no mixing | Skipped |
 | E60 | Reconciliation counts payouts of earlier days as an unexplained gap | Fixed |
 
 ## Low (1 of 12 fixed)
