@@ -1689,4 +1689,4 @@ pg_snapshot_xmin is "the oldest transaction still running"; everything older is 
 "What if a transaction stays open for a long time?"
 Reports wait until it ends (late, never lost). A database timeout for idle transactions is suggested for hosting.
 
-Commit: PENDING_N45
+Commit: eebf7d4

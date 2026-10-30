@@ -270,4 +270,4 @@ Where: apps/reporting/src/consumer/runConsumerPass.ts:63 · Commit: 41c9754
 
 The report worker kept a bookmark of the last event it had read, but event numbers are handed out when saving starts, not when it ends. A slow payment could finish after a faster one with a higher number, and the bookmark had already moved past it, so it was never counted. Now the worker only reads events from transactions that have certainly finished, in a safe order. A test with a slow and a fast payment now counts both.
 
-Where: apps/reporting/src/consumer/runConsumerPass.ts:54 · Commit: PENDING_N45
+Where: apps/reporting/src/consumer/runConsumerPass.ts:54 · Commit: eebf7d4
