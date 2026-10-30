@@ -1285,3 +1285,38 @@ A second copy finds the first one and is skipped.
 Production already has duplicate notes, so the index would fail to create until someone deletes them. That clean-up needs a human.
 
 Commit: 8fd0c90
+
+## N35 — The settlement summary no longer counts part-payments twice
+
+### The idea
+A shop can capture a payment in parts, like paying a bill in two steps. The summary page shows how much was captured in a period.
+
+### The problem
+The summary added the payment's running total once for every part.
+- A 10 BD payment captured as 4 + 6 showed 20 BD.
+
+### The fix
+- query.ts: add up each part's own amount instead.
+
+### The code
+Before (apps/api/src/settlement/query.ts:375-379):
+```sql
+SELECT t.id, t.captured_fils ... JOIN transaction_events te ...
+SELECT COUNT(DISTINCT id), SUM(captured_fils) FROM captured
+```
+After:
+```sql
+SELECT COUNT(DISTINCT te.transaction_id), SUM(te.amount_fils)
+  FROM transaction_events te JOIN transactions t ON t.id = te.transaction_id
+```
+Each capture event counts its own amount, once.
+
+### The proof
+- Before: 4 + 6 BD captured → summary 20 BD.
+- After: 10 BD.
+
+### If the judges ask
+"Is it faster now?"
+The doubled rows are gone, but we did not measure speed: we have no production-size data here.
+
+Commit: PENDING_N35

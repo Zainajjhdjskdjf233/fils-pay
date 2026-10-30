@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 11:25 AM (30 Oct 2026)
-Summary: Errors 32/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
+Updated: 11:26 AM (30 Oct 2026)
+Summary: Errors 33/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -361,7 +361,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: medium
 - Proposed fix: `SUM(te.amount_fils)`; add an index.
 - Expected result: multi-capture merchant total equals real captures.
-- Status: open
+- Status: over-count fixed (see section 5); speed not measured
 
 ### E32 — FP-240a: outgoing webhooks sign different bytes than they send
 - Where: apps/api/src/webhooks/sign.ts:36; webhooks/dispatcher.ts:158, :172; testSend.ts:57,62
@@ -1191,6 +1191,14 @@ ROLLBACK;
 - Regression: full-db-test.sh = baseline (5 known failures).
 - Review: same pattern as E30 → no fix-reviewer.
 - Actual result: matches expected (second identical callback → one row).
+
+### E31 — 11:26 AM — the settlement summary counts each captured fil once
+- Changed: apps/api/src/settlement/query.ts (getSettlementSummary): `SUM(te.amount_fils)` and `COUNT(DISTINCT te.transaction_id)` straight from the capture events (was a CTE that summed `t.captured_fils`, the running total, once per event).
+- Test: apps/api/src/routes/settlementSummary.e31.test.ts (10.000 BD authorized, captured as 4.000 + 6.000 through the API, then GET /v1/settlement/summary). Before: `actual: 20000, expected: 10000`. After: PASS; settlement.test.ts passes.
+- Not done: the "slow" part (docs/perf, 118k rows) — no production-size data here to measure an index; the fan-out row multiplication is gone with this query shape.
+- Regression: full-db-test.sh = baseline (5 known failures).
+- Review: query only → no fix-reviewer.
+- Actual result: matches expected (multi-capture total = real captures).
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)

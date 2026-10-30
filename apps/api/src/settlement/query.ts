@@ -401,17 +401,16 @@ export async function getSettlementSummary(
   const windowEnd = bahrainLocalMidnightUtc(input.to);
 
   const result = await pool.query<SettlementSummaryRow>(
-    `WITH captured AS (
-       SELECT t.id, t.captured_fils
-         FROM transactions t
-         JOIN transaction_events te ON te.transaction_id = t.id
-        WHERE t.merchant_id = $1
-          AND te.event_type IN ('captured', 'partially_captured')
-          AND te.occurred_at >= $2 AND te.occurred_at < $3
-     )
-     SELECT COUNT(DISTINCT id) AS transaction_count,
-            COALESCE(SUM(captured_fils), 0) AS total_captured_fils
-       FROM captured`,
+    // E31: sum each capture event's own amount (te.amount_fils). Summing the
+    // running total t.captured_fils once per event counted a payment
+    // captured in N parts N times. Same source as CloseBatch.
+    `SELECT COUNT(DISTINCT te.transaction_id) AS transaction_count,
+            COALESCE(SUM(te.amount_fils), 0) AS total_captured_fils
+       FROM transaction_events te
+       JOIN transactions t ON t.id = te.transaction_id
+      WHERE t.merchant_id = $1
+        AND te.event_type IN ('captured', 'partially_captured')
+        AND te.occurred_at >= $2 AND te.occurred_at < $3`,
     [input.merchantId, windowStart, windowEnd],
   );
 
