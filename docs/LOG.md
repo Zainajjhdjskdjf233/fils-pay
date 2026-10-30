@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 04:56 PM (30 Oct 2026)
-Summary: Errors 83/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 05:08 PM (30 Oct 2026)
+Summary: Errors 84/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1193,7 +1193,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/webhooks/update.ts:35-50 never checks `status`.
 - Error: {"status":"paused"} → CHECK violation → 500.
 - Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E155)
 
 ### E156 — [coverage] timingSafeEqualHex accepts extra characters after a valid digest
 - Where: apps/api/src/lib/crypto.ts:15-16 (Buffer.from(x,'hex') stops at the first non-hex char).
@@ -2299,6 +2299,11 @@ ROLLBACK;
 - Changed: apps/api/src/analytics/query.ts:312-314: `BETWEEN $2 AND $3` → `>= $2 AND < $3` (the route says `to` is exclusive, routes/analytics.ts:63).
 - Test: apps/api/src/routes/ledgerActivity.e161.test.ts. Before: `got [1000,1000,2000,2000]` for from=2026-03-01&to=2026-03-02 (two days). After: PASS (only 1 March); analytics tests 14/14.
 - My mistake caught by the hook: my first SQL comment held backticks inside the JS template literal; the post-edit check.sh reported TYPECHECK FAILED and I removed them before testing.
+- check.sh: OK.
+
+### E155 — 05:08 PM — webhook PATCH with an unknown status is 400
+- Changed: apps/api/src/webhooks/update.ts:38-44: status must be active or disabled (else 400 invalid_status), url must be a string; the helper checks it (defence in depth). The non-UUID :id part is covered by E57.
+- Test: routes/webhooks.test.ts testE155_patchWithUnknownStatusIs400. Before: `500 !== 400` (CHECK violation, 0021:13). After: PASS; webhook tests 62/63 (the known E54 test).
 - check.sh: OK.
 
 ## 6. Deploy

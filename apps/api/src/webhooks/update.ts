@@ -35,6 +35,13 @@ export async function updateWebhookEndpoint(
   if (input.url === undefined && input.status === undefined) {
     throw new BadRequestError("invalid_request", "at least one of url or status is required");
   }
+  // E155: an unknown status hit the CHECK constraint (0021:13) → 500.
+  if (input.status !== undefined && input.status !== "active" && input.status !== "disabled") {
+    throw new BadRequestError("invalid_status", "status must be active or disabled");
+  }
+  if (input.url !== undefined && typeof input.url !== "string") {
+    throw new BadRequestError("invalid_url", "url must be a string");
+  }
   if (input.url !== undefined) {
     validateWebhookUrl(input.url, config);
   }

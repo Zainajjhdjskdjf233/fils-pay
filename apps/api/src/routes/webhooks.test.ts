@@ -522,3 +522,16 @@ test("secret encryption round-trips correctly: a delivery verifies using the SAM
     await receiver.close();
   }
 });
+
+// E155 [coverage]: a webhook PATCH with an unknown status hit the CHECK
+// constraint (migration 0021:13) and gave 500.
+test("testE155_patchWithUnknownStatusIs400", async () => {
+  const { rawKey, merchantId } = await createApprovedMerchantWithApiKey("e155");
+  const created = await createEndpointViaRoute(rawKey, merchantId, "http://localhost:9/webhook");
+  const res = await app.inject({
+    method: "PATCH", url: `/v1/merchants/${merchantId}/webhook-endpoints/${created.id}`,
+    headers: authHeader(rawKey), payload: { status: "paused" },
+  });
+  assert.equal(res.statusCode, 400, res.body);
+  assert.equal(res.json().error, "invalid_status");
+});
