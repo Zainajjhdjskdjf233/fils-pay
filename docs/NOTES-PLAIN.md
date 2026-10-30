@@ -162,4 +162,4 @@ Where: apps/settlement/internal/internalapi/server.go:270 · Commit: b15f944
 
 The tool that recalculates fees after a rate change also changed batches that had already been paid out, which should never happen. It picked every batch that was "not open", and that included "paid" ones. Now it only picks batches that are closed but not yet paid. A test shows a paid batch stays exactly the same while an unpaid one is still updated.
 
-Where: apps/settlement/internal/settlement/recalculate_mdr.go:67 · Commit: PENDING_N27
+Where: apps/settlement/internal/settlement/recalculate_mdr.go:67 · Commit: 23e2f73

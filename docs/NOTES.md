@@ -1027,4 +1027,4 @@ AND status = 'closed' -- E19: never a paid batch ('<> open' included paid)
 "Does it now use the right fee table?"
 Not yet. That part (fee schedules and volume tier) is still open and linked to E20. We fixed the part the settlement team said must never happen.
 
-Commit: PENDING_N27
+Commit: 23e2f73
