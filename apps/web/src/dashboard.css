@@ -430,3 +430,6 @@
 /* UX: keep the header on one row on a laptop screen. */
 .dash-header { gap: 1rem; }
 .dash-identity { font-size: 0.9em; gap: 0.5rem; }
+/* UX: amounts in detail lists are right-aligned in a fixed-width column, so
+   the decimal points line up down the list. */
+.dash-dl dd.dash-num { text-align: right; max-width: 12rem; }
