@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
 Updated: 08:10 PM (30 Oct 2026)
-Summary: Errors 149/176 fixed (+12 partly: E50, E92, E101, E131, E145, E163, E48, E67, E86, E94, E96, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Summary: Errors 150/176 fixed (+12 partly: E50, E92, E101, E131, E145, E163, E48, E67, E86, E94, E96, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -924,7 +924,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: admin CreditsPage.tsx:59-68 (loadMore double-click duplicates); AdjustmentImportPage.tsx:71 ("posting X" uses the sum of absolute values); CheckoutPage.tsx:118 (raw UTC paidAt); WebhookReplayPage (old result kept on merchant change)
 - Error: cosmetic / confusing.
 - Proof: code read (web/admin bug-hunt agent (1:10 PM); checked by me).
-- Severity: low · Status: partly fixed (3 of 4, see section 5, E109; WebhookReplayPage open)
+- Severity: low · Status: fixed (see section 5, E109)
 
 ### E110 — [second review] Streaming CSV export pages on occurred_at only (skips equal timestamps)
 - Where: apps/api/src/transactions/exportCsv.ts:89 (`occurred_at > $5`, cursor = last occurred_at)
@@ -2854,6 +2854,12 @@ ROLLBACK;
 - Changed: apps/api/src/paymentLinks/cancel.ts: the cancel UPDATE also matches status 'reserved' with reserved_at older than the reservation timeout (config paymentLinkReservationTimeoutSeconds, passed by routes/paymentLinks.ts). A live payment holds the row lock through capture (E29), so the cancel waits and then no longer matches.
 - Before: testE101_merchantCanCancelAStaleReservedLink → the stale link gave 409. After: stale → 204, fresh reservation → 409. Payment-link suites 33/33.
 - With the earlier part (f788901: reads 'expired', pay gives 410) E101 is now fully fixed.
+- check.sh (clean environment): OK. Needs a redeploy.
+
+### E109 — 08:10 PM — (rest) the webhook replay page clears the previous merchant's result when the merchant changes
+- Changed: apps/admin/src/pages/webhooks/WebhookReplayPage.tsx loadMerchant: on a merchant change it clears the last replay result, the chosen endpoint and the old merchant detail before loading the new one (they stayed on screen).
+- Proof: UI-only, no browser test setup; admin tsc clean.
+- With the earlier part (7c4a68d) E109 is now fully fixed.
 - check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy

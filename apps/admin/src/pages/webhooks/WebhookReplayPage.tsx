@@ -54,10 +54,15 @@ export function WebhookReplayPage() {
   const [result, setResult] = useState<BatchReplayResult | null>(null);
 
   const loadMerchant = useCallback(async () => {
+    // E109: a new merchant must not show the previous merchant's replay result
+    // or endpoint (they stayed on screen after switching).
+    setResult(null);
+    setEndpointId("");
     if (!merchantId) {
       setDetail(null);
       return;
     }
+    setDetail(null);
     setError(null);
     try {
       const loaded = await getMerchant(merchantId);

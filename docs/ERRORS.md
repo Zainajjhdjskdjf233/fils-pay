@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 149 of 176 fixed.
+Summary: 150 of 176 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -131,7 +131,7 @@ Summary: 149 of 176 fixed.
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-## Low (53 of 70 fixed)
+## Low (54 of 70 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -172,7 +172,7 @@ Summary: 149 of 176 fixed.
 | E98 | [found later] Raw Postgres error text in logs and dead letters (my E53 code) | Fixed |
 | E107 | [found later] Expired payment links shown as active with Cancel | Fixed |
 | E108 | [found later] List pages can append rows from an old filter (suspected) | Open |
-| E109 | [found later] Small admin/checkout display bugs | Partly fixed |
+| E109 | [found later] Small admin/checkout display bugs | Fixed |
 | E110 | [second review] Streaming CSV export pages on occurred_at only (unused code) | Fixed |
 | E111 | [second review] CSV quoting ignores carriage returns | Fixed |
 | E112 | [second review] Invalid date filters reach the DB (500 instead of 400) | Fixed |
