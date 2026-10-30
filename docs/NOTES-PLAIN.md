@@ -414,4 +414,4 @@ Where: apps/api/src/routes/reporting.ts:80 · Commit: 26856d3
 
 The transactions report takes a filter (shop, status, dates) as text. The server used it without checking, so strange values like "null" or an impossible date crashed it. Now it checks the filter first and answers "bad filter" (400). A test sends twelve bad filters and four good ones.
 
-Where: apps/api/src/routes/reporting.ts:35 · Commit: PENDING_N69
+Where: apps/api/src/routes/reporting.ts:35 · Commit: 383d417

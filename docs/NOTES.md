@@ -2562,4 +2562,4 @@ checkReportFilter refuses anything that is not a proper filter before any query 
 "Was this an injection risk?"
 No. The queries use parameters. It was a crash on bad input, which our rule says must be a 400.
 
-Commit: PENDING_N69
+Commit: 383d417

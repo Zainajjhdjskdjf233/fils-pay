@@ -74,6 +74,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:15 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- 383d417 fix(E133): report filter JSON checked (object, UUID, status, real dates) before use: 400, not 500
 - 26856d3 fix(E45): export-summary requires a merchant login (second review item 29; re-rated High)
 - d97de16 fix(E121): credits and balance adjustments are paid through the daily batch (negative ones carry like refunds)
 - cc6d252 fix(E120): MDR recalculation skips and reports a batch instead of storing a negative payout
@@ -88,7 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:15 PM
 - 0cf9a60 fix(E99,E105): one Idempotency-Key per capture/refund attempt; new key only after a definite 4xx
 - 850275f fix(E104): bulk KYC approval only approves under_review merchants; selection cleared on filter change
 - 0d04c29 fix(E102): merchant OTP verify re-issues the session cookie for 12 h; dashboard goes to login on 401
-- 184c0b2 fix(E73): CloseBatch journals the scheme rounding residue (ADR-0002); record E74-E90, H37-H39
 
 ## 7. All errors
 ## High (39 of 40 fixed)
@@ -2802,5 +2802,5 @@ checkReportFilter refuses anything that is not a proper filter before any query 
 "Was this an injection risk?"
 No. The queries use parameters. It was a crash on bad input, which our rule says must be a 400.
 
-Commit: PENDING_N69
+Commit: 383d417
 
