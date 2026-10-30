@@ -2001,3 +2001,38 @@ Every cut fil is now on the books, so the clearing account ties to the scheme fi
 The ADR says the platform holds them in a suspense account for finance to clear monthly. The old March script charged the merchants instead (E75); that choice is marked for Zainab.
 
 Commit: 184c0b2
+
+## N55 — The shop dashboard no longer logs out after 10 minutes
+
+### The idea
+After login, the browser keeps a session cookie, like a wristband at an event. The wristband must last as long as the ticket.
+
+### The problem
+The cookie was given at login with a 10-minute life (meant only for typing the OTP code).
+- After the OTP code, the session was extended to 12 hours in the database, but the cookie was never renewed.
+- So 10 minutes after login the browser threw the cookie away, and every page showed "unauthenticated" with no way back except reloading.
+
+### The fix
+- auth.ts: after a correct OTP code, send the cookie again with the 12-hour life (the admin login already did this).
+- client.ts and DashboardAuthContext.tsx: if the API ever answers 401, the dashboard goes to the login page.
+
+### The code
+Before (apps/api/src/routes/auth.ts, otp/verify): no Set-Cookie.
+After:
+```ts
+reply.setCookie(app.config.cookieName, rawToken, {
+  httpOnly: true, path: "/", sameSite: "lax", secure: app.config.cookieSecure,
+  maxAge: app.config.sessionTtlHours * 3_600,
+});
+```
+The wristband now lasts 12 hours, the same as the session.
+
+### The proof
+- Before: the verify response had no Set-Cookie.
+- After: Set-Cookie with Max-Age=43200 (12 hours); a 401 fires the "session expired" event.
+
+### If the judges ask
+"Why did nobody notice?"
+Most testing takes under 10 minutes. MK even guessed it in a comment ("related to the 10 min logouts?").
+
+Commit: PENDING_N55

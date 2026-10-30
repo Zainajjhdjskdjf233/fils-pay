@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 12:52 PM (30 Oct 2026)
-Summary: Errors 47/109 fixed (+2 partly: E13, E50; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: not started · CHECKPOINT reached
+Updated: 12:54 PM (30 Oct 2026)
+Summary: Errors 48/109 fixed (+2 partly: E13, E50; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -877,7 +877,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/routes/auth.ts:100-106 (cookie set only at login, maxAge = pendingSessionTtlMinutes × 60 = 10 min); otp/verify promotes the session to 12 h in the DB but never re-sets the cookie (MK's comment there asks exactly this); apps/web/src/api/client.ts:47-52 (401 never resets DashboardAuthContext)
 - Error: 10 minutes after login every page shows "unauthenticated" with no redirect — the dashboard stops working.
 - Proof: code read (web/admin bug-hunt agent (1:10 PM); checked by me).
-- Severity: high · Status: open
+- Severity: high · Status: fixed (see section 5)
 
 ### E103 — [found later] "View as merchant" cannot work end to end
 - Where: apps/admin/src/pages/merchants/MerchantDetailPage.tsx:213-214 (opens WEB_BASE_URL `/`, which has no route; `noopener` window.open always returns null); apps/api/src/routes/auth.ts:292 (/v1/auth/me uses requireSession, ignores the fp_impersonation grant)
@@ -1707,6 +1707,12 @@ ROLLBACK;
 - Regression: full-db-test.sh = baseline v3; Go 75 pass.
 - Review: one balanced insert next to an existing one → no fix-reviewer.
 - Actual result: matches ADR-0002.
+
+### E102 — 12:54 PM — the merchant dashboard keeps its session after login
+- Changed: apps/api/src/routes/auth.ts (otp/verify): re-issues the session cookie with `maxAge: sessionTtlHours × 3600` (12 h), like adminAuth.ts:198-203 (FH's comment there: "the merchant flow should do the same"). apps/web/src/api/client.ts: any 401 fires `filspay:session-expired`; DashboardAuthContext.tsx listens and goes anonymous (no refetch, so a 401 from /me cannot loop) → the login page instead of a bare "unauthenticated" banner. client.ts reads `import.meta.env?.` so it can be unit-tested under Node (no change in the browser).
+- Test: auth.e34.test.ts testE102_verifyReissuesTheCookieForTheSessionTtl. Before: `verify must send a Set-Cookie for the session`. After: PASS (Max-Age=43200). web refund.f01f.test.ts testE102_401FiresSessionExpired: PASS.
+- Regression: full-db-test.sh = baseline v3.
+- Actual result: the cookie now lives as long as the session (12 h).
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)

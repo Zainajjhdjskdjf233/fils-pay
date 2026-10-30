@@ -104,3 +104,14 @@ test("testE34_doubleClickCorrectCodeStaysLoggedIn", async () => {
   const me = await app.inject({ method: "GET", url: "/v1/auth/me", headers: { cookie } });
   assert.equal(me.statusCode, 200, `session still valid after a double-click: ${me.body}`);
 });
+
+// E102: verify must re-issue the session cookie at the full session TTL (12 h),
+// not leave the 10-minute pending cookie in place.
+test("testE102_verifyReissuesTheCookieForTheSessionTtl", async () => {
+  const { cookie, code } = await pendingLogin();
+  const verify = await app.inject({ method: "POST", url: "/v1/auth/otp/verify", headers: { cookie }, payload: { code } });
+  assert.equal(verify.statusCode, 200, verify.body);
+  const setCookie = ([] as string[]).concat(verify.headers["set-cookie"] ?? []).find((h) => h.startsWith(`${config.cookieName}=`));
+  assert.ok(setCookie, "verify must send a Set-Cookie for the session");
+  assert.match(setCookie!, new RegExp(`Max-Age=${config.sessionTtlHours * 3600}`), setCookie);
+});

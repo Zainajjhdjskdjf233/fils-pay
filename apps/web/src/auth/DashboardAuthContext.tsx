@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from "react";
 import { logout as logoutRequest, me as fetchMe } from "../api/dashboardAuth.js";
 import type { DashboardMe } from "../types.js";
+import { SESSION_EXPIRED_EVENT } from "../api/client.js";
 
 export type DashboardAuthStatus = "loading" | "authenticated" | "anonymous";
 
@@ -75,6 +76,17 @@ export function DashboardAuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  // E102: any 401 from the API means the session is gone; go straight to
+  // anonymous (no refetch, so a 401 from /me cannot loop).
+  useEffect(() => {
+    const onExpired = (): void => {
+      setMe(null);
+      setStatus("anonymous");
+    };
+    window.addEventListener(SESSION_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired);
+  }, []);
 
   const signOut = useCallback(async () => {
     try {

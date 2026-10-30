@@ -325,3 +325,9 @@ Where: apps/web/vite.config.ts:12 · Commit: e5eb890
 The card network's file only has room for two decimals, so each payment line loses a few fils. The design said those fils are written into a special "leftovers" account every day, but the code never did it, so the books never matched the network's statement. Now the daily close writes them down for every line. A test shows a 4.755 BD payment puts exactly 5 fils into the leftovers account.
 
 Where: apps/settlement/internal/settlement/batch.go:289 · Commit: 184c0b2
+
+## N55 — The shop dashboard no longer logs out after 10 minutes
+
+Shop users were silently logged out 10 minutes after logging in, and every page then just showed an error. The login cookie was set for 10 minutes (enough to type the code) and never renewed after the code was accepted, even though the server kept the session for 12 hours. Now the cookie is renewed for 12 hours, and if the session ever ends, the dashboard shows the login page. A test checks the new 12-hour cookie.
+
+Where: apps/api/src/routes/auth.ts:217 · Commit: PENDING_N55

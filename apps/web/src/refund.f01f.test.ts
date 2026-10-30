@@ -29,3 +29,22 @@ test("testF01f_whichTransactionsCanBeRefunded", () => {
   assert.equal(isRefundable({ status: "authorized", capturedFils: 0, refundedFils: 0 }), false);
   assert.equal(isRefundable({ status: "partially_captured", capturedFils: 4_000, refundedFils: 4_000 }), false, "nothing left");
 });
+
+// E102: a 401 from any API call fires the session-expired event.
+test("testE102_401FiresSessionExpired", async () => {
+  const { request, SESSION_EXPIRED_EVENT } = await import("./api/client.js");
+  const target = new EventTarget();
+  const g = globalThis as unknown as { window?: EventTarget; fetch: typeof fetch };
+  const realFetch = g.fetch;
+  g.window = target;
+  g.fetch = (async () => new Response(JSON.stringify({ error: "unauthenticated" }), { status: 401 })) as typeof fetch;
+  let fired = 0;
+  target.addEventListener(SESSION_EXPIRED_EVENT, () => fired++);
+  try {
+    await request("/v1/transactions").catch(() => undefined);
+  } finally {
+    g.fetch = realFetch;
+    delete g.window;
+  }
+  assert.equal(fired, 1);
+});

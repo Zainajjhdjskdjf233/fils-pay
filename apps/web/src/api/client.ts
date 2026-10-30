@@ -2,7 +2,10 @@ import type { ApiErrorBody } from "../types.js";
 
 // E61: default to the same origin (dev: vite proxy; hosting: reverse proxy).
 // The old default http://localhost:3000 is cross-origin, and the API sends no CORS headers.
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "";
+/** E102: fired on any 401; DashboardAuthContext listens and goes anonymous. */
+export const SESSION_EXPIRED_EVENT = "filspay:session-expired";
+
+const API_BASE_URL = (import.meta.env?.VITE_API_BASE_URL as string | undefined) ?? "";
 
 /** Mirrors apps/api's own uniform `{ error, message? }` body
  *  (lib/errors.ts / plugins/errorHandler.ts) — one error shape end to
@@ -48,6 +51,11 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
   const body = await res.json().catch(() => null);
   if (!res.ok) {
+    // E102: tell the dashboard its session is gone, so it shows the login
+    // page instead of an "unauthenticated" banner on every page.
+    if (res.status === 401 && typeof window !== "undefined") {
+      window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+    }
     throw new ApiError(res.status, (body as ApiErrorBody) ?? { error: "unknown_error" });
   }
   return body as T;
