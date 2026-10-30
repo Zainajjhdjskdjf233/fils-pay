@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 07:06 PM (30 Oct 2026)
-Summary: Errors 123/176 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 07:15 PM (30 Oct 2026)
+Summary: Errors 124/176 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -837,7 +837,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/admin/settlementClient.ts:124-154 (path, fetch error, 500 bytes of body in AppError.message); plugins/errorHandler.ts:17
 - Error: internal hostnames/ports and upstream errors shown to finance/super_admin.
 - Proof: code read (backend security-review agent (1:03 PM); checked by me).
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E95)
 
 ### E96 — [found later] Reporting consumer trusts payload merchant and amounts; negative amounts pass
 - Where: apps/reporting/src/consumer/applyEvent.ts:93-118 (trend row written under payload.merchantId/amounts, not the batch's own); my E53 validation (`Number.isSafeInteger`) accepts negatives
@@ -2666,6 +2666,12 @@ ROLLBACK;
 - Not proven by a live stop during a batch (time); the safety net is unchanged and is the real guarantee: one transaction per batch step + idempotent re-run (daemon.go:5-9, :22-29).
 - Found while writing SUBMISSION section 2 (redeploy and settlement).
 - check.sh (clean environment): OK. Needs a redeploy (settlement container is recreated with the new setting).
+
+### E95 — 07:15 PM — settlement errors show admins a short fixed message; the internal path, host and upstream body go to the server log only
+- Changed: apps/api/src/lib/errors.ts AppError gets an optional 'detail' (never sent). apps/api/src/admin/settlementClient.ts: the three error paths keep their status and code (502 settlement_unreachable, 500 settlement_run_failed) with a fixed message; the old text (path, fetch error, 500 bytes of the upstream body) moves to detail. apps/api/src/plugins/errorHandler.ts logs detail with the code and path.
+- Before: testE95_settlementErrorsHideInternalDetailsFromTheClient — the message carried '/internal/run-batch', the connection error and the upstream body ('panic: … db.internal:5432'). After: none of these in the message; all in detail. settlementClient 9/9; admin route suites 46/46 (they match the code, not the text).
+- Small, one purpose: no fix-reviewer.
+- check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy
 

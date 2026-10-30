@@ -272,3 +272,25 @@ test("triggerBalanceRebuild falls back to the map key when the value carries no 
     await fake.close();
   }
 });
+
+// E95 [found later]: internal hostnames, paths and upstream bodies must not
+// reach the admin browser; they stay in err.detail for the server log only.
+test("testE95_settlementErrorsHideInternalDetailsFromTheClient", async () => {
+  const unreachable = await triggerSettlementRunBatch(configFor("http://127.0.0.1:1"), { date: "2026-09-09" }).then(() => null, (e: unknown) => e);
+  assert.ok(unreachable instanceof AppError);
+  assert.doesNotMatch(unreachable.message, /127\.0\.0\.1|\/internal\/|ECONNREFUSED|fetch failed/i, unreachable.message);
+  assert.match(String((unreachable as AppError & { detail?: string }).detail), /\/internal\/run-batch/);
+
+  const fake = await startFakeSettlement((_req, res) => {
+    res.writeHead(500, { "content-type": "text/plain" });
+    res.end("panic: pq: relation settlement_batches at db.internal:5432");
+  });
+  try {
+    const failed = await triggerSettlementRunBatch(configFor(fake.url), { date: "2026-09-09" }).then(() => null, (e: unknown) => e);
+    assert.ok(failed instanceof AppError);
+    assert.doesNotMatch(failed.message, /panic|db\.internal|\/internal\//, failed.message);
+    assert.match(String((failed as AppError & { detail?: string }).detail), /panic/);
+  } finally {
+    await fake.close();
+  }
+});

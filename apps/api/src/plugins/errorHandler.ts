@@ -14,6 +14,8 @@ export function errorHandler(
   reply: FastifyReply,
 ): void {
   if (err instanceof AppError) {
+    // E95: internal detail goes to the server log, never into the response.
+    if (err.detail) request.log.error({ code: err.code, detail: err.detail, path: request.url }, "upstream error");
     if (err.statusCode === 503) reply.header("Retry-After", "5"); // E138: busy, retry
     reply.code(err.statusCode).send({ error: err.code, message: err.message });
     return;

@@ -13,12 +13,15 @@
 export class AppError extends Error {
   readonly statusCode: number;
   readonly code: string;
+  /** E95: server-side detail for the log only; never sent to the client. */
+  readonly detail?: string;
 
-  constructor(statusCode: number, code: string, message?: string) {
+  constructor(statusCode: number, code: string, message?: string, detail?: string) {
     super(message ?? code);
     this.name = "AppError";
     this.statusCode = statusCode;
     this.code = code;
+    this.detail = detail;
   }
 }
 

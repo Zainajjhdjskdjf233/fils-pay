@@ -126,7 +126,8 @@ async function callSettlementInternal(
     throw new AppError(
       502,
       "settlement_unreachable",
-      `settlement internal call to ${path} failed: ${(err as Error).message}`,
+      "The settlement service could not be reached. Nothing was run.",
+      `settlement internal call to ${path} failed: ${(err as Error).message}`, // E95: log only
     );
   } finally {
     clearTimeout(timer);
@@ -142,7 +143,8 @@ async function callSettlementInternal(
     throw new AppError(
       500,
       "settlement_run_failed",
-      `settlement internal call to ${path} returned ${response.status}: ${excerpt}`,
+      "The settlement service reported an error. Check the settlement logs before retrying.",
+      `settlement internal call to ${path} returned ${response.status}: ${excerpt}`, // E95: log only
     );
   }
 
@@ -152,7 +154,8 @@ async function callSettlementInternal(
     throw new AppError(
       500,
       "settlement_run_failed",
-      `settlement internal call to ${path} returned unreadable JSON: ${(err as Error).message}`,
+      "The settlement service sent an unreadable answer. Check the settlement logs before retrying.",
+      `settlement internal call to ${path} returned unreadable JSON: ${(err as Error).message}`, // E95: log only
     );
   }
 }
