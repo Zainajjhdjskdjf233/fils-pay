@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 04:54 PM (30 Oct 2026)
-Summary: Errors 82/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 04:56 PM (30 Oct 2026)
+Summary: Errors 83/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1229,7 +1229,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/analytics/query.ts:312 `BETWEEN $2::date AND $3::date`; the route defines `to` as exclusive (routes/analytics.ts:63; query.ts:112).
 - Error: from=2026-10-01, to=2026-10-02 shows two days of ledger lines instead of one.
 - Proof: the second review (items 32-45, pasted by Zainab at 4:23 PM); checked by me in the code (04:30 PM).
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5)
 
 ### E162 — [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently
 - Where: apps/api/src/admin/adjustmentCsvParsing.ts:37-45: the header check reads only cells 0-1, each row takes cells[0..2] and drops the rest.
@@ -2293,6 +2293,12 @@ ROLLBACK;
 - No new code: the E57 change (9d35e0f, errorHandler.ts maps Postgres 22P02/22007/22008 to 400) already turns a malformed cursor's bad timestamp or id into 400.
 - Test: apps/api/src/routes/cursors.e159.test.ts (4 malformed cursors × transactions, settlement batches, payment links: 400 or page one). With the errorHandler from before 9d35e0f (`git show 9d35e0f^:…`): `/v1/transactions cursor=YWJjfGRlZg: 500`. With HEAD: PASS. The test locks it in.
 - Left as is (Low, defence in depth): the six decoders still accept any text before the separator; a strict shared decoder (plan C6 in scratchpad/plans/validation.md) would return page one instead of 400.
+- check.sh: OK.
+
+### E161 — 04:56 PM — recent ledger activity treats "to" as exclusive
+- Changed: apps/api/src/analytics/query.ts:312-314: `BETWEEN $2 AND $3` → `>= $2 AND < $3` (the route says `to` is exclusive, routes/analytics.ts:63).
+- Test: apps/api/src/routes/ledgerActivity.e161.test.ts. Before: `got [1000,1000,2000,2000]` for from=2026-03-01&to=2026-03-02 (two days). After: PASS (only 1 March); analytics tests 14/14.
+- My mistake caught by the hook: my first SQL comment held backticks inside the JS template literal; the post-edit check.sh reported TYPECHECK FAILED and I removed them before testing.
 - check.sh: OK.
 
 ## 6. Deploy

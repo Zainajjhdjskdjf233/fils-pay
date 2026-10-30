@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 82 of 163 fixed.
+Summary: 83 of 163 fixed.
 
 ## High (45 of 46 fixed)
 
@@ -126,7 +126,7 @@ Summary: 82 of 163 fixed.
 | E148 | [coverage] No limit on KYC uploads per merchant: the shared disk can be filled | Open |
 | E163 | [second review] API config never refuses bad settings (prefixes, booleans, NODE_ENV typo turns off security defaults, no ranges) | Open |
 
-## Low (10 of 62 fixed)
+## Low (11 of 62 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -191,4 +191,4 @@ Summary: 82 of 163 fixed.
 | E158 | [coverage] Adjustment import has no row cap; one long transaction can outlive the 60 s proxy timeout | Open |
 | E159 | [second review] Pagination cursors are not validated; a malformed cursor reaches a database cast (500) | Fixed |
 | E160 | [second review] The adjustment-import list pages on created_at text with no tie-breaker | Open |
-| E161 | [second review] Recent ledger activity includes the exclusive end date (one extra day) | Open |
+| E161 | [second review] Recent ledger activity includes the exclusive end date (one extra day) | Fixed |

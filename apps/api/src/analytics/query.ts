@@ -309,7 +309,9 @@ export async function getRecentLedgerActivity(
     `SELECT id, account_id, direction, amount_fils, occurred_at, description
        FROM ledger_entries
       WHERE merchant_id = $1
-        AND (occurred_at AT TIME ZONE 'Asia/Bahrain')::date BETWEEN $2::date AND $3::date
+        -- E161: the to date is exclusive, as in every other analytics query (BETWEEN added a day).
+        AND (occurred_at AT TIME ZONE 'Asia/Bahrain')::date >= $2::date
+        AND (occurred_at AT TIME ZONE 'Asia/Bahrain')::date <  $3::date
       ORDER BY occurred_at DESC
       LIMIT 200`,
     [input.merchantId, input.from, input.to],
