@@ -330,4 +330,4 @@ Where: apps/settlement/internal/settlement/batch.go:289 · Commit: 184c0b2
 
 Shop users were silently logged out 10 minutes after logging in, and every page then just showed an error. The login cookie was set for 10 minutes (enough to type the code) and never renewed after the code was accepted, even though the server kept the session for 12 hours. Now the cookie is renewed for 12 hours, and if the session ever ends, the dashboard shows the login page. A test checks the new 12-hour cookie.
 
-Where: apps/api/src/routes/auth.ts:217 · Commit: PENDING_N55
+Where: apps/api/src/routes/auth.ts:217 · Commit: 0d04c29
