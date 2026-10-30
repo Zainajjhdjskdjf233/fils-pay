@@ -105,6 +105,11 @@ export function CheckoutPage() {
     }
   }
 
+  // UX: the browser tab names the merchant being paid.
+  useEffect(() => {
+    document.title = loadState.kind === "loaded" ? `Pay ${loadState.link.merchantDisplayName} · FilsPay` : "Checkout · FilsPay";
+  }, [loadState]);
+
   // UX: move keyboard and screen-reader focus to a new error so it is noticed.
   useEffect(() => {
     if (payState.kind === "declined") errorRef.current?.focus();
@@ -304,6 +309,7 @@ export function CheckoutPage() {
           {submitting ? <p className="checkout-note" role="status">Please keep this page open.</p> : null}
         </form>
 
+        <p className="checkout-secure">Payment processed by FilsPay.</p>
         <p className="checkout-help">
           Test cards (simulated acquirer, no real charge): any other number approves; a PAN ending{" "}
           <code>0002</code> always declines (do not honor); ending <code>0119</code> always declines

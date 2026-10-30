@@ -1,5 +1,16 @@
-import { useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+
+/** UX: the browser tab says which page is open. */
+const TITLES: Array<[string, string]> = [
+  ["/dashboard/overview", "Overview"],
+  ["/dashboard/transactions", "Transactions"],
+  ["/dashboard/payment-links/new", "New payment link"],
+  ["/dashboard/payment-links", "Payment links"],
+  ["/dashboard/webhooks", "Webhook endpoints"],
+  ["/dashboard/settlement", "Settlement batches"],
+  ["/dashboard/reconciliation", "Reconciliation"],
+];
 import { useDashboardAuth } from "../auth/DashboardAuthContext.js";
 import { RequireRole } from "../auth/RequireRole.js";
 import { describeError } from "../api/client.js";
@@ -14,6 +25,11 @@ export function DashboardLayout() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
+  const { pathname } = useLocation();
+  useEffect(() => {
+    const match = TITLES.find(([prefix]) => pathname.startsWith(prefix));
+    document.title = `${match ? match[1] : "Dashboard"} · FilsPay`;
+  }, [pathname]);
 
   // sign out clears the cookie server side, local merchantId stays — am
   async function handleSignOut(): Promise<void> {

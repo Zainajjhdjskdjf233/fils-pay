@@ -17,10 +17,11 @@ import { SettlementBatchListPage } from "./pages/settlement/SettlementBatchListP
 import { SettlementBatchDetailPage } from "./pages/settlement/SettlementBatchDetailPage.js";
 import { ReconciliationPage } from "./pages/settlement/ReconciliationPage.js";
 import { OverviewPage } from "./pages/overview/OverviewPage.js";
+import { AppErrorPage, NotFoundPage } from "./components/StatusPages.js";
 
 // MK: /refunds route removed until FP-212
 export const router = createBrowserRouter([
-  { path: "/pay/:token", element: <CheckoutPage /> },
+  { path: "/pay/:token", element: <CheckoutPage />, errorElement: <AppErrorPage /> },
 
   {
     // The session provider wraps the dashboard subtree only — never
@@ -32,6 +33,7 @@ export const router = createBrowserRouter([
         <Outlet />
       </DashboardAuthProvider>
     ),
+    errorElement: <AppErrorPage />,
     children: [
       { path: "/dashboard/login", element: <LoginPage /> },
       {
@@ -97,8 +99,11 @@ export const router = createBrowserRouter([
           { path: "/dashboard/reconciliation", element: <ReconciliationPage /> },
 
           { path: "/dashboard/overview", element: <OverviewPage /> },
+          // UX: an unknown dashboard address keeps the nav and says so.
+          { path: "/dashboard/*", element: <NotFoundPage /> },
         ],
       },
     ],
   },
+  { path: "*", element: <NotFoundPage /> },
 ]);

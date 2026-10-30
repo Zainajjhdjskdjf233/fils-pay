@@ -249,3 +249,5 @@
 @media (prefers-reduced-motion: reduce) {
   .checkout-spinner { animation: none; }
 }
+
+.checkout-secure { margin: 1rem 0 0; font-size: 0.8rem; color: #4a4f57; text-align: center; }

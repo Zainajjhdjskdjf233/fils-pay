@@ -1,6 +1,15 @@
 import { label } from "../lib/format.js";
-import { useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+
+/** UX: the browser tab says which page is open. */
+const TITLES: Array<[string, string]> = [
+  ["/merchants", "Merchants"],
+  ["/credits", "Merchant credits"],
+  ["/settlement", "Settlement ops"],
+  ["/adjustment-imports", "Import adjustments"],
+  ["/webhooks", "Webhook replay"],
+];
 import { useAdminAuth } from "../auth/AdminAuthContext.js";
 import { describeError, WEB_BASE_URL } from "../api/client.js";
 import { ImpersonationBanner } from "./ImpersonationBanner.js";
@@ -15,6 +24,11 @@ export function AdminLayout() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
+  const { pathname } = useLocation();
+  useEffect(() => {
+    const match = TITLES.find(([prefix]) => pathname.startsWith(prefix));
+    document.title = `${match ? match[1] : "Admin"} · FilsPay Admin`;
+  }, [pathname]);
 
   async function handleSignOut(): Promise<void> {
     setError(null);
