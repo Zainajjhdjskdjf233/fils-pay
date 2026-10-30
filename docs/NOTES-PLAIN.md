@@ -450,4 +450,4 @@ Where: apps/api/src/onboarding/review.ts: · Commit: ce6d4f0
 
 Any admin, even the lowest support role, could resend all of a shop's old payment and payout messages as many times as they wanted, and the shop could not tell the copies apart. Now only finance and super admins can resend, and a saved archive can be resent just once. A test shows support is refused and a second resend is refused.
 
-Where: apps/api/src/webhooks/archiveReplay.ts: · Commit: PENDING_N75
+Where: apps/api/src/webhooks/archiveReplay.ts: · Commit: 8fe5a25

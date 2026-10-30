@@ -74,6 +74,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:28 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- 8fe5a25 fix(E136): webhook replay and archives are finance/super_admin only; an archive replays once (0084)
 - ce6d4f0 fix(E135): single KYC review decides only a merchant under review (atomic UPDATE, 409 otherwise)
 - 235fb29 fix(E75): March sweep posts ADR-0002 legs (clearing/residue), never merchant_payable
 - d4df731 fix(E64): reporting consumes settlement.paid so payout trends show paid
@@ -88,7 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:28 PM
 - c973988 fix(E119): CSV adjustment import capped at the two-person threshold (per row and total)
 - fb945fa fix(E118): a business day can only be closed after it has ended — early close stranded later captures
 - a3975a9 fix(E117): OTP guess limit per user across logins; older codes and pending sessions end at login
-- a8fdcb1 feat(capacity): load shedding (503 + Retry-After), CPU rebalanced to Postgres, k6 checkout test; capacity ~15 checkouts/s
 
 ## 7. All errors
 ## High (41 of 45 fixed)
@@ -3049,5 +3049,5 @@ Support admins now get 403 on resend.
 "Why not just trust admins?"
 Support is the lowest role and the duplicates looked real to shops. A duplicate payout message was a real incident before (E30).
 
-Commit: PENDING_N75
+Commit: 8fe5a25
 
