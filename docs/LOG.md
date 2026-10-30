@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 12:45 PM (30 Oct 2026)
-Summary: Errors 47/98 fixed (+2 partly: E13, E50; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: not started · CHECKPOINT reached
+Updated: 12:52 PM (30 Oct 2026)
+Summary: Errors 47/109 fixed (+2 partly: E13, E50; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -853,6 +853,72 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/reporting/src/consumer/runConsumerPass.ts (E53 park: err.message up to 1000 chars)
 - Error: SQLSTATE 22/23 messages echo input values (PII risk if payloads ever carry it). My own E53 code.
 - Proof: code read (backend security-review agent (1:03 PM); checked by me).
+- Severity: low · Status: open
+
+### E99 — [found later] Dashboard capture makes a new Idempotency-Key on every click
+- Where: apps/web/src/pages/transactions/TransactionDetailPage.tsx:76-79 (`captureTransaction(id, input, crypto.randomUUID())`); capture.ts:135-150 allows another partial capture
+- Error: a partial capture whose response is lost, retried, is captured twice (500 + 500 of a 1000 authorization). The amount field is also in fils while the refund drawer takes BD.
+- Proof: code read (web/admin bug-hunt agent (1:10 PM); checked by me).
+- Severity: high · Status: open
+
+### E100 — [found later] Checkout tells a buyer whose card WAS charged to try again (reservation_lost)
+- Where: apps/web/src/pages/checkout/CheckoutPage.tsx:77-78 (any 409 → "try again shortly", retryable); server pay.ts returns `payment_link_reservation_lost` + transactionId after a successful capture (E29)
+- Error: the buyer loses the reference for a refund and retries into "already paid".
+- Proof: code read (web/admin bug-hunt agent (1:10 PM); checked by me).
+- Severity: medium · Status: open
+
+### E101 — [found later] Expired link with a stale reservation shows a Pay form forever and cannot be canceled
+- Where: apps/api/src/paymentLinks/status.ts:37-40 (reserved branch ignores expiry); pay.ts classifyClaimFailure (reserved → 409 processing, not 410); cancel.ts:16 (only status='active')
+- Error: buyer sees "try again shortly" forever; merchant has no Cancel.
+- Proof: code read (web/admin bug-hunt agent (1:10 PM); checked by me).
+- Severity: medium · Status: open
+
+### E102 — [found later] Merchant dashboard logs out after 10 minutes and does not notice
+- Where: apps/api/src/routes/auth.ts:100-106 (cookie set only at login, maxAge = pendingSessionTtlMinutes × 60 = 10 min); otp/verify promotes the session to 12 h in the DB but never re-sets the cookie (MK's comment there asks exactly this); apps/web/src/api/client.ts:47-52 (401 never resets DashboardAuthContext)
+- Error: 10 minutes after login every page shows "unauthenticated" with no redirect — the dashboard stops working.
+- Proof: code read (web/admin bug-hunt agent (1:10 PM); checked by me).
+- Severity: high · Status: open
+
+### E103 — [found later] "View as merchant" cannot work end to end
+- Where: apps/admin/src/pages/merchants/MerchantDetailPage.tsx:213-214 (opens WEB_BASE_URL `/`, which has no route; `noopener` window.open always returns null); apps/api/src/routes/auth.ts:292 (/v1/auth/me uses requireSession, ignores the fp_impersonation grant)
+- Error: the admin lands on a blank page or the merchant login; the "blocked tab" message always shows.
+- Proof: code read (web/admin bug-hunt agent (1:10 PM); checked by me).
+- Severity: medium · Status: open
+
+### E104 — [found later] Bulk "Approve KYC" approves merchants no longer on screen; the server checks no status
+- Where: apps/admin/src/pages/merchants/MerchantListPage.tsx:29,90 (selectedIds survive filter changes; all sent); apps/api/src/admin/bulkKyc.ts:27-29 (`UPDATE … SET onboarding_status='approved', kyc_passed=true WHERE id = ANY($1)` — any status, even rejected)
+- Error: select under_review rows, switch the filter to rejected, select one, approve → hidden merchants approved too; the server would approve rejected or never-submitted merchants.
+- Proof: code read (web/admin bug-hunt agent (1:10 PM); checked by me).
+- Severity: high · Status: open
+
+### E105 — [found later] Refund drawer keeps its key after a definite 4xx answer (my F01f bug)
+- Where: apps/web/src/pages/transactions/RefundDrawer.tsx (key made in openForm, dropped only on success/cancel); processRefund.ts stores 402/409/422 under the key
+- Error: after a 422 the corrected retry gets idempotency_key_reused until Cancel. I only considered network errors in F01f.
+- Proof: code read (web/admin bug-hunt agent (1:10 PM); checked by me).
+- Severity: medium · Status: open
+
+### E106 — [found later] Reconciliation and batch pages leave out the refund parts, so shown figures do not add up
+- Where: apps/web/src/pages/settlement/ReconciliationPage.tsx:124-137 (no refundsFromOtherPeriodsFils; formula text without it); SettlementBatchDetailPage.tsx:103-108, SettlementBatchListPage.tsx:117-119 (gross, fee, net only)
+- Error: with refunds, Gross − Fee ≠ Net on screen and the gap formula shown is wrong.
+- Proof: code read (web/admin bug-hunt agent (1:10 PM); checked by me).
+- Severity: medium · Status: open
+
+### E107 — [found later] Dashboard shows expired payment links as active with a Cancel button
+- Where: apps/web/src/pages/payment-links/PaymentLinkDetailPage.tsx:162; serialize.ts `status: row.status` ("expired" never stored)
+- Error: the merchant thinks a dead link is payable; the active filter includes expired links.
+- Proof: code read (web/admin bug-hunt agent (1:10 PM); checked by me).
+- Severity: low · Status: open
+
+### E108 — [found later] List pages can append rows from an old filter (stale response race; suspected)
+- Where: TransactionListPage.tsx:48-72, PaymentLinkListPage.tsx:33-53, SettlementBatchListPage.tsx:31-52, WebhookEndpointDetailPage.tsx:51-73, admin MerchantListPage.tsx:33-54
+- Error: Load more + filter change before it returns mixes pages.
+- Proof: code read (web/admin bug-hunt agent (1:10 PM); checked by me).
+- Severity: low · Status: open
+
+### E109 — [found later] Small admin/checkout display bugs
+- Where: admin CreditsPage.tsx:59-68 (loadMore double-click duplicates); AdjustmentImportPage.tsx:71 ("posting X" uses the sum of absolute values); CheckoutPage.tsx:118 (raw UTC paidAt); WebhookReplayPage (old result kept on merchant change)
+- Error: cosmetic / confusing.
+- Proof: code read (web/admin bug-hunt agent (1:10 PM); checked by me).
 - Severity: low · Status: open
 
 ## 3. Hidden things

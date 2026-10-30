@@ -13,9 +13,9 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 47 of 98 fixed.
+Summary: 47 of 109 fixed.
 
-## High (26 of 28 fixed)
+## High (26 of 31 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -47,8 +47,11 @@ Summary: 47 of 98 fixed.
 | E51 | API and seed cannot start: built-in dev key is 34 bytes, check needs 32 | Fixed |
 | E52 | Every refund fails: code inserts reason = NULL, migration 0070 forbids NULL | Fixed |
 | E73 | [found later] CloseBatch never journals the scheme rounding residue (ADR-0002 not implemented) | Fixed |
+| E99 | [found later] Dashboard capture makes a new Idempotency-Key on every click (double capture on retry) | Open |
+| E102 | [found later] Merchant dashboard logs out after 10 minutes and does not notice | Open |
+| E104 | [found later] Bulk Approve KYC approves hidden merchants; server checks no status | Open |
 
-## Medium (20 of 34 fixed)
+## Medium (20 of 39 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -86,8 +89,13 @@ Summary: 47 of 98 fixed.
 | E91 | [found later] Every service connects as one Postgres superuser | Open |
 | E92 | [found later] Ledger immutability claim false; audit log unprotected | Open |
 | E93 | [found later] sqlFilter builds DELETE with no WHERE for null/undefined filters | Open |
+| E100 | [found later] Checkout tells a charged buyer to try again (reservation_lost) | Open |
+| E101 | [found later] Expired link with stale reservation: Pay form forever, cannot cancel | Open |
+| E103 | [found later] View as merchant cannot work end to end | Open |
+| E105 | [found later] Refund drawer keeps its key after a definite 4xx (my F01f bug) | Open |
+| E106 | [found later] Reconciliation and batch pages leave out refund parts | Open |
 
-## Low (1 of 36 fixed)
+## Low (1 of 39 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -127,3 +135,6 @@ Summary: 47 of 98 fixed.
 | E96 | [found later] Reporting trusts payload merchant/amounts; negative amounts pass (my E53 check) | Open |
 | E97 | [found later] Reporting config accepts bad numbers ("15s" → 15 ms) | Open |
 | E98 | [found later] Raw Postgres error text in logs and dead letters (my E53 code) | Open |
+| E107 | [found later] Expired payment links shown as active with Cancel | Open |
+| E108 | [found later] List pages can append rows from an old filter (suspected) | Open |
+| E109 | [found later] Small admin/checkout display bugs | Open |
