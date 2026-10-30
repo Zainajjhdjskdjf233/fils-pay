@@ -285,7 +285,7 @@ Not changed (recorded): money columns are still left-aligned (29 cells in 10 fil
 ### Every error entry
 
 <!-- errors:start (generated from docs/ERRORS.md) -->
-All 176 entries from docs/ERRORS.md (142 of 176 fixed.). Each ID has its error (section 2) and, when fixed, its fix (section 5) in docs/LOG.md.
+All 176 entries from docs/ERRORS.md (146 of 176 fixed.). Each ID has its error (section 2) and, when fixed, its fix (section 5) in docs/LOG.md.
 
 | ID | Title | Level | Status |
 |---|---|---|---|
@@ -335,7 +335,7 @@ All 176 entries from docs/ERRORS.md (142 of 176 fixed.). Each ID has its error (
 | E44 | Reconciliation "pending" estimate uses float and the wrong rate | Medium | Fixed |
 | E45 | [second review] /v1/reporting/export-summary had no login check (always 500) | High | Fixed |
 | E46 | KYC "PDF only" rule checks the filename, not the content | Low | Fixed |
-| E47 | Admin console: session not rotated after OTP; no CSP | Low | Partly fixed |
+| E47 | Admin console: session not rotated after OTP; no CSP | Low | Fixed |
 | E48 | Admin run-batch sends no payout notification; split payouts skip the lifetime estimate | Low | Open |
 | E49 | settlement rebuild-balances --merchant never writes the cache | Low | Fixed |
 | E50 | Fee at capture ignores the negotiated discount that settlement applies | Medium | Partly fixed |
@@ -371,20 +371,20 @@ All 176 entries from docs/ERRORS.md (142 of 176 fixed.). Each ID has its error (
 | E80 | [found later] Scheme export fallback can print more than 2 decimals | Low | Fixed |
 | E81 | [found later] Admin Run batch default date uses the UTC day | Low | Fixed |
 | E82 | [found later] Admin "rotate API key" hands staff a full-power merchant key | Medium | Open |
-| E83 | [found later] Legal name and CR number editable after KYC approval, no re-review | Medium | Open |
+| E83 | [found later] Legal name and CR number editable after KYC approval, no re-review | Medium | Fixed |
 | E84 | [found later] CSRF from same-site pages (Lax only, text/plain accepted) | Low | Fixed |
-| E85 | [found later] Impersonation grant survives admin disable/logout | Low | Open |
+| E85 | [found later] Impersonation grant survives admin disable/logout | Low | Fixed |
 | E86 | [found later] Dashboard dev proxy forwards /v1/admin; shared cookie jar | Low | Partly fixed |
 | E87 | [found later] No anti-framing headers on dashboard and checkout | Low | Fixed |
 | E88 | [found later] Read-only impersonation and API keys can write saved filters | Low | Fixed |
-| E89 | [found later] Unsalted SHA-256 of card number and CVV stored | Low | Open |
+| E89 | [found later] Unsalted SHA-256 of card number and CVV stored | Low | Fixed |
 | E90 | [found later] KYC download puts the raw filename into a header | Low | Fixed |
 | E91 | [found later] Every service connects as one Postgres superuser | Medium | Fixed |
 | E92 | [found later] Ledger immutability claim false; audit log unprotected | Medium | Partly fixed |
 | E93 | [found later] sqlFilter builds DELETE with no WHERE for null/undefined filters | Medium | Fixed |
 | E94 | [found later] Settlement internal API: plain HTTP on all interfaces; weak token accepted | Low | Partly fixed |
 | E95 | [found later] Internal settlement errors returned to admin browsers | Low | Fixed |
-| E96 | [found later] Reporting trusts payload merchant/amounts; negative amounts pass (my E53 check) | Low | Open |
+| E96 | [found later] Reporting trusts payload merchant/amounts; negative amounts pass (my E53 check) | Low | Partly fixed |
 | E97 | [found later] Reporting config accepts bad numbers ("15s" → 15 ms) | Low | Fixed |
 | E98 | [found later] Raw Postgres error text in logs and dead letters (my E53 code) | Low | Fixed |
 | E99 | [found later] Dashboard capture makes a new Idempotency-Key on every click (double capture on retry) | High | Fixed |

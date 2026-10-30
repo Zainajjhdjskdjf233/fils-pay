@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 7:55 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 7:58 PM
 
 ## Contents
 1. Status now
@@ -14,10 +14,10 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:55 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 145 of 176 fixed.
+- Errors: 146 of 176 fixed.
   - High: 46 of 46 fixed
   - Medium: 49 of 60 fixed
-  - Low: 50 of 70 fixed
+  - Low: 51 of 70 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
@@ -27,7 +27,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:55 PM
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 145 of 176 fixed.
+- 🔄 Fix: 146 of 176 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -74,6 +74,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:55 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- 8d4e7f7 fix(E47): full Content-Security-Policy on both nginx servers
 - f9f833b fix(E89): authorize idempotency hash excludes the full card number and CVV
 - 0715011 fix(E85): impersonation grants stop on admin disable or logout, with audit rows
 - 129b6bd fix(E96): reporting parks events with zero or negative amounts (partly fixed)
@@ -88,7 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:55 PM
 - c0350b1 fix(E151): refund validation caps refundable at captured and refuses fractional fils; E63 marked for review
 - 319790f fix(E65): the seed refuses to wipe tables without FILSPAY_ALLOW_SEED_RESET=1, never in production
 - 7c4a68d fix(E109): checkout paid time readable, credits load-more guarded, import total worded correctly (partly fixed)
-- 640afe2 fix(E139): capture uses the shared refund status rule; hold release and event type use the captured amount
 
 ## 7. All errors
 ## High (46 of 46 fixed)
@@ -207,14 +207,14 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:55 PM
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-### Low (50 of 70 fixed)
+### Low (51 of 70 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
 | E38 | Public payment link page exposes the merchant's API key hash and prefix | Fixed |
 | E40 | withTransaction: a failing ROLLBACK hides the real error | Fixed |
 | E46 | KYC "PDF only" rule checks the filename, not the content | Fixed |
-| E47 | Admin console: session not rotated after OTP; no CSP | Partly fixed |
+| E47 | Admin console: session not rotated after OTP; no CSP | Fixed |
 | E48 | Admin run-batch sends no payout notification; split payouts skip the lifetime estimate | Open |
 | E49 | settlement rebuild-balances --merchant never writes the cache | Fixed |
 | E54 | Webhook backoff test always fails: test expects no jitter, code adds random ±10 % | Fixed |
@@ -283,7 +283,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:55 PM
 | E176 | [deep review] A redeploy stops settlement after 10 s, although it waits 30 s for a running batch | Fixed |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101 · N102 · N103 · N104 · N105 · N106 · N107 · N108 · N109 · N110 · N111 · N112 · N113 · N114 · N115 · N116 · N117 · N118 · N119 · N120 · N121 · N122 · N123 · N124 · N125 · N126 · N127 · N128 · N129 · N130 · N131 · N132 · N133 · N134 · N135 · N136 · N137 · N138 · N139 · N140 · N141 · N142 · N143 · N144 · N145 · N146 · N147 · N148 · N149 · N150
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101 · N102 · N103 · N104 · N105 · N106 · N107 · N108 · N109 · N110 · N111 · N112 · N113 · N114 · N115 · N116 · N117 · N118 · N119 · N120 · N121 · N122 · N123 · N124 · N125 · N126 · N127 · N128 · N129 · N130 · N131 · N132 · N133 · N134 · N135 · N136 · N137 · N138 · N139 · N140 · N141 · N142 · N143 · N144 · N145 · N146 · N147 · N148 · N149 · N150 · N151 · N152 · N153 · N154 · N155
 
 ### N01 — Database setup stopped halfway
 
@@ -5554,4 +5554,168 @@ An expired link stays expired.
 Not the merchant's Cancel button for such a link; it is harmless now because nobody can pay it.
 
 Commit: f788901
+
+### N151 — The company name is locked after review
+
+#### The idea
+A shop's legal name and registration number are checked once, at KYC review. Like a passport photo: you cannot swap it after it was approved.
+
+#### The problem
+A shop could change its legal name after approval and stay approved.
+- Company A passes the check, then becomes company B.
+
+#### The fix
+- businessProfile.ts: legal name, CR number and business type are refused (409) during and after review.
+- Contact details stay editable.
+
+#### The code
+Before (apps/api/src/onboarding/businessProfile.ts:81): every field was editable at any time.
+After:
+```ts
+if (row && (row.kyc_passed || row.onboarding_status === "under_review" || row.onboarding_status === "approved")) {
+  throw new ConflictError("identity_locked_after_kyc", ...);
+}
+```
+The approval always belongs to the company that was reviewed.
+
+#### The proof
+- Before: after approval, "Company B" was accepted.
+- After: refused during and after review; city still editable.
+
+#### If the judges ask
+"Why lock it during the review too?"
+The reviewer found that gap: otherwise an approval could land on a name the reviewer never saw.
+
+Commit: a3675a0
+
+### N152 — No negative sales in reports
+
+#### The idea
+The reporting worker adds up sales from events. A sale or refund amount is always above zero, like a till that cannot ring up minus 5.
+
+#### The problem
+My own earlier check accepted negative and zero amounts.
+- A bad event could push negative volume into dashboards.
+
+#### The fix
+- applyEvent.ts: amounts must be whole numbers above zero; otherwise the event is parked.
+
+#### The code
+Before (apps/reporting/src/consumer/applyEvent.ts:230):
+```ts
+if (amountField && !Number.isSafeInteger(p[amountField])) {
+```
+After:
+```ts
+if (amountField && (!Number.isSafeInteger(p[amountField]) || (p[amountField] as number) <= 0)) {
+```
+A bad event is set aside, not counted.
+
+#### The proof
+- Before: -5 and 0 passed.
+- After: both parked before any database write.
+
+#### If the judges ask
+"Is E96 fully fixed?"
+No; payout trend rows still trust the merchant id in the event, which is recorded as open.
+
+Commit: 129b6bd
+
+### N153 — Staff access ends with staff
+
+#### The idea
+Support staff can view a shop's dashboard for 15 minutes. Like a visitor badge, it should stop when the visitor leaves.
+
+#### The problem
+The view kept working after the staff member was disabled or logged out.
+- A comment blamed a database trigger that does not exist.
+
+#### The fix
+- impersonation.ts: the view needs an active staff account.
+- adminAuth.ts: logout ends the views, with an audit line for each.
+
+#### The code
+Before (apps/api/src/admin/impersonation.ts:125): no check on the staff account.
+After:
+```sql
+AND au.status = 'active'
+```
+A disabled or logged-out staff member loses access at once.
+
+#### The proof
+- Before: 200 after disabling the staff member.
+- After: 401 after disable and after logout; the audit log shows why.
+
+#### If the judges ask
+"Did the reviewer change anything?"
+Yes: my first version wrote no audit line on logout; we added one, in the same transaction.
+
+Commit: 0715011
+
+### N154 — No card numbers in stored hashes
+
+#### The idea
+To stop a payment running twice, the server keeps a fingerprint of each request. Like noting "same order again", without copying the customer's card.
+
+#### The problem
+The fingerprint was made from the full card number and the CVV.
+- Card numbers are short enough to guess back from a plain hash.
+- Card rules (PCI DSS) forbid storing the CVV in any form.
+
+#### The fix
+- authorize.ts: the fingerprint uses only the last 4 digits and the expiry date.
+
+#### The code
+Before (apps/api/src/payments/authorize.ts:51):
+```ts
+card: input.card,
+```
+After:
+```ts
+card: { last4: input.card.pan.slice(-4), expiryMonth: input.card.expiryMonth, expiryYear: input.card.expiryYear },
+```
+The stored fingerprint holds nothing that leads back to the card.
+
+#### The proof
+- Before: the hash covered the card number and CVV.
+- After: changing the CVV does not change the hash; a different amount still does.
+
+#### If the judges ask
+"What about old rows?"
+They still hold old hashes; clearing them is a small follow-up migration, recorded as residual risk.
+
+Commit: f9f833b
+
+### N155 — A full content policy for the browser
+
+#### The idea
+A content policy tells the browser which files a page may load. Like a guest list at a door.
+
+#### The problem
+The policy only blocked framing.
+- An injected script from elsewhere would have run.
+
+#### The fix
+- nginx.conf: a full policy on both sites: only our own files and our own API.
+
+#### The code
+Before (ops/nginx/nginx.conf:23):
+```nginx
+add_header Content-Security-Policy "frame-ancestors 'none'" always;
+```
+After:
+```nginx
+add_header Content-Security-Policy "default-src 'self'; script-src 'self'; ... frame-ancestors 'none'" always;
+```
+Scripts and data can only come from FilsPay itself.
+
+#### The proof
+- Before: only frame-ancestors.
+- After: login, checkout and admin pages load in Chrome with no policy errors.
+
+#### If the judges ask
+"How do you know it breaks nothing?"
+We checked the built apps for inline scripts and outside hosts, then loaded the pages in headless Chrome.
+
+Commit: 8d4e7f7
 

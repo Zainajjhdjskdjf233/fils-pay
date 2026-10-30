@@ -901,3 +901,33 @@ Where: apps/web/src/pages/checkout/CheckoutPage.tsx · Commit: 4513457
 An expired payment link could look open again after an old hold timed out. Now it shows expired and cannot be paid. Tests prove both. The merchant's Cancel button for such links is still open.
 
 Where: apps/api/src/paymentLinks/status.ts · Commit: f788901
+
+## N151 — The company name is locked after review
+
+A shop could pass the identity check and then rename itself to another company. Now the legal name, registration number and type cannot change during or after review. Contact details can still be edited. A test proves it.
+
+Where: apps/api/src/onboarding/businessProfile.ts · Commit: a3675a0
+
+## N152 — No negative sales in reports
+
+My own earlier check let negative amounts into the sales reports. Now only amounts above zero are counted, and bad events are set aside. One related issue is still open.
+
+Where: apps/reporting/src/consumer/applyEvent.ts · Commit: 129b6bd
+
+## N153 — Staff access ends with staff
+
+Staff "view as shop" access kept working after the staff member was disabled or logged out. Now it stops at once, and logout writes an audit line. A test proves both.
+
+Where: apps/api/src/admin/impersonation.ts · Commit: 0715011
+
+## N154 — No card numbers in stored hashes
+
+The server stored a hash made from the full card number and CVV, which card rules forbid. Now it uses only the last 4 digits and expiry. A test proves the CVV no longer affects it.
+
+Where: apps/api/src/payments/authorize.ts · Commit: f9f833b
+
+## N155 — A full content policy for the browser
+
+The site told browsers only "do not frame me". Now it tells them to load scripts and data only from FilsPay. We loaded the pages in Chrome to check nothing broke.
+
+Where: ops/nginx/nginx.conf · Commit: 8d4e7f7
