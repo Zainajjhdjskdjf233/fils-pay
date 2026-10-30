@@ -438,3 +438,6 @@
   .dash-hide-mobile { display: none; }
   .dash-status { white-space: nowrap; }
 }
+/* UX: nav fits one row with the identity block at 1280px. */
+.dash-nav a { padding: 0.35rem 0.5rem; }
+@media (max-width: 1360px) { .dash-identity > span > .dash-muted { display: none; } }

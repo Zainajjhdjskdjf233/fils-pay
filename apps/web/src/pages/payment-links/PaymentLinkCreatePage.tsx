@@ -89,7 +89,7 @@ export function PaymentLinkCreatePage() {
     <section>
       <h1>New payment link</h1>
 
-      <p className="dash-muted">Create a link, then send it to your customer. They pay on a secure FilsPay page.</p>
+      <p className="dash-muted">Create a link, then send it to your customer. They pay on a FilsPay checkout page.</p>
       {error ? <p className="dash-error" role="alert">{error}</p> : null}
 
       <form className="dash-form" onSubmit={(e) => void handleSubmit(e)}>

@@ -5,6 +5,7 @@ import { describeError } from "../../api/client.js";
 import { useDashboardAuth } from "../../auth/DashboardAuthContext.js";
 import { RequireRole } from "../../auth/RequireRole.js";
 import { bhd, dash, dateTime, statusLabel } from "../../format.js";
+import { copyText } from "../../copyText.js";
 import type { PaymentLinkDto } from "../../types.js";
 
 /** The list endpoint's own maximum page size. */
@@ -86,14 +87,12 @@ export function PaymentLinkDetailPage() {
   }
 
   async function handleCopy(url: string): Promise<void> {
-    try {
-      await navigator.clipboard.writeText(url);
+    if (await copyText(url)) {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2500);
-    } catch {
-      // No clipboard permission (or no secure context) — the URL is already
-      // on screen and selectable, so there is nothing to recover from.
+    } else {
       setCopied(false);
+      setActionError("Your browser blocked copying. Select the link above and copy it (Ctrl+C or Cmd+C).");
     }
   }
 

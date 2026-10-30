@@ -1,3 +1,4 @@
+import { copyText } from "../../copyText.js";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { createWebhookEndpoint } from "../../api/webhooks.js";
@@ -43,12 +44,11 @@ export function WebhookEndpointCreatePage() {
 
   // MK: secret is shown once only
   async function handleCopy(secret: string): Promise<void> {
-    try {
-      await navigator.clipboard.writeText(secret);
+    if (await copyText(secret)) {
       setCopied(true);
-    } catch {
-      // The secret is on screen and selectable — nothing to recover from.
+    } else {
       setCopied(false);
+      setError("Your browser blocked copying. Select the secret and copy it (Ctrl+C or Cmd+C).");
     }
   }
 
@@ -56,6 +56,7 @@ export function WebhookEndpointCreatePage() {
     return (
       <section>
         <h1>Endpoint created</h1>
+        {error ? <p className="dash-error" role="alert">{error}</p> : null}
 
         <div className="dash-confirm">
           <h2>Signing secret — shown once</h2>
