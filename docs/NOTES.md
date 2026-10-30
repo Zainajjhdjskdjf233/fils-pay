@@ -1690,3 +1690,40 @@ pg_snapshot_xmin is "the oldest transaction still running"; everything older is 
 Reports wait until it ends (late, never lost). A database timeout for idle transactions is suggested for hosting.
 
 Commit: eebf7d4
+
+## N46 — Reconciliation predicts the fee the way settlement charges it
+
+### The idea
+Reconciliation checks: money we owe the shop = paid out + still waiting ("pending"). For the waiting part, it must guess the fee that settlement will take later.
+
+### The problem
+The guess used a different rule from the real one.
+- It used rough decimal math and the shop's default rate (250 bps).
+- Payments were really charged the shop's scheduled rate (200 bps), and settlement also uses the volume discount.
+- So the check showed an unexplained gap (66 fils in our test) almost every day.
+
+### The fix
+- query.ts: compute each waiting payment's fee with the same rate lookup and the same whole-number formula as settlement.
+
+### The code
+Before (apps/api/src/settlement/query.ts:359):
+```ts
+const feeFils = estimateFeeFils(amountFils, mdrBps, discountBps);
+```
+After:
+```ts
+const scheduledBps = await getEffectiveMdrBps(client, input.merchantId, row.occurred_at, mdrBps);
+const discounted = toFils(Number(amountFils) - Number(applyRateFils(amountFils, discountBps)));
+const feeFils = Number(applyRateFils(discounted, Math.max(0, scheduledBps - tierBonusBps)));
+```
+Same inputs and same rounding as the real settlement.
+
+### The proof
+- Before: gap 66 fils on a day with two unbatched payments.
+- After: gap 0.
+
+### If the judges ask
+"Can the gap still be non-zero?"
+Yes, for shops with a negotiated discount (E50): the payment-time fee and the settlement fee really differ, and reconciliation now shows that honestly.
+
+Commit: PENDING_N46

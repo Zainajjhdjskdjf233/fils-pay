@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 11:51 AM (30 Oct 2026)
-Summary: Errors 41/60 fixed (+3 partly: E13, E19, E31; same count as docs/ERRORS.md) · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
+Updated: 11:53 AM (30 Oct 2026)
+Summary: Errors 42/60 fixed (+3 partly: E13, E19, E31; same count as docs/ERRORS.md) · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -456,7 +456,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/settlement/query.ts:321-327; fees/estimate.ts:7-10
 - Error: float rates + Math.round, ignores fee_schedules and tier; so `gapFils` is rarely 0. Comment about a "0046 trigger" is false (0046 is the splits table).
 - Severity: medium
-- Status: open
+- Status: fixed (see section 5)
 
 ### E45 — `/v1/reporting/export-summary` always returns 500
 - Where: apps/api/src/routes/reporting.ts:79-86
@@ -1284,6 +1284,14 @@ ROLLBACK;
 - Review: fix-reviewer → horizon logic correct; CHANGES on the migration: my first version set every old row and the cursor to the migration's own txid, which (a) rewrote the table under an exclusive lock and (b) could skip an API transaction that got an xid before the migration and wrote its outbox row after it. Replaced with the sentinel-0 version above; re-tested. The upgrade path itself was not run (no pre-0079 database with a cursor here) — proven by reasoning only.
 - Known limit: a session that is idle in a transaction holding an xid delays reporting until it ends (lag, never loss). Suggest `idle_in_transaction_session_timeout` for app roles at /deploy.
 - Regression: full-db-test.sh = baseline v3 (1 known failure, E54).
+- Actual result: matches expected.
+
+### E44 — 11:53 AM — reconciliation "pending" uses the real settlement fee
+- Changed: apps/api/src/settlement/query.ts (getReconciliationReport): each pending capture's fee = `applyRateFils(amount − applyRateFils(amount, discount), max(0, getEffectiveMdrBps(at capture time) − getVolumeTierBonusBps))`, the same formula and inputs as CloseBatch (batch.go Step 8, discounted_fee.go). Was `estimateFeeFils` (float rates, merchants.mdr_bps, no schedule, no tier). MK's comment about a "0046 trigger" keeping mdr_bps in sync is false (0046 is the splits table) — kept with a correction. fees/estimate.ts is now unused (not deleted).
+- Test: apps/api/src/routes/reconciliation.e44.test.ts (fee schedule 200 bps, merchant default 250; two API captures, unbatched). Before: `pendingUnbatchedFils 13000 … gapFils 66`. After: PASS (gap 0); settlement and F01e tests pass.
+- Note: for a merchant with a negotiated discount, the capture-time fee and the settlement fee still differ (E50), so their reconciliation shows that real difference as a gap.
+- Regression: full-db-test.sh = baseline v3.
+- Review: no fix-reviewer (reuses existing fee helpers; covered by tests).
 - Actual result: matches expected.
 
 ## 6. Deploy

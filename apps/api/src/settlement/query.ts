@@ -1,5 +1,7 @@
 import type { Pool } from "pg";
-import { estimateFeeFils } from "../fees/estimate.js";
+import { applyRateFils, toFils } from "@filspay/money";
+import { getEffectiveMdrBps } from "../fees/feeSchedule.js";
+import { getVolumeTierBonusBps } from "../fees/platformVolumeTier.js";
 
 const DEFAULT_LIMIT = 25;
 const MAX_LIMIT = 100;
@@ -314,8 +316,8 @@ export async function getReconciliationReport(
           AND status IN ('closed', 'paid')`,
       [input.merchantId, input.from, input.to],
     ),
-    pool.query<{ amount_fils: string | number }>(
-      `SELECT te.amount_fils
+    pool.query<{ amount_fils: string | number; occurred_at: Date }>(
+      `SELECT te.amount_fils, te.occurred_at
          FROM transaction_events te
          JOIN transactions t ON t.id = te.transaction_id
         WHERE t.merchant_id = $1 AND te.event_type IN ('captured', 'partially_captured')
@@ -349,15 +351,32 @@ export async function getReconciliationReport(
 
   // MK: merchants.mdr_bps is kept in sync with the current fee_schedules row by the 0046 trigger,
   // so reading it here is the same as resolving the schedule
+  // E44: false — 0046 is the splits table and there is no such trigger; the
+  // schedule is resolved per capture below. mdr_bps is only the fallback.
   const merchant = merchantResult.rows[0];
   const mdrBps = merchant?.mdr_bps ?? 0;
   const discountBps = merchant?.negotiated_discount_bps ?? 0;
 
+  // E44: the fee settlement will charge for each pending capture, computed
+  // the same way CloseBatch does (batch.go Step 8, discounted_fee.go): the
+  // fee_schedules rate in effect at the capture's own time, minus the volume
+  // tier bonus, on the amount after the negotiated discount — integer fils.
+  // It used float rates on merchants.mdr_bps (no schedule, no tier).
   let pendingUnbatchedFils = 0;
-  for (const row of pendingResult.rows) {
-    const amountFils = Number(row.amount_fils);
-    const feeFils = estimateFeeFils(amountFils, mdrBps, discountBps);
-    pendingUnbatchedFils += amountFils - feeFils;
+  if (pendingResult.rows.length > 0) {
+    const client = await pool.connect();
+    try {
+      const tierBonusBps = await getVolumeTierBonusBps(client);
+      for (const row of pendingResult.rows) {
+        const amountFils = toFils(Number(row.amount_fils));
+        const scheduledBps = await getEffectiveMdrBps(client, input.merchantId, row.occurred_at, mdrBps);
+        const discounted = toFils(Number(amountFils) - Number(applyRateFils(amountFils, discountBps)));
+        const feeFils = Number(applyRateFils(discounted, Math.max(0, scheduledBps - tierBonusBps)));
+        pendingUnbatchedFils += Number(amountFils) - feeFils;
+      }
+    } finally {
+      client.release();
+    }
   }
 
   pendingUnbatchedFils -= Number(pendingRefundResult.rows[0]?.total ?? 0);
