@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 97 of 164 fixed.
+Summary: 97 of 175 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -66,7 +66,7 @@ Summary: 97 of 164 fixed.
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-## Medium (33 of 55 fixed)
+## Medium (33 of 60 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -125,8 +125,13 @@ Summary: 97 of 164 fixed.
 | E147 | [coverage] A broken image upload gives 500 and leaves an orphan file on disk | Open |
 | E148 | [coverage] No limit on KYC uploads per merchant: the shared disk can be filled | Open |
 | E163 | [second review] API config never refuses bad settings (prefixes, booleans, NODE_ENV typo turns off security defaults, no ranges) | Partly fixed |
+| E165 | [second review] Authorize and capture accept a zero or negative amount: 0 reaches the acquirer then the DB CHECK (500); negative makes toFils throw (500) | Open |
+| E167 | [second review] Merchant OTP promotion keeps the pending session token (session fixation); the admin half is E47 | Open |
+| E168 | [second review] Webhook dispatch Step B still queues deliveries for disabled endpoints | Open |
+| E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Open |
+| E171 | [second review] No cap on saved filters per merchant; the list returns every row | Open |
 
-## Low (18 of 63 fixed)
+## Low (18 of 69 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -193,3 +198,9 @@ Summary: 97 of 164 fixed.
 | E160 | [second review] The adjustment-import list pages on created_at text with no tie-breaker | Open |
 | E161 | [second review] Recent ledger activity includes the exclusive end date (one extra day) | Fixed |
 | E164 | [found later] /healthz and /readyz on the public port return the web page | Fixed |
+| E166 | [second review] Payment-link create with amount 0 gives a DB error (500) | Open |
+| E169 | [second review] Saved-filter POST accepts an array filter and a whitespace-only name | Open |
+| E172 | [second review] Webhook archive/replay date ranges take any `new Date` (rollover, zone-less, numbers) | Open |
+| E173 | [second review] Admin run-batch and MDR recalc: dates checked by regex only, a reversed range is a silent no-op, a missing merchant gives 500 | Open |
+| E174 | [second review] Payment-link expiresAt rolls over (2026-02-30) or is read zone-less | Open |
+| E175 | [second review] Webhook URLs with embedded credentials are accepted but never deliverable | Open |

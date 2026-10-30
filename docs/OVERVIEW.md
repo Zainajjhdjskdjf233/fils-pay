@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 5:32 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 6:19 PM
 
 ## Contents
 1. Status now
@@ -14,20 +14,20 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 5:32 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 95 of 163 fixed.
+- Errors: 97 of 175 fixed.
   - High: 46 of 46 fixed
-  - Medium: 32 of 55 fixed
-  - Low: 17 of 62 fixed
+  - Medium: 33 of 60 fixed
+  - Low: 18 of 69 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
 - Dilmune Cloud: not yet
-- Decisions waiting for Zainab: 31 (search "for Zainab to review" in LOG.md)
+- Decisions waiting for Zainab: 32 (search "for Zainab to review" in LOG.md)
 - Fork: needs a push (VS Code: Git: Push to... → mine)
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 95 of 163 fixed.
+- 🔄 Fix: 97 of 175 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -74,6 +74,9 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 5:32 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- 3e31313 fix(E164): public /healthz and /readyz proxy to the API (they returned the web page)
+- 364058f fix(E144): webhook archive create refuses more than 10,000 deliveries; N101 hash
+- 9397d53 fix(E128): a suspended or closed merchant's sessions and API keys stop working; notes N97-N101
 - 1b8659c fix(E13): leaked acquirer callback secret refused at boot (hash check) and replaced by gen-env.sh; history kept, value dead
 - 89d754e fix(E158): adjustment CSV refuses more than 1000 rows
 - 6debcca fix(E116): the merchant writer helper refuses an admin impersonation actor
@@ -86,9 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 5:32 PM
 - dda38bd fix(E140): balance adjustment delta must be a safe integer within a cap (400, not 500)
 - d8d42bf fix(E141): credit base amount capped at 1,000,000,000 BD (400, not 500); notes N85-N90
 - a394c96 fix(E153): a refund with no amount and nothing left is not refundable (409)
-- 0ed1b5a fix(E163): API config refuses unknown NODE_ENV, partial numbers, typo booleans and impossible ranges at boot
-- a84b437 fix(E156): timingSafeEqualHex refuses non-hex input instead of stopping at it
-- f82fb40 fix(E155): webhook PATCH refuses an unknown status with 400
 
 ## 7. All errors
 ## High (46 of 46 fixed)
@@ -142,7 +142,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 5:32 PM
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-### Medium (32 of 55 fixed)
+### Medium (33 of 60 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -195,14 +195,19 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 5:32 PM
 | E141 | [coverage] Credit: a huge baseAmountFils with reverseFee gives 500 | Fixed |
 | E142 | [coverage] Control characters in credit memos and adjustment reasons are accepted; a NUL byte likely gives 500 | Open |
 | E143 | [coverage] A webhook replay gets a new delivery id; comments and docs/ADMIN.md say it keeps the original | Open |
-| E144 | [coverage] Webhook archive create loads an endpoint's whole history into memory; "pages of 500" is false | Open |
+| E144 | [coverage] Webhook archive create loads an endpoint's whole history into memory; "pages of 500" is false | Fixed |
 | E145 | [coverage] Signup: no password rule and no type checks; bad input gives 500 | Partly fixed |
 | E146 | [coverage] Public signup and login have no rate limit; each call runs argon2 | Open |
 | E147 | [coverage] A broken image upload gives 500 and leaves an orphan file on disk | Open |
 | E148 | [coverage] No limit on KYC uploads per merchant: the shared disk can be filled | Open |
 | E163 | [second review] API config never refuses bad settings (prefixes, booleans, NODE_ENV typo turns off security defaults, no ranges) | Partly fixed |
+| E165 | [second review] Authorize and capture accept a zero or negative amount: 0 reaches the acquirer then the DB CHECK (500); negative makes toFils throw (500) | Open |
+| E167 | [second review] Merchant OTP promotion keeps the pending session token (session fixation); the admin half is E47 | Open |
+| E168 | [second review] Webhook dispatch Step B still queues deliveries for disabled endpoints | Open |
+| E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Open |
+| E171 | [second review] No cap on saved filters per merchant; the list returns every row | Open |
 
-### Low (17 of 62 fixed)
+### Low (18 of 69 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -268,6 +273,13 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 5:32 PM
 | E159 | [second review] Pagination cursors are not validated; a malformed cursor reaches a database cast (500) | Fixed |
 | E160 | [second review] The adjustment-import list pages on created_at text with no tie-breaker | Open |
 | E161 | [second review] Recent ledger activity includes the exclusive end date (one extra day) | Fixed |
+| E164 | [found later] /healthz and /readyz on the public port return the web page | Fixed |
+| E166 | [second review] Payment-link create with amount 0 gives a DB error (500) | Open |
+| E169 | [second review] Saved-filter POST accepts an array filter and a whitespace-only name | Open |
+| E172 | [second review] Webhook archive/replay date ranges take any `new Date` (rollover, zone-less, numbers) | Open |
+| E173 | [second review] Admin run-batch and MDR recalc: dates checked by regex only, a reversed range is a silent no-op, a missing merchant gives 500 | Open |
+| E174 | [second review] Payment-link expiresAt rolls over (2026-02-30) or is read zone-less | Open |
+| E175 | [second review] Webhook URLs with embedded credentials are accepted but never deliverable | Open |
 
 ## 8. Every fix explained
 Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101
@@ -3906,5 +3918,5 @@ Suspended shops get 401.
 "Are the sessions deleted?"
 No, they are hidden; re-activating the shop restores them. That is recorded as a known limit.
 
-Commit: PENDING_N101
+Commit: 9397d53
 

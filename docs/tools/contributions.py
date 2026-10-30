@@ -80,7 +80,7 @@ def main() -> None:
         f"directed and checked the fixes: {n_commits} commits after the inherited history (`git shortlog -sn {RANGE}`); "
         f"led the case investigation (docs/CASE-MAP.md); her setup recorded {n_total - len(new_ids_t)} of {n_total} error entries (docs/ERRORS.md minus the second-review entries in docs/CONTRIBUTIONS.md section 4).",
         f"- Lulwa — reviewed the code independently in a separate copy: {n_items} items (docs/COMPARE.md); "
-        f"{len(new_ids_t)} of them became new entries in this fork (listed by ID in docs/CONTRIBUTIONS.md section 4); "
+        f"its findings that were new to us became {len(new_ids_t)} entries in this fork (items with one root cause share an entry; listed by ID in docs/CONTRIBUTIONS.md section 4); "
         f"her code changes are not in this fork: {lulwa_commits} commits (`git shortlog -sn {RANGE}`); her notes state her tests could not be run.",
     ]
     w("## Team: Case Closed\n")
@@ -145,10 +145,10 @@ def main() -> None:
     dis_cmd = "grep -c '\\*\\*Disagree' docs/COMPARE.md"
     disagreements = int(run(dis_cmd) or 0)
     w(f"- Items received: **{received}** ({code(rec_cmd)})")
-    w(f"- Items new to us, recorded as entries: **{len(new_ids)}** ({code(newc + ' | wc -l')}): {', '.join(new_ids)}")
+    w(f"- Entries new to us (from its findings): **{len(new_ids)}** ({code(newc + ' | wc -l')}): {', '.join(new_ids)}")
     w(f"- Disagreements: **{disagreements}** ({code(dis_cmd)}) — item 36 (dead code, E79). Earlier disagreements on E07 and E01 are written up in COMPARE.md \"Where the two reviews disagree\".")
-    w(f"- Items already ours (received − new − disagreements): **{received - len(new_ids) - disagreements}**. "
-      "This includes item 29, which showed the real cause of our existing E45 (re-rated High), and item 34, which extended E126.\n")
+    w("- Items already ours: every item whose entry existed in docs/LOG.md before the item reached us (per-item proof with commit and time in docs/COMPARE.md). "
+      "Items with one root cause share one entry, so item and entry counts differ.\n")
     setup_found = total - len(new_ids)
     e45_cmd = "grep -n '^### E45' docs/LOG.md"
     e45_line = run(e45_cmd + " | head -1 | cut -d: -f1")

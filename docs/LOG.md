@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 06:17 PM (30 Oct 2026)
-Summary: Errors 97/164 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 06:18 PM (30 Oct 2026)
+Summary: Errors 97/175 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1248,6 +1248,61 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Error: the live check `curl http://139.59.57.26/healthz` → 200 text/html (the web app), never the API's state; an automated health test reads HTML and cannot see a dead API.
 - Proof: live end-to-end check (06:17 PM); local stack before the fix: `200 text/html`.
 - Severity: low · Status: fixed (see section 5, E164)
+
+### E165 — [second review] Authorize and capture accept a zero or negative amount: 0 reaches the acquirer then the DB CHECK (500); negative makes toFils throw (500)
+- Where: apps/api/src/routes/transactions.ts:85, :112 (`toFils(amountFils)`); payments/authorize.ts:93 calls the acquirer before the INSERT at :103 hits CHECK amount_fils > 0 (0004:13).
+- Proof: the second review (items 59, 61, notes received 5:30 PM / 6:15 PM); checked by me in the code (06:18 PM).
+- Severity: medium · Status: open
+
+### E166 — [second review] Payment-link create with amount 0 gives a DB error (500)
+- Where: apps/api/src/paymentLinks/create.ts:36-38 passes toFils(0); the INSERT hits CHECK amount_fils > 0 (0020:31).
+- Proof: the second review (items 60, notes received 5:30 PM / 6:15 PM); checked by me in the code (06:18 PM).
+- Severity: low · Status: open
+
+### E167 — [second review] Merchant OTP promotion keeps the pending session token (session fixation); the admin half is E47
+- Where: apps/api/src/auth/sessions.ts:57 promotes the row without a new token_hash.
+- Proof: the second review (items 65 (merchant half), notes received 5:30 PM / 6:15 PM); checked by me in the code (06:18 PM).
+- Severity: medium · Status: open
+
+### E168 — [second review] Webhook dispatch Step B still queues deliveries for disabled endpoints
+- Where: apps/api/src/webhooks/dispatcher.ts:228 (Step B WHERE has no `we.status = 'active'`; Step A at :98 has it).
+- Proof: the second review (items 66, notes received 5:30 PM / 6:15 PM); checked by me in the code (06:18 PM).
+- Severity: medium · Status: open
+
+### E169 — [second review] Saved-filter POST accepts an array filter and a whitespace-only name
+- Where: apps/api/src/routes/reporting.ts:59 (name truthy only), :62 (`typeof filter !== "object"` lets [] through).
+- Proof: the second review (items 69, 70, notes received 5:30 PM / 6:15 PM); checked by me in the code (06:18 PM).
+- Severity: low · Status: open
+
+### E170 — [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded
+- Where: apps/api/src/routes/reporting.ts:92 REPORT_STATUSES lacks 'partially_refunded', which 0043:15 allows (my commit 383d417).
+- Proof: the second review (items 71, notes received 5:30 PM / 6:15 PM); checked by me in the code (06:18 PM).
+- Severity: medium · Status: open
+
+### E171 — [second review] No cap on saved filters per merchant; the list returns every row
+- Where: apps/api/src/reporting/savedFilters.ts (no count check; the comment at :45-46 claiming a cap is false; GET :48 unpaged).
+- Proof: the second review (items 73, notes received 5:30 PM / 6:15 PM); checked by me in the code (06:18 PM).
+- Severity: medium · Status: open
+
+### E172 — [second review] Webhook archive/replay date ranges take any `new Date` (rollover, zone-less, numbers)
+- Where: apps/api/src/routes/adminMerchants.ts:229-230 and the archive route (`new Date(from)`).
+- Proof: the second review (items 81, notes received 5:30 PM / 6:15 PM); checked by me in the code (06:18 PM).
+- Severity: low · Status: open
+
+### E173 — [second review] Admin run-batch and MDR recalc: dates checked by regex only, a reversed range is a silent no-op, a missing merchant gives 500
+- Where: apps/api/src/routes/admin.ts:68 (ISO_DATE_RE), :276 (no from < to check); settlementClient.ts:142 turns any non-2xx into 500; a missing merchant hits the FK at batch.go:79.
+- Proof: the second review (items 84, 87, 88, notes received 5:30 PM / 6:15 PM); checked by me in the code (06:18 PM).
+- Severity: low · Status: open
+
+### E174 — [second review] Payment-link expiresAt rolls over (2026-02-30) or is read zone-less
+- Where: apps/api/src/paymentLinks/create.ts:43 `new Date(input.expiresAt)`.
+- Proof: the second review (items 85, notes received 5:30 PM / 6:15 PM); checked by me in the code (06:18 PM).
+- Severity: low · Status: open
+
+### E175 — [second review] Webhook URLs with embedded credentials are accepted but never deliverable
+- Where: apps/api/src/webhooks/create.ts:19 parses the URL but never checks username/password (fetch refuses such URLs at send time).
+- Proof: the second review (items 89, notes received 5:30 PM / 6:15 PM); checked by me in the code (06:18 PM).
+- Severity: low · Status: open
 
 ## 3. Hidden things
 

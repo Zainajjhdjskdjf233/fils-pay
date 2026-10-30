@@ -9,7 +9,7 @@ Judge notes J26 and J27). Entries from it carry the tag **[second review]**.
 
 | | Count |
 |---|---|
-| Items in the second review | 57 (24 + 7 + 14 + 12 later) |
+| Items in the second review | 91 (24 + 7 + 14 + 12 + 34 later) |
 | Already in our list (matched to an entry) | 14 |
 | Real and new, recorded as [second review] | 10 (E110-E116, E125-E127) |
 | Not real | 0 |
@@ -145,3 +145,41 @@ showed the real root cause of our E45.
 
 Totals for 46-57: 0 new entries; 10 items extend E163 (one root cause: config values are parsed but never range-checked or refused), 2 already fixed (E42, E08).
 Across all 57 items: 16 entries new to us (unchanged: E110-E116, E125-E127, E133, E159-E163).
+
+## Items 58-91 (notes received 5:30 PM and 6:15 PM, checked 06:18 PM)
+
+Rule: an item is "already ours" if our entry was recorded (git log of docs/LOG.md, `-S"### E<n> —"`) before the item reached us. Every "already ours" entry below was recorded before 5:30 PM. The second review's notes say its tests could not be run; its code is in a separate copy, not in this fork.
+
+| # | Item (shortened) | Checked in the code / our record | Result |
+|---|---|---|---|
+| 58 | Capture idempotency hash ignores the transaction | ours: E129, recorded 03:04 PM (ebcc0ca), fixed 05:17 PM | already ours |
+| 59 | Authorize amount 0 reaches the acquirer, then a DB error | real | **New: E165** |
+| 60 | Payment-link amount 0 gives a DB error | real | **New: E166** |
+| 61 | Negative authorize/capture amount gives 500 | real, same root cause as 59 | **New: E165** |
+| 62 | Acquirer callback outcome not validated | ours: E59, recorded 01:12 AM (f135493) | already ours (open) |
+| 63 | Callback bad UUID/timestamp gives 500 | ours: E57, recorded 12:55 AM (4abe7ce); fixed by the E57 net (9d35e0f) | already ours |
+| 64 | Callback retries duplicate notes | ours: E27, recorded 12:38 AM (f31fd7d), fixed 11:24 AM | already ours |
+| 65 | OTP promotion keeps the pending token | admin half ours: E47, recorded 12:38 AM; merchant half real | **New: E167** (merchant half) |
+| 66 | Disabled endpoints still get queued deliveries | real: dispatcher.ts:228 | **New: E168** |
+| 67 | A failed ROLLBACK hides the real error | ours: E40, recorded 12:38 AM | already ours (open) |
+| 68 | Unsafe balance delta gives 500 | ours: E140, recorded 04:21 PM, fixed 05:16 PM | already ours |
+| 69 | Saved filter accepts arrays | real | **New: E169** |
+| 70 | Whitespace-only filter name accepted | real, same root cause as 69 | **New: E169** |
+| 71 | Report filter refuses partially_refunded | real — a regression from our own E133 fix (383d417) | **New: E170** |
+| 72 | Report filter non-UUID merchantId gives a DB error | ours: E133, recorded 03:13 PM, fixed 03:15 PM | already ours |
+| 73 | No cap on saved filters per merchant | real | **New: E171** |
+| 74-80 | Config: pool timeouts and five TTLs accept 0, negative or overflow | ours: the E163 family (config never refuses bad settings), recorded 04:31 PM, extended 04:46 PM; these settings are in its open part | already ours (open part) |
+| 81 | Webhook archive/replay dates take any `new Date` | real | **New: E172** |
+| 82 | Public link DTO exposes key_hash | ours: E38, recorded 12:38 AM | already ours (open) |
+| 83 | Anonymous submittedAt bypasses expiry | ours: E06, recorded 12:38 AM, fixed 01:06 AM | already ours |
+| 84 | Admin run-batch/MDR dates regex-only | real | **New: E173** |
+| 85 | Link expiresAt rolls over or is zone-less | real | **New: E174** |
+| 86 | Webhook PATCH bad status gives a DB error | ours: E155, recorded 04:21 PM, fixed 05:08 PM | already ours |
+| 87 | Reversed MDR range is a silent no-op | real, same root cause as 84 | **New: E173** |
+| 88 | Targeted run on a missing merchant gives 500 | partly real, same root cause as 84 | **New: E173** |
+| 89 | Webhook URL with credentials accepted | real: create.ts:19 | **New: E175** |
+| 90 | KYC download filename unescaped in headers | ours: E90, recorded 12:44 PM (184c0b2) | already ours (open) |
+| 91 | KYC multipart buffers many file parts | ours: E157, recorded 04:21 PM (18e6328) | already ours (open) |
+
+Totals for 58-91: 34 items; 15 new to us, recorded as 11 entries (E165-E175; items sharing one root cause share one entry); 19 already ours (6 of them still open: E38, E40, E47, E59, E90, E157, plus the E163 family's open part). Item 71 is a regression from our own E133 fix.
+Across all 91 items: 27 entries new to us — E110-E116, E125-E127, E133, E159-E163, E165-E175.
