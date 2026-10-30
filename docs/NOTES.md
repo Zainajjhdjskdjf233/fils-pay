@@ -881,3 +881,38 @@ All shares are cut from the same total, so they always add back up to it.
 The child whose exact share was closest to the next fil. The same rule as the allocateRemainder helper in our money package.
 
 Commit: 2327ed9
+
+## N24 — The daily payout is computed in whole fils
+
+### The idea
+The payout is sales minus fees. Money must be counted in whole fils, like counting coins, never as a rough decimal.
+
+### The problem
+The payout was computed with float32, a number type with only about 7 exact digits.
+- A batch of 135,000.123 BD minus a 3,375.003 BD fee gave 131,625.125 BD.
+- The right answer is 131,625.120 BD, so 5 fils were invented.
+
+### The fix
+- payable.go: subtract the two whole-fils numbers directly.
+
+### The code
+Before (apps/settlement/internal/settlement/payable.go:11-12):
+```go
+netBD := float32(grossFils)/1000 - float32(feeFils)/1000
+return money.Fils(math.Round(float64(netBD) * 1000))
+```
+After:
+```go
+return grossFils - feeFils
+```
+Whole numbers subtract exactly, at any size.
+
+### The proof
+- Before: NetPayableFils(135000123, 3375003) = 131625125.
+- After: 131625120.
+
+### If the judges ask
+"Why did nobody notice?"
+Small batches are exact in float32. Only big batches (above about 16,777 BD) drift, and only by a few fils.
+
+Commit: PENDING_N24
