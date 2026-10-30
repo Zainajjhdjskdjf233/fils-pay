@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 03:04 PM (30 Oct 2026)
-Summary: Errors 61/132 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 03:11 PM (30 Oct 2026)
+Summary: Errors 62/132 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1008,8 +1008,8 @@ Order follows the fix order: app-stopping → high security → (features) → w
 ### E121 — [deep review] Manual credits and CSV adjustments are never paid out
 - Where: apps/api/src/admin/credits.ts:158,171 and admin/adjustmentImport.ts post merchant_payable credits; apps/settlement/internal/settlement/batch.go:227-239 builds net_payout_fils only from captures and refunds.
 - Error: the merchant's payable balance grows but no batch ever includes the credit, so the money is owed forever and reconciliation shows a gap.
-- Proof: deep-review agent (settlement, 2:45 PM); confirmed by reading batch.go:227-252.
-- Severity: high · Status: open
+- Proof: deep-review agent (settlement, 2:45 PM); red tests: `day-1 net payout = 9750, want 11750` and `day-2 net payout = 9750, want 4750`; reconciliation `gapFils: 2000, explained: false` for one unpaid credit.
+- Severity: high · Status: fixed (see section 5)
 
 ### E122 — [deep review] A failed DB connect in link pay leaks the lock slot forever
 - Where: apps/api/src/paymentLinks/pay.ts:138-139 (before the fix): the slot was taken, then `await pool.connect()` ran before the `try`, so the `finally` that gives the slot back never ran.
@@ -1927,6 +1927,20 @@ ROLLBACK;
 - Regression: same as baseline v3 (api 443/444, the known E54 test; Go 78 pass).
 - Actual result: a recalculation can no longer create a negative payout.
 
+### E121 — 03:11 PM — credits and balance adjustments are paid through the batch
+- Changed:
+  - db/migrations/0083_settlement_batch_ledger_groups.sql: new table `settlement_batch_ledger_groups` (entry_group_id PRIMARY KEY → a group counts in one batch only) and signed `settlement_batches.credit_fils`. A table, because ledger_entries is append-only for the app roles (0082).
+  - apps/settlement/internal/settlement/credit_batch.go (new) `takeCredits`: unbatched merchant_payable groups with the four adjustment descriptions (credits.ts, ledgerAdjustments.ts, adjustmentImport.ts), oldest first; credits always taken; a negative one only while the net stays >= 0, else it and later negative ones carry to the next day (same rule as refunds, F01d).
+  - batch.go:238: CloseBatch takes credits before refunds, stores credit_fils, records the groups, and gives the cache only `netPayout - batchCredit` (the API already added the credit to the cache when it posted it; PayoutBatch removes the whole net).
+  - apps/api/src/settlement/query.ts: reconciliation counts unpaid credits as pending and adds `creditsFromOtherPeriodsFils` (credits a batch in this window took from another period), mirroring the two refund terms.
+- Decision (approved by Zainab at 3:00 PM): pay credits in the next batch, carry negative adjustments like refunds.
+- Test: apps/settlement/internal/settlement/credit_batch_e121_test.go (credit paid once; a -5.000 BD adjustment waits for a day with enough payout) and apps/api/src/routes/reconciliation.e121.test.ts. Before (old batch.go / query.ts via `git show HEAD:…`): `day-1 net payout = 9750, want 11750`, `day-2 net payout = 9750, want 4750`, recon `gapFils 2000`. After: PASS; reconciliation/settlement tests 18/18.
+- Regression: same as baseline v3 (api 444/445, the known E54 test; Go 80 pass).
+- Actual result: what an admin credits is paid in the next payout, and negative adjustments are taken from payouts without ever going below zero.
+
+### E01 — 03:11 PM — Decision for Zainab to review (second review disagrees)
+- Decision (for Zainab to review): the two suspense accounts in 0055 are `asset` — Why: `chart_of_accounts.kind` allows only asset, liability or revenue (0007_ledger_double_entry.sql:7-11), and a no-op 0055 leaves `fx_rounding_difference` and `chargeback_suspense` missing for any code that posts to them — Alternative (the second review's): keep 0055 a no-op until finance chooses the kind.
+
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04) — not yet. Local Docker stack done (01:48 PM, see section 5 E02).
 - How to run: `./ops/gen-env.sh` once, then `docker compose --env-file ops/.env.docker -f ops/docker-compose.yml up -d --build`. Dashboard + checkout http://localhost:8080, admin console http://localhost:8081.
@@ -2127,4 +2141,7 @@ How we got it:
 - What happened: the second review's tool found bugs ours missed (J26) because it looked differently: whole functions line by line, two requests at once, stale state on every UPDATE by id, strange input, and defence in depth. Zainab wrote that method into CLAUDE.md as the "Deep review lens" (5 rules, tag [deep review]). It now applies to every review and before closing every fix, and a second pass with it was started on every file our fixes changed plus auth, OTP, sessions, payments, refunds, payment links, credits and settlement (3 read-only agents).
 - Why it matters: a one-off lucky catch became a repeatable check; the next fix is reviewed for the same blind spots without needing the second tool.
 - Proof: CLAUDE.md "Deep review lens"; docs/COMPARE.md; findings to be recorded as [deep review].
+
+### J28 — 03:11 PM — the second review changed a test to keep a bug; we did not
+The second review kept the old API key working after rotation (E07) because an existing test expected it. We had changed that test at 1:08 AM (commit 9da617a) after checking every source: no document defines a grace period, `revoke_after` is never read, and the only support was a comment in the test itself. The rule "never change tests" comes from AGENTS.md:29-31, one of the repo's planted AI instruction files. Lesson: a test is evidence of what someone wanted, not proof it is right. Two tools can disagree, and the code and the case file decide (docs/COMPARE.md).
 

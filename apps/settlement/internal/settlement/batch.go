@@ -232,6 +232,15 @@ func CloseBatch(ctx context.Context, db *pgxpool.Pool, merchantID uuid.UUID, bus
 	// first (any day up to this window's end, so carried-over ones are
 	// included), and stop at the first one that would push net below zero:
 	// it and later ones wait for the next batch. Integer fils only.
+	// E121: credits and balance adjustments are paid through the batch too
+	// (before refunds, so a credit can make room for one). They were posted
+	// to merchant_payable and never paid out.
+	creditGroups, creditAmounts, batchCredit, err := takeCredits(ctx, tx, merchantID, end, netPayout)
+	if err != nil {
+		return BatchResult{}, err
+	}
+	netPayout += batchCredit
+
 	refundIDs, batchRefund, batchFeeReversed, err := takeRefunds(ctx, tx, merchantID, end, netPayout)
 	if err != nil {
 		return BatchResult{}, err
@@ -250,11 +259,21 @@ func CloseBatch(ctx context.Context, db *pgxpool.Pool, merchantID uuid.UUID, bus
 	_, err = tx.Exec(ctx, `
 		UPDATE settlement_batches
 		   SET status = 'closed', gross_fils = $2, fee_fils = $3, net_payout_fils = $4,
-		       refund_fils = $5, fee_reversed_fils = $6, tier_bonus_bps = $7, closed_at = now()
+		       refund_fils = $5, fee_reversed_fils = $6, tier_bonus_bps = $7, credit_fils = $8, closed_at = now()
 		 WHERE id = $1
-	`, batchID, int64(batchGross), int64(batchFee), int64(netPayout), int64(batchRefund), int64(batchFeeReversed), tierBonusBps) // E19: store the bonus used
+	`, batchID, int64(batchGross), int64(batchFee), int64(netPayout), int64(batchRefund), int64(batchFeeReversed), tierBonusBps, int64(batchCredit)) // E19: store the bonus used; E121: credits
 	if err != nil {
 		return BatchResult{}, fmt.Errorf("settlement: CloseBatch: freeze batch totals: %w", err)
+	}
+
+	for i, g := range creditGroups {
+		_, err = tx.Exec(ctx, `
+			INSERT INTO settlement_batch_ledger_groups (entry_group_id, settlement_batch_id, merchant_id, amount_fils)
+			VALUES ($1, $2, $3, $4)
+		`, g, batchID, merchantID, int64(creditAmounts[i]))
+		if err != nil {
+			return BatchResult{}, fmt.Errorf("settlement: CloseBatch: record batched credit: %w", err)
+		}
 	}
 
 	if len(refundIDs) > 0 {
@@ -323,7 +342,9 @@ func CloseBatch(ctx context.Context, db *pgxpool.Pool, merchantID uuid.UUID, bus
 	}
 
 	// Step 14: incrementally update the merchant_balances cache.
-	if err := balances.ApplyBatchClose(ctx, tx, merchantID, batchID, netPayout); err != nil {
+	// E121: the credit part is already in the cache (the API adds it when it
+	// posts the credit); PayoutBatch later removes the whole net.
+	if err := balances.ApplyBatchClose(ctx, tx, merchantID, batchID, netPayout-batchCredit); err != nil {
 		return BatchResult{}, fmt.Errorf("settlement: CloseBatch: apply balance cache delta: %w", err)
 	}
 

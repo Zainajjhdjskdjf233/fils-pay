@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 3:04 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 3:11 PM
 
 ## Contents
 1. Status now
@@ -14,20 +14,20 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:04 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 61 of 132 fixed.
-  - High: 37 of 39 fixed
+- Errors: 62 of 132 fixed.
+  - High: 38 of 39 fixed
   - Medium: 22 of 44 fixed
   - Low: 2 of 49 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
 - Dilmune Cloud: not yet
-- Decisions waiting for Zainab: 22 (search "for Zainab to review" in LOG.md)
+- Decisions waiting for Zainab: 24 (search "for Zainab to review" in LOG.md)
 - Fork: needs a push (VS Code: Git: Push to... → mine)
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 61 of 132 fixed.
+- 🔄 Fix: 62 of 132 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ⬜ UI and UX, before/after screenshots
@@ -91,7 +91,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:04 PM
 - 107618c fix(E50): payment-link checkout applies the negotiated discount like the card API
 
 ## 7. All errors
-## High (37 of 39 fixed)
+## High (38 of 39 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -130,7 +130,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:04 PM
 | E118 | [deep review] Running a batch for today strands that day's later captures | Fixed |
 | E119 | [deep review] CSV adjustment import bypasses the two-person credit rule | Fixed |
 | E120 | [deep review] MDR recalculation can make a batch's net payout negative | Fixed |
-| E121 | [deep review] Manual credits and CSV adjustments are never paid out | Open |
+| E121 | [deep review] Manual credits and CSV adjustments are never paid out | Fixed |
 | E122 | [deep review] Failed DB connect in link pay leaks the lock slot forever | Fixed |
 | E123 | [deep review] Malformed card gives 500 after the link is claimed (link blocked 60 s) | Fixed |
 | E124 | [deep review] Capture replay credits the wrong discount (twice after a zero-discount capture) | Fixed |
@@ -239,7 +239,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:04 PM
 | E132 | [deep review] Reconciliation reads its figures from different snapshots | Open |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67
 
 ### N01 — Database setup stopped halfway
 
@@ -2693,4 +2693,44 @@ A batch that would owe a negative payout is not changed; it is reported instead.
 That is the full answer, but it touches the batch close too. Skipping is safe today and marked for Zainab to review.
 
 Commit: cc6d252
+
+### N67 — Money an admin credits to a shop is now really paid out
+
+#### The idea
+Admins can add money to a shop's balance (a credit or a correction). The daily batch is the envelope that carries the shop's money to its bank.
+
+#### The problem
+Credits went into the balance but never into any envelope.
+- A 2 BD credit was never in a payout.
+- A negative correction was never taken off a payout either.
+- Reconciliation showed the credit as an unexplained gap.
+
+#### The fix
+- New migration 0083: a small table that remembers which credits a batch already paid, plus a credit_fils column.
+- credit_batch.go: the daily close takes unpaid credits; a negative one waits for a day with enough money, like refunds.
+- batch.go adds them to the payout; query.ts explains them in reconciliation.
+
+#### The code
+Before (apps/settlement/internal/settlement/batch.go:227):
+```go
+netPayout := NetPayableFils(batchGross, batchFee)
+refundIDs, batchRefund, batchFeeReversed, err := takeRefunds(ctx, tx, merchantID, end, netPayout)
+```
+After:
+```go
+creditGroups, creditAmounts, batchCredit, err := takeCredits(ctx, tx, merchantID, end, netPayout)
+netPayout += batchCredit
+refundIDs, batchRefund, batchFeeReversed, err := takeRefunds(ctx, tx, merchantID, end, netPayout)
+```
+The day's payout now includes credits (and fitting negative corrections) before refunds.
+
+#### The proof
+- Before: payout 9750 instead of 11750; the -5000 never taken; reconciliation gap 2000.
+- After: all three tests pass; full regression same as baseline.
+
+#### If the judges ask
+"Why a new table instead of marking the ledger rows?"
+The ledger is append-only for the app (migration 0082), so we cannot update its rows. The table's primary key also stops one credit from being paid twice.
+
+Commit: PENDING_N67
 

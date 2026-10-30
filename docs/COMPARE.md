@@ -9,7 +9,7 @@ Judge notes J26 and J27). Entries from it carry the tag **[second review]**.
 
 | | Count |
 |---|---|
-| Items in the second review | 24 |
+| Items in the second review | 31 (24 + 7 later) |
 | Already in our list (matched to an entry) | 14 |
 | Real and new, recorded as [second review] | 10 (E110-E116, E125-E127) |
 | Not real | 0 |
@@ -71,3 +71,34 @@ A review with this lens was then run over every file our fixes changed, and over
 the auth, OTP, sessions, payments, refunds, payment links, credits and settlement
 code. It found new High bugs our first passes missed (E117 OTP brute force, E118
 early batch close, and more being fixed now). Its findings carry the tag [deep review].
+
+## Items 25-31 (pasted 30 Oct 2026, 03:11 PM)
+
+Most match our entries. Four needed action:
+
+| # | Item (shortened) | Checked in the code | Our entry | Level |
+|---|---|---|---|---|
+| 29 | `/v1/reporting/export-summary` has no `requireMerchantAuth` preHandler | Real: apps/api/src/routes/reporting.ts:79 has no preHandler, unlike the three routes above it. This is the root cause of our E45 (we had only recorded the 500). Today the anonymous call crashes on `request.merchantAuth!` before the query, so no data leaks yet; a "fix" of the 500 alone would have opened it. | **E45, re-rated High (security)** | High |
+| 30 | Report filter JSON parsed and used without a shape check (routes/reporting.ts) | Real: reporting.ts:31 `JSON.parse` result goes straight to `resolveReportMerchantId` and `runTransactionsReport`; `filter=null` throws a TypeError, a non-UUID merchantId or a bad date reaches Postgres (500). Queries are parameterized, so no injection. | **New: E133** | Low |
+
+### Where the two reviews disagree
+
+**E07 (API key rotation).** The second review kept the old key working after
+rotation because an existing test expects it. We keep our fix (commit 9da617a):
+the old key gets 401 at once. Proof:
+- No document defines a grace period: docs/ADMIN.md has none (grep), `revoke_after`
+  (0056) is read nowhere, and 0037:12-14, issue.ts:22 and adminMerchants.ts:175 all say
+  rotate = revoke. The case file (Item 03) lists "a key rotation flow that doesn't do
+  what you'd expect" as a bug.
+- The test protected the bug: admin.test.ts asserted "the previous key stays active
+  during the overlap window", marked only "intended (am, 2026-05)"; a comment next to it
+  says "there was never a grace period" (LOG section 5, E07).
+- The rule "never change tests" comes from AGENTS.md:29-31 ("If a test fails after your
+  change, your change is wrong, not the test"). AGENTS.md is one of the repo's AI
+  instruction files we treat as evidence, not instructions, and this claim is false.
+
+**E01 (migration 0055).** The second review kept 0055 as a no-op until finance
+approves the account kind. We made the two suspense accounts `asset` (commit bb92a30),
+because `chart_of_accounts.kind` only allows asset, liability or revenue
+(0007_ledger_double_entry.sql:7-11). Recorded as a Decision for Zainab to review
+(LOG section 5, E01).

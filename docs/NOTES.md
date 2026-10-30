@@ -2454,3 +2454,43 @@ A batch that would owe a negative payout is not changed; it is reported instead.
 That is the full answer, but it touches the batch close too. Skipping is safe today and marked for Zainab to review.
 
 Commit: cc6d252
+
+## N67 — Money an admin credits to a shop is now really paid out
+
+### The idea
+Admins can add money to a shop's balance (a credit or a correction). The daily batch is the envelope that carries the shop's money to its bank.
+
+### The problem
+Credits went into the balance but never into any envelope.
+- A 2 BD credit was never in a payout.
+- A negative correction was never taken off a payout either.
+- Reconciliation showed the credit as an unexplained gap.
+
+### The fix
+- New migration 0083: a small table that remembers which credits a batch already paid, plus a credit_fils column.
+- credit_batch.go: the daily close takes unpaid credits; a negative one waits for a day with enough money, like refunds.
+- batch.go adds them to the payout; query.ts explains them in reconciliation.
+
+### The code
+Before (apps/settlement/internal/settlement/batch.go:227):
+```go
+netPayout := NetPayableFils(batchGross, batchFee)
+refundIDs, batchRefund, batchFeeReversed, err := takeRefunds(ctx, tx, merchantID, end, netPayout)
+```
+After:
+```go
+creditGroups, creditAmounts, batchCredit, err := takeCredits(ctx, tx, merchantID, end, netPayout)
+netPayout += batchCredit
+refundIDs, batchRefund, batchFeeReversed, err := takeRefunds(ctx, tx, merchantID, end, netPayout)
+```
+The day's payout now includes credits (and fitting negative corrections) before refunds.
+
+### The proof
+- Before: payout 9750 instead of 11750; the -5000 never taken; reconciliation gap 2000.
+- After: all three tests pass; full regression same as baseline.
+
+### If the judges ask
+"Why a new table instead of marking the ledger rows?"
+The ledger is append-only for the app (migration 0082), so we cannot update its rows. The table's primary key also stops one credit from being paid twice.
+
+Commit: PENDING_N67

@@ -397,3 +397,9 @@ Where: apps/api/src/payments/discountAdjustment.ts:70 · Commit: 1d456a8
 Admins can recalculate fees on batches that are closed but not yet paid. The code took the extra fee straight off the payout, even when refunds had already used almost all of it, so a payout could become negative. Now such a batch is left as it is and shown to the admin as "skipped" for a human decision. A test shows a 50-fils payout no longer turns into minus 1,700 fils.
 
 Where: apps/settlement/internal/settlement/recalculate_mdr.go:118 · Commit: cc6d252
+
+## N67 — Money an admin credits to a shop is now really paid out
+
+When an admin gave a shop a credit or a correction, it changed the shop's balance, but the daily payout never included it, so the shop was never paid that money (and negative corrections were never taken back). Now the daily close adds unpaid credits to the payout and remembers them in a small table so each one is paid exactly once. A negative correction waits for a day with enough money, so a payout never goes below zero. Tests show the payout and the reconciliation are now right.
+
+Where: apps/settlement/internal/settlement/batch.go:238 · Commit: PENDING_N67

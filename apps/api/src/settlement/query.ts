@@ -273,9 +273,20 @@ export interface ReconciliationReport {
   settlementNetPayoutFils: number;
   pendingUnbatchedFils: number;
   refundsFromOtherPeriodsFils: number;
+  /** E121: credits a batch in this period paid that happened in another period (signed). */
+  creditsFromOtherPeriodsFils: number;
   gapFils: number;
   explained: boolean;
 }
+
+/** E121: ledger lines that change what a merchant is owed outside captures
+ *  and refunds; settlement pays them (credit_batch.go uses the same list). */
+const PAYABLE_ADJUSTMENT_DESCRIPTIONS = [
+  "manual credit: base",
+  "manual credit: MDR reversal",
+  "manual balance adjustment",
+  "CSV adjustment import",
+];
 
 /** Fixed UTC+3 midnight for a Bahrain business-day boundary. */
 function bahrainLocalMidnightUtc(dateStr: string): Date {
@@ -301,7 +312,7 @@ export async function getReconciliationReport(
   const windowStart = bahrainLocalMidnightUtc(input.from);
   const windowEnd = bahrainLocalMidnightUtc(input.to);
 
-  const [ledgerResult, settlementResult, pendingResult, merchantResult, pendingRefundResult, otherPeriodRefundResult] = await Promise.all([
+  const [ledgerResult, settlementResult, pendingResult, merchantResult, pendingRefundResult, otherPeriodRefundResult, pendingCreditResult, otherPeriodCreditResult] = await Promise.all([
     pool.query<{ net: string }>(
       `SELECT COALESCE(SUM(CASE WHEN direction = 'credit' THEN amount_fils ELSE -amount_fils END), 0) AS net
          FROM ledger_entries
@@ -352,6 +363,31 @@ export async function getReconciliationReport(
           AND (r.occurred_at < $2 OR r.occurred_at >= $3)`,
       [input.merchantId, windowStart, windowEnd, input.from, input.to],
     ),
+    // E121: credits and balance adjustments (signed) in this window that no
+    // batch in this window paid yet — pending, like unbatched refunds.
+    pool.query<{ total: string }>(
+      `SELECT COALESCE(SUM(CASE WHEN le.direction = 'credit' THEN le.amount_fils ELSE -le.amount_fils END), 0) AS total
+         FROM ledger_entries le
+         LEFT JOIN settlement_batch_ledger_groups g ON g.entry_group_id = le.entry_group_id
+         LEFT JOIN settlement_batches b ON b.id = g.settlement_batch_id AND b.status IN ('closed', 'paid')
+        WHERE le.merchant_id = $1 AND le.account_id = 'merchant_payable'
+          AND le.description = ANY($6)
+          AND le.occurred_at >= $2 AND le.occurred_at < $3
+          AND (b.id IS NULL OR b.batch_date < $4 OR b.batch_date >= $5)`,
+      [input.merchantId, windowStart, windowEnd, input.from, input.to, PAYABLE_ADJUSTMENT_DESCRIPTIONS],
+    ),
+    // E121: credits a batch in this window paid that happened in another period.
+    pool.query<{ total: string }>(
+      `SELECT COALESCE(SUM(g.amount_fils), 0) AS total
+         FROM settlement_batch_ledger_groups g
+         JOIN settlement_batches b ON b.id = g.settlement_batch_id
+        WHERE g.merchant_id = $1
+          AND b.batch_date >= $4 AND b.batch_date < $5 AND b.status IN ('closed', 'paid')
+          AND NOT EXISTS (SELECT 1 FROM ledger_entries le
+                           WHERE le.entry_group_id = g.entry_group_id AND le.account_id = 'merchant_payable'
+                             AND le.occurred_at >= $2 AND le.occurred_at < $3)`,
+      [input.merchantId, windowStart, windowEnd, input.from, input.to],
+    ),
   ]);
 
   // MK: merchants.mdr_bps is kept in sync with the current fee_schedules row by the 0046 trigger,
@@ -385,12 +421,15 @@ export async function getReconciliationReport(
   }
 
   pendingUnbatchedFils -= Number(pendingRefundResult.rows[0]?.total ?? 0);
+  pendingUnbatchedFils += Number(pendingCreditResult.rows[0]?.total ?? 0); // E121
+  const creditsFromOtherPeriodsFils = Number(otherPeriodCreditResult.rows[0]?.total ?? 0); // E121
   const refundsFromOtherPeriodsFils = Number(otherPeriodRefundResult.rows[0]?.total ?? 0);
 
   const ledgerMerchantPayableNetFils = Number(ledgerResult.rows[0]?.net ?? 0);
   const settlementNetPayoutFils = Number(settlementResult.rows[0]?.total ?? 0);
   const gapFils =
-    ledgerMerchantPayableNetFils - settlementNetPayoutFils - pendingUnbatchedFils - refundsFromOtherPeriodsFils;
+    ledgerMerchantPayableNetFils - settlementNetPayoutFils - pendingUnbatchedFils - refundsFromOtherPeriodsFils +
+    creditsFromOtherPeriodsFils; // E121: the batch net includes them, this window's ledger does not
 
   return {
     periodFrom: input.from,
@@ -399,6 +438,7 @@ export async function getReconciliationReport(
     settlementNetPayoutFils,
     pendingUnbatchedFils,
     refundsFromOtherPeriodsFils,
+    creditsFromOtherPeriodsFils,
     gapFils,
     explained: gapFils === 0,
   };
