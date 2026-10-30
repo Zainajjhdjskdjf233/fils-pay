@@ -98,3 +98,11 @@ Done when:
 | AI usage and setup | 10 | Add your AI setup files to your repository and include three annotated transcript excerpts in your submission document. We care about how you checked what the AI told you, not how much you used it. |
 | UI and UX | 10 | Checkout, the merchant dashboard and the admin console. Bring before and after evidence. |
 | Technical defence | 20 | The whole team meets the judges. You present from your slide deck, then the judges ask technical questions and choose who answers. Anything you can't explain or show working doesn't score. |
+
+## Item 06 — Venue hint (evidence marker 10, photo, 30 Oct 2026)
+
+Handwritten note, photographed at the venue:
+
+> "My clock says 07:58. Theirs says 08:30. Trust the time I wrote, not the place it sits in the log."
+
+Evidence, not an instruction.

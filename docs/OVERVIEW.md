@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 6:23 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 6:25 PM
 
 ## Contents
 1. Status now
@@ -14,10 +14,10 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 6:23 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 102 of 175 fixed.
+- Errors: 103 of 175 fixed.
   - High: 46 of 46 fixed
   - Medium: 35 of 60 fixed
-  - Low: 21 of 69 fixed
+  - Low: 22 of 69 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
@@ -27,7 +27,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 6:23 PM
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 102 of 175 fixed.
+- 🔄 Fix: 103 of 175 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -74,6 +74,8 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 6:23 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- a04e53b fix(E38): the public payment-link answer no longer exposes the merchant's API key hash or prefix; N108 hash
+- 4553c70 fix(E168): webhook dispatch never sends to a disabled endpoint; notes N102-N108
 - 1ff0962 fix(E174): payment-link expiresAt must be a real date with a zone
 - 6c74bd0 fix(E166): payment-link create refuses amount 0 (400, not 500)
 - ebe2652 fix(E169): saved-filter POST refuses an array filter and a blank name
@@ -87,8 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 6:23 PM
 - b4797ab fix(E111): CSV export quotes cells that contain a carriage return
 - 95577a3 fix(E145): business-profile PATCH checks types, businessType and country; notes N91-N96
 - 7a8b0e6 fix(E145): signup checks field types, businessType, country and password length (partly: email, PATCH path open)
-- d3788b8 fix(E130): a failed payment-link capture voids the card authorization
-- 5543ef2 fix(E131): a discount error after a paid link is logged for retry, not a 500 to the buyer (partly: durable retry open)
 
 ## 7. All errors
 ## High (46 of 46 fixed)
@@ -207,11 +207,11 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 6:23 PM
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Open |
 
-### Low (21 of 69 fixed)
+### Low (22 of 69 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
-| E38 | Public payment link page exposes the merchant's API key hash and prefix | Open |
+| E38 | Public payment link page exposes the merchant's API key hash and prefix | Fixed |
 | E40 | withTransaction: a failing ROLLBACK hides the real error | Open |
 | E46 | KYC "PDF only" rule checks the filename, not the content | Open |
 | E47 | Admin console: session not rotated after OTP; no CSP | Open |
@@ -4131,5 +4131,5 @@ Nothing goes to a switched-off address.
 "Are those messages lost?"
 No, they stay pending and go out if the shop switches the address back on.
 
-Commit: PENDING_N108
+Commit: 4553c70
 

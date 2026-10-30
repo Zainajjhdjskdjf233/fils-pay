@@ -91,6 +91,14 @@ them: were these honest mistakes, and who hid what?
 **Why only medium for MK:** git never names `p@x`, and most proof is comments and messages, which can be planted.
 **What would change it:** the pre-rewrite history (a backup, an old clone, or the six missing objects), server push logs showing who force-pushed, or proof of who controls `p@x`.
 
+## Addendum — venue hint (CASE-FILE Item 06, 06:25 PM)
+
+"My clock says 07:58. Theirs says 08:30. Trust the time I wrote, not the place it sits in the log."
+
+- 0af74f0 "dead man's switch" (Yousif) is dated 07:58; 800e1e6 "revoke yousif.alansari" (Ali) is dated 08:30.
+- In the graph, 0af74f0 is a child of 800e1e6 (`git log --format='%h %p' -1 0af74f0`), so it sits after the revoke.
+- By its own time, Yousif wrote it before he lost access; its place after the revoke was arranged later. This supports Branch 1 (staged history) and the "Yousif framed" finding. It does not change who rewrote the history (still unnamed) or the confidence levels.
+
 ## Summary
 
 - The history is staged: 41 rewritten commits with fake dates (proved by a 2026 file inside a 2025 commit) and 16 empty story commits added later.

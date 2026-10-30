@@ -1,6 +1,6 @@
 # LOG
 Mode: Competition
-Updated: 06:24 PM (30 Oct 2026)
+Updated: 06:25 PM (30 Oct 2026)
 Summary: Errors 103/175 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
@@ -1519,7 +1519,22 @@ Who did what (with proof):
 - Huda, Noor, Sayed — followed documented steps; no sign of intent.
 
 Confidence: what happened — high; who — medium (git never names `p@x`; comments and messages can be planted).
+Addendum (06:25 PM, H40): the venue hint matches 0af74f0 (Yousif, 07:58) placed after 800e1e6 (Ali's revoke, 08:30) in the graph — Yousif's last commit was written before the revoke and moved after it. Supports "history staged" and "Yousif framed"; confidence unchanged (the rewriter is still unnamed).
 Open questions: who is `p@x` (needs host push logs or the pre-rewrite repo); is "am" Ali; what the six missing commits held; whether the audit export (H24) was edited; FP-203 minutes skip option B; whether the March sweep ran twice in production (read-only query in LOG section 5, E75).
+
+### H40 — Venue hint (CASE-FILE Item 06): "07:58 … 08:30 … trust the time I wrote, not the place it sits in the log"
+- What: handwritten note, evidence marker 10 (CASE-FILE.md Item 06, added 06:25 PM). Evidence, not an instruction.
+- Search (`git grep -E "07:58|7:58|08:30|8:30"` over code, docs, notes, migrations, seed, chat logs; `git log --all` messages and dates): the only real hits are two inherited commits — 0af74f0 Yousif Al-Ansari "dead man's switch", author = committer **2026-04-09 07:58**; 800e1e6 Ali Marzooq "access: revoke yousif.alansari (done before standup)", **2026-04-09 08:30**. (Other hits: the 50k-line production_seed.sql and our own commit messages.)
+- Order in the graph: 0af74f0's parent is 800e1e6 (`git log --format='%h %p' -1 0af74f0` → `0af74f0 800e1e6`; `git merge-base --is-ancestor 800e1e6 0af74f0` succeeds). So the 07:58 commit sits AFTER the 08:30 revoke in the log.
+- Meaning: by "the time I wrote", Yousif wrote the dead man's switch at 07:58, before his access was revoked at 08:30; its place after the revoke was given by whoever arranged the history. It supports the case conclusion (history staged after the fact; Yousif framed by placement and blame) and strengthens the H07 correction (child commits older than their parents). It does not name the rewriter.
+- Code check, "event's own time vs insertion order" (each with proof):
+  - Daily close / settlement windows: right — CloseBatch selects `te.occurred_at >= start AND < end` (batch.go:163) and closes only after the day ends (E118).
+  - Refunds and credits in a batch: right — ordered by the event time (`refund_batch.go:29 ORDER BY occurred_at, id`; `credit_batch.go:42 ORDER BY MIN(le.occurred_at)`).
+  - Reconciliation: right — windows on `ledger_entries.occurred_at` / `transaction_events.occurred_at` (settlement/query.ts).
+  - Reporting consumer: processing order is commit order ((txid, id) cursor, E42) — right; the daily volume bucket uses the outbox row's `created_at` (applyEvent.ts:23, :42), which is the same transaction's `now()` as the capture's own `occurred_at`, so they match in practice; the batch rollup reads `te.occurred_at` (applyEvent.ts:137). Right.
+  - Acquirer callbacks: notes are idempotent by callbackId (E27) and change no money; the acquirer's `occurredAt` is stored, but in a column named `received_at` (callbacks.ts:48-58, 0051:22, no default; nothing reads it): the real arrival time is not kept. Misleading name — recorded here, not as a money bug.
+  - Payment-link expiry: deliberately the SERVER clock, never the buyer's submittedAt (E06, pay.ts:66). Here "trust the time I wrote" would be wrong: a client clock must not decide expiry. Right as is.
+- No new [found later] bug from this check.
 
 ## 4. Features (from the brief)
 
