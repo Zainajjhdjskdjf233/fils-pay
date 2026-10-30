@@ -390,4 +390,4 @@ Where: apps/api/src/routes/paymentLinks.ts:163 · Commit: 93d09b2
 
 Shops with a negotiated discount get part of our fee back after each capture. The old code always used the newest capture's fee, so when one refund-of-fee was missed, the next ones were the wrong size. In one case (a tiny first capture) a repeated request paid the discount twice. Now every capture's discount is worked out from its own fee and only the missing ones are written. Two tests show the wrong amounts before and the right ones after.
 
-Where: apps/api/src/payments/discountAdjustment.ts:70 · Commit: PENDING_N65
+Where: apps/api/src/payments/discountAdjustment.ts:70 · Commit: 1d456a8

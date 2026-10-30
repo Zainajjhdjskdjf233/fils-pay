@@ -74,6 +74,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:59 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- 1d456a8 fix(E124): one discount adjustment per capture event, sized from its own fee
 - 93d09b2 fix(E123): card shape checked in both payment routes before the link is claimed (400, not 500)
 - c06b7eb fix(E122): link pay gives back its lock slot, frees the link and voids when pool.connect fails
 - c973988 fix(E119): CSV adjustment import capped at the two-person threshold (per row and total)
@@ -88,7 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:59 PM
 - e5eb890 feat(F01f): dashboard refund page; fix(E61): same-origin API calls for web and admin
 - 107618c fix(E50): payment-link checkout applies the negotiated discount like the card API
 - 376bc49 fix(E19): MDR recalculation uses fee schedules and the tier bonus stored at close
-- ad4a77b fix(E60): reconciliation ledger figure excludes payout lines — next-day payouts looked like a gap
 
 ## 7. All errors
 ## High (36 of 39 fixed)
@@ -2648,5 +2648,5 @@ Each capture's cashback comes from its own fee, and a replay finds nothing new t
 "How do you know which cashback belongs to which capture without an id?"
 Cashbacks are only written here, in capture order, under a row lock, and only when above 0. So the N-th such capture owns the N-th cashback.
 
-Commit: PENDING_N65
+Commit: 1d456a8
 

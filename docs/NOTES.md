@@ -2414,4 +2414,4 @@ Each capture's cashback comes from its own fee, and a replay finds nothing new t
 "How do you know which cashback belongs to which capture without an id?"
 Cashbacks are only written here, in capture order, under a row lock, and only when above 0. So the N-th such capture owns the N-th cashback.
 
-Commit: PENDING_N65
+Commit: 1d456a8
