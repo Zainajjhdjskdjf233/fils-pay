@@ -222,4 +222,4 @@ Where: apps/api/src/webhooks/dispatcher.ts:176 · Commit: 8c76fb8
 
 The one-time login codes, payment-link addresses and admin invite codes were made with a random generator that is not meant for secrets and can be predicted. A comment said a secure one was used, but it was not. We switched all three to the secure random generator from Node's crypto library. A test proves the codes no longer depend on the old generator.
 
-Where: apps/api/src/lib/random.ts:10 · Commit: PENDING_N37
+Where: apps/api/src/lib/random.ts:10 · Commit: 971474c
