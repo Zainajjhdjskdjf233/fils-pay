@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
 Updated: 10:00 PM (30 Oct 2026)
-Summary: Errors 175/178 fixed (+1 partly: E79; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Summary: Errors 176/178 fixed (+0 partly: none; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -3232,6 +3232,11 @@ A fresh clone of the fork, built and started from nothing but the repo.
 
 ### Full regression after the decision pass — 09:36 PM
 - Fresh, freshly migrated database (filspay_full_213551_20427; migrations up to 0088) at commit ed78c94: api 531/531, money 44/44, events 4/4, reporting 23/23, web 13/13, scripts 11/11, Go 86 pass (1 skip), failing 0.
+
+### Full regression after the last code fixes — 10:01 PM
+- Fresh, freshly migrated database (filspay_full_220101_32169) at commit 4a8c129: api 531/531, money 44/44, events 4/4, reporting 23/23, web 13/13, scripts 12/12, Go 86 pass (1 skip), failing 0.
+- Seed tests (they truncate tables, so they are not in the suite) on a fresh local database filspay_e70c_220006_28998: feeSchedules.e69, outboxHistory.e70 and selfVerify.integration 3/3.
+- Errors: 176 of 178 fixed, 0 partly fixed, 2 closed by a recorded decision (E58 not a bug, E150 kept as designed), 0 open.
 
 ## 7. Judge notes
 

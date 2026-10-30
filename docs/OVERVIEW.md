@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 9:36 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 10:01 PM
 
 ## Contents
 1. Status now
@@ -14,20 +14,20 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 9:36 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 172 of 178 fixed.
+- Errors: 176 of 178 fixed.
   - High: 46 of 46 fixed
   - Medium: 59 of 60 fixed
-  - Low: 67 of 72 fixed
+  - Low: 71 of 72 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
 - Dilmune Cloud: live
-- Decisions waiting for Zainab: 42 (search "for Zainab to review" in LOG.md)
+- Decisions waiting for Zainab: 41 (search "for Zainab to review" in LOG.md)
 - Fork: needs a push (VS Code: Git: Push to... → mine)
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 172 of 178 fixed.
+- 🔄 Fix: 176 of 178 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -74,6 +74,10 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 9:36 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- 4a8c129 fix(E70): seeded outbox events carry their own time; every seeded closed batch has its event (dev seed only)
+- eacc4bc fix(E69): seeded fees follow the seeded fee schedules (dev seed only)
+- 8191f27 fix(E72): March sweep residue per scheme line and by batch business date (never run on real data)
+- 7054002 fix(E79): delete the three dead files (approved; no importers)
 - 14362c4 fix(E79): remove four dead money helpers; three dead files listed for deletion (decided, partly)
 - 12a1e8f fix(E154): remove the dead journaled balance adjustment; label the cache-only button (decided)
 - f1dc827 fix(E178): recorded owed credits survive a rate drop to 0; pre-deploy events accepted (decided)
@@ -85,10 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 9:36 PM
 - c5d7416 fix(E131): missed discount adjustments retried by a 60 s sweep (E131 fully fixed); new entry E178
 - 7c6ce65 fix(E67): refund summary becomes a plain view, always current (migration 0087; E67 fully fixed); LOG: freeze 11:00 PM
 - 4cdc8ae fix(E78): rebuild locks every balance row; admin path allows a long rebuild (E78 fully fixed)
-- cdce9cf fix(E48): split payouts update the lifetime payout estimate (E48 fully fixed)
-- 57f4d87 fix(E94): weak settlement internal token refused (partly fixed; internal HTTP kept by decision)
-- 26b44f2 fix(E92): ledger and admin audit log append-only via triggers (migration 0086; E92 fully fixed)
-- d02c699 fix(E86): dashboard dev proxy no longer forwards /v1/admin (E86 fully fixed)
 
 ## 7. All errors
 ## High (46 of 46 fixed)
@@ -207,7 +207,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 9:36 PM
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-### Low (67 of 72 fixed)
+### Low (71 of 72 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -225,13 +225,13 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 9:36 PM
 | E66 | [found later] expire_holds can delete holds released between its SELECT and DELETE | Fixed |
 | E67 | [found later] refund_merchant_summary counts captured once per refund; never refreshed (my F01e bug) | Fixed |
 | E68 | [found later] Seed adds the lifetime payout estimate in float32 | Fixed |
-| E69 | [found later] Seeded fees ignore the seeded fee schedules (suspected) | Skipped |
-| E70 | [found later] Seeded outbox events do not match the seeded history | Skipped |
+| E69 | [found later] Seeded fees ignore the seeded fee schedules (suspected) | Fixed |
+| E70 | [found later] Seeded outbox events do not match the seeded history | Fixed |
 | E71 | [found later] Re-seeding leaves old dead letters with reused outbox ids | Fixed |
-| E72 | [found later] reconcile_march uses authorization time and running-total residue (suspected) | Skipped |
+| E72 | [found later] reconcile_march uses authorization time and running-total residue (suspected) | Fixed |
 | E77 | [found later] Float and toFixed on money in the batch detail page | Fixed |
 | E78 | [found later] Balance rebuild may hit the 30 s timeout; no row lock (suspected) | Fixed |
-| E79 | [found later] Dead helpers with float or wrong-scale money math | Partly fixed |
+| E79 | [found later] Dead helpers with float or wrong-scale money math | Fixed |
 | E80 | [found later] Scheme export fallback can print more than 2 decimals | Fixed |
 | E81 | [found later] Admin Run batch default date uses the UTC day | Fixed |
 | E84 | [found later] CSRF from same-site pages (Lax only, text/plain accepted) | Fixed |
@@ -285,7 +285,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 9:36 PM
 | E178 | [deep review] Discount adjustments are matched to capture events by position, at today's rate | Fixed |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101 · N102 · N103 · N104 · N105 · N106 · N107 · N108 · N109 · N110 · N111 · N112 · N113 · N114 · N115 · N116 · N117 · N118 · N119 · N120 · N121 · N122 · N123 · N124 · N125 · N126 · N127 · N128 · N129 · N130 · N131 · N132 · N133 · N134 · N135 · N136 · N137 · N138 · N139 · N140 · N141 · N142 · N143 · N144 · N145 · N146 · N147 · N148 · N149 · N150 · N151 · N152 · N153 · N154 · N155 · N156 · N157 · N158 · N159 · N160 · N161 · N162 · N163 · N164 · N165 · N166 · N167 · N168 · N169 · N170 · N171 · N172 · N173 · N174 · N175 · N176 · N177 · N178 · N179 · N180 · N181 · N182 · N183 · N184 · N185 · N186
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101 · N102 · N103 · N104 · N105 · N106 · N107 · N108 · N109 · N110 · N111 · N112 · N113 · N114 · N115 · N116 · N117 · N118 · N119 · N120 · N121 · N122 · N123 · N124 · N125 · N126 · N127 · N128 · N129 · N130 · N131 · N132 · N133 · N134 · N135 · N136 · N137 · N138 · N139 · N140 · N141 · N142 · N143 · N144 · N145 · N146 · N147 · N148 · N149 · N150 · N151 · N152 · N153 · N154 · N155 · N156 · N157 · N158 · N159 · N160 · N161 · N162 · N163 · N164 · N165 · N166 · N167 · N168 · N169 · N170 · N171 · N172 · N173 · N174 · N175 · N176 · N177 · N178 · N179 · N180 · N181 · N182 · N183 · N184 · N185 · N186 · N187 · N188 · N189 · N190
 
 ### N01 — Database setup stopped halfway
 
@@ -6690,4 +6690,127 @@ No code change. The read-only query is in LOG.md under E72.
 It writes money entries; a read-only query shows the right figure without touching any data.
 
 Commit: 141deb5
+
+### N187 — Dead files deleted
+
+#### The idea
+Unused files are like old keys on a ring: nobody knows what they open, and someone may use one by mistake.
+
+#### The problem
+Three files had no users, and they held float money maths.
+
+#### The fix
+- Deleted with Zainab's approval, after grep showed nothing imports them.
+
+#### The code
+Before: apps/api/src/fees/estimate.ts, apps/api/src/v1/fees/calculateFee.ts, apps/api/src/v1/routes/transactions.ts.
+After: gone; a one-line note in app.ts says why.
+
+#### The proof
+- grep: 0 importers; typecheck and check.sh pass.
+
+#### If the judges ask
+"Why ask before deleting?"
+Our rules say file deletions need the owner's OK; she gave it at 9:38 PM.
+
+Commit: 7054002
+
+### N188 — The March sweep counts the right residue
+
+#### The idea
+The card scheme cuts each batch line to 10-fils steps. The cut-off part is the residue, like coins too small for the machine.
+
+#### The problem
+The March script measured residue per payment total, not per batch line.
+- A payment captured as 1005 + 1005 in two batches lost 10 fils, but the script said 0.
+- It also chose the month by authorization time.
+
+#### The fix
+- reconcile_march.ts: residue per scheme line, month by the batch's business day; batches already journaled at close are skipped.
+
+#### The code
+Before (scripts/reconcile_march.ts:34):
+```ts
+return capturedFils % 10;
+```
+After:
+```sql
+SELECT sb.merchant_id, (ev.slice - sel.amount_fils) AS residue_fils FROM scheme_export_lines sel ...
+```
+Each line's real loss is counted once.
+
+#### The proof
+- Before: 0 for the 1005 + 1005 case.
+- After: 10; tested only on fresh local databases.
+
+#### If the judges ask
+"Did you run it on the live data?"
+No; the live server never runs scripts. It was only tested on fresh local databases.
+
+Commit: 8191f27
+
+### N189 — Sample fees follow sample fee plans
+
+#### The idea
+The seed fills a developer database with sample shops. Some shops have fee plans that change on a date, like a phone tariff.
+
+#### The problem
+The sample fees ignored those plans and used one flat rate.
+
+#### The fix
+- One table of the sample fee plans; every sample fee uses the rate in force on its date.
+
+#### The code
+Before (db/seed/generate.ts):
+```ts
+const fee = applyRateFils(txn.capturedFils, fixture.mdrBps);
+```
+After:
+```ts
+const fee = applyRateFils(txn.capturedFils, rateAt(mdrRateFor(fixture.key, fixture.mdrBps), txn.occurredAt));
+```
+Sample data now looks like real data.
+
+#### The proof
+- Before: alpha-retail fees used 250 bps.
+- After: every fee matches its plan's rate; the seed self-check passes.
+
+#### If the judges ask
+"Does this touch real data?"
+No; the seed only runs on a developer database, behind a safety flag.
+
+Commit: eacc4bc
+
+### N190 — Sample events match sample history
+
+#### The idea
+The reports are built from event messages. Each message should carry the time of what it reports, like a dated receipt.
+
+#### The problem
+Sample messages were stamped with the time the seed ran.
+- Sample batches had no "batch closed" message.
+
+#### The fix
+- Each sample message carries its own time; every sample closed batch reports itself.
+
+#### The code
+Before (db/seed/generate.ts):
+```ts
+await enqueueEvent(client, { eventType: "settlement.batch_closed", ... });
+```
+After:
+```ts
+await enqueueAt(client, { eventType: "settlement.batch_closed", ... }, dayDate);
+```
+Sample reports land on the right days.
+
+#### The proof
+- Before: messages had the seed run's time; batches lacked their message.
+- After: no message has the run time; every closed batch has its message.
+
+#### If the judges ask
+"Why fix sample data at all?"
+Wrong sample data hides real reporting bugs when developers test.
+
+Commit: 4a8c129
 

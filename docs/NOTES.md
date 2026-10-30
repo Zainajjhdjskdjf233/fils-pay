@@ -6405,3 +6405,126 @@ No code change. The read-only query is in LOG.md under E72.
 It writes money entries; a read-only query shows the right figure without touching any data.
 
 Commit: 141deb5
+
+## N187 — Dead files deleted
+
+### The idea
+Unused files are like old keys on a ring: nobody knows what they open, and someone may use one by mistake.
+
+### The problem
+Three files had no users, and they held float money maths.
+
+### The fix
+- Deleted with Zainab's approval, after grep showed nothing imports them.
+
+### The code
+Before: apps/api/src/fees/estimate.ts, apps/api/src/v1/fees/calculateFee.ts, apps/api/src/v1/routes/transactions.ts.
+After: gone; a one-line note in app.ts says why.
+
+### The proof
+- grep: 0 importers; typecheck and check.sh pass.
+
+### If the judges ask
+"Why ask before deleting?"
+Our rules say file deletions need the owner's OK; she gave it at 9:38 PM.
+
+Commit: 7054002
+
+## N188 — The March sweep counts the right residue
+
+### The idea
+The card scheme cuts each batch line to 10-fils steps. The cut-off part is the residue, like coins too small for the machine.
+
+### The problem
+The March script measured residue per payment total, not per batch line.
+- A payment captured as 1005 + 1005 in two batches lost 10 fils, but the script said 0.
+- It also chose the month by authorization time.
+
+### The fix
+- reconcile_march.ts: residue per scheme line, month by the batch's business day; batches already journaled at close are skipped.
+
+### The code
+Before (scripts/reconcile_march.ts:34):
+```ts
+return capturedFils % 10;
+```
+After:
+```sql
+SELECT sb.merchant_id, (ev.slice - sel.amount_fils) AS residue_fils FROM scheme_export_lines sel ...
+```
+Each line's real loss is counted once.
+
+### The proof
+- Before: 0 for the 1005 + 1005 case.
+- After: 10; tested only on fresh local databases.
+
+### If the judges ask
+"Did you run it on the live data?"
+No; the live server never runs scripts. It was only tested on fresh local databases.
+
+Commit: 8191f27
+
+## N189 — Sample fees follow sample fee plans
+
+### The idea
+The seed fills a developer database with sample shops. Some shops have fee plans that change on a date, like a phone tariff.
+
+### The problem
+The sample fees ignored those plans and used one flat rate.
+
+### The fix
+- One table of the sample fee plans; every sample fee uses the rate in force on its date.
+
+### The code
+Before (db/seed/generate.ts):
+```ts
+const fee = applyRateFils(txn.capturedFils, fixture.mdrBps);
+```
+After:
+```ts
+const fee = applyRateFils(txn.capturedFils, rateAt(mdrRateFor(fixture.key, fixture.mdrBps), txn.occurredAt));
+```
+Sample data now looks like real data.
+
+### The proof
+- Before: alpha-retail fees used 250 bps.
+- After: every fee matches its plan's rate; the seed self-check passes.
+
+### If the judges ask
+"Does this touch real data?"
+No; the seed only runs on a developer database, behind a safety flag.
+
+Commit: eacc4bc
+
+## N190 — Sample events match sample history
+
+### The idea
+The reports are built from event messages. Each message should carry the time of what it reports, like a dated receipt.
+
+### The problem
+Sample messages were stamped with the time the seed ran.
+- Sample batches had no "batch closed" message.
+
+### The fix
+- Each sample message carries its own time; every sample closed batch reports itself.
+
+### The code
+Before (db/seed/generate.ts):
+```ts
+await enqueueEvent(client, { eventType: "settlement.batch_closed", ... });
+```
+After:
+```ts
+await enqueueAt(client, { eventType: "settlement.batch_closed", ... }, dayDate);
+```
+Sample reports land on the right days.
+
+### The proof
+- Before: messages had the seed run's time; batches lacked their message.
+- After: no message has the run time; every closed batch has its message.
+
+### If the judges ask
+"Why fix sample data at all?"
+Wrong sample data hides real reporting bugs when developers test.
+
+Commit: 4a8c129

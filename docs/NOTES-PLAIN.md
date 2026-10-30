@@ -1117,3 +1117,27 @@ Where: apps/api/src/payments/capture.ts · Commit: 14362c4
 Five remaining items were choices. Each is now written down with its reason and the other option. One read-only query shows the right March figure without changing data.
 
 Where: docs/LOG.md · Commit: 141deb5
+
+## N187 — Dead files deleted
+
+Three unused files with float money maths were deleted, with Zainab's approval, after checking nothing used them.
+
+Where: apps/api/src/app.ts:67 · Commit: 7054002
+
+## N188 — The March sweep counts the right residue
+
+The March clean-up script measured the scheme's rounding loss per payment, not per batch line, so split payments were miscounted. Now it measures per line, by business day. It was tested only on fresh local databases.
+
+Where: scripts/reconcile_march.ts · Commit: 8191f27
+
+## N189 — Sample fees follow sample fee plans
+
+The sample data used one flat fee rate even where a shop's fee plan changed on a date. Now every sample fee uses the rate in force on its date. A test proves it.
+
+Where: db/seed/generate.ts · Commit: eacc4bc
+
+## N190 — Sample events match sample history
+
+Sample event messages were stamped with the time the seed ran, and sample batches had no "closed" message. Now each message has its own time and every batch reports itself. A test proves it.
+
+Where: db/seed/generate.ts · Commit: 4a8c129

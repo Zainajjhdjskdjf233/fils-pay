@@ -29,10 +29,10 @@
 We inherited FilsPay: a Fastify/TypeScript payments API, a Go settlement service, a reporting worker, two React apps (merchant dashboard and checkout, admin console) and a Postgres database. On arrival it could not be installed: migrations stopped at 0054 (E01) and `docker compose up` failed (E02).
 
 What we did, with sources:
-- **Errors:** 178 entries recorded with file:line proof (docs/ERRORS.md, docs/LOG.md section 2). 172 fixed, 1 partly fixed (E79: three dead files wait for approval to delete), 5 closed by a recorded decision (E58 not a bug, E150 kept as designed, E69/E70 dev seed, E72 documented with a read-only query), 0 open. All 46 High entries are fixed (docs/ERRORS.md, "High (46 of 46 fixed)").
+- **Errors:** 178 entries recorded with file:line proof (docs/ERRORS.md, docs/LOG.md section 2). 176 fixed, 2 closed by a recorded decision (E58 is not a bug, locked by a test; E150 kept as designed), 0 partly fixed, 0 open. All 46 High entries are fixed (docs/ERRORS.md, "High (46 of 46 fixed)").
 - **Hidden things:** 40 entries in docs/LOG.md section 3 (false comments, planted AI instruction files, a staged git history, missing commits).
 - **Features from the case file:** both done. F01 (refund flow end to end) and F02 (live on Dilmune Cloud) (docs/LOG.md section 4).
-- **Tests:** every fix started with a test that failed for the right reason, except a few UI-only and timing-race fixes where LOG says so. Latest full regression on a fresh database (commit ed78c94, 09:36 PM): API 531/531, money 44/44, events 4/4, reporting 23/23, web 13/13, scripts 11/11, Go 86 pass, 0 failures (docs/LOG.md section 6).
+- **Tests:** every fix started with a test that failed for the right reason, except a few UI-only and timing-race fixes where LOG says so. Latest full regression on a fresh database (commit 4a8c129, 10:01 PM): API 531/531, money 44/44, events 4/4, reporting 23/23, web 13/13, scripts 12/12, Go 86 pass, 0 failures; seed tests 3/3 on a fresh local database (docs/LOG.md section 6).
 - **Live check:** 45 public and 29 logged-in checks against the live server, including a full refund (10.000 BD) and a partial refund (4.000 BD), with a reconciliation gap of 0 (docs/LOG.md section 6).
 - **Case:** the inherited history was staged after 12 Sep 2026. Main actor: Mahmood Khalil (medium confidence). Full reasoning: docs/CASE-MAP.md.
 
@@ -193,8 +193,8 @@ Each finding below follows the same pattern: symptom, how it was found and repro
 ### Decisions and open risks
 - **OTP on the live demo server.** There is no SMS or email sender. To let judges log in, the live server sets `OTP_DEV_EXPOSE=true`, so the login response shows the code. The code default is off (E37). This is set only in the server's ops/.env.docker. Safeguard: in a real deployment OTP goes by SMS or email and this flag stays off.
 - **Limits chosen by us (for review):** balance adjustment and credit caps (E140, E141), CSV import 1,000 rows (E158), webhook archive 10,000 deliveries (E144), 50 saved filters (E171), 20 KYC documents per merchant (E148, a lifetime limit because no code deletes documents), password minimum (E145), credits back-dated at most 90 days (E134), login and signup 120 calls per IP per minute (E146), reporting settings ranges (E97).
-- **Decided at the end (each with a 'Decision (Claude, Zainab approved deciding without review)' line in docs/LOG.md):** E82 staff revoke API keys and never receive one; E58 closed as not a bug (test added); E63 the reporting rebuild hands the worker an exact cursor; E74 admins see the ledger balance and the cache drift; E50 settlement's discount formula is the contract; E178 recorded owed credits stay owed; E94 HTTP kept inside the private network; E150 kept as designed; E154 and E79 dead code removed; E72, E69, E70 documented without code changes. Earlier choices: impersonation still works for a suspended merchant (E128); API keys can save report filters (E88); a webhook replay gets a new delivery id (E143); the seed needs FILSPAY_ALLOW_SEED_RESET=1 (E65).
-- **Open risks:** no error entry is open. Remaining limits, each recorded in docs/LOG.md: the March sweep script (E72) should not be run until it is rewritten per scheme line (a read-only query gives the right figure); capture events from before this deploy keep the old discount matching (E178); the Origin check (E84) does not cover very old browsers that send no Origin header; idempotency rows written before E89 still hold old card hashes until cleared; three dead files wait for approval to delete (E79).
+- **Decided at the end (each with a 'Decision (Claude, Zainab approved deciding without review)' line in docs/LOG.md):** E82 staff revoke API keys and never receive one; E58 closed as not a bug (test added); E63 the reporting rebuild hands the worker an exact cursor; E74 admins see the ledger balance and the cache drift; E50 settlement's discount formula is the contract; E178 recorded owed credits stay owed; E94 HTTP kept inside the private network; E150 kept as designed; E154 and E79 dead code removed (the three dead files deleted with approval); E72 (March sweep per scheme line), E69 and E70 (dev seed) fixed in code and tested on fresh local databases only. Earlier choices: impersonation still works for a suspended merchant (E128); API keys can save report filters (E88); a webhook replay gets a new delivery id (E143); the seed needs FILSPAY_ALLOW_SEED_RESET=1 (E65).
+- **Open risks:** no error entry is open. Remaining limits, each recorded in docs/LOG.md: a merchant already swept by the old March script is not re-corrected by a re-run (E72); capture events from before this deploy keep the old discount matching (E178); the Origin check (E84) does not cover very old browsers that send no Origin header; idempotency rows written before E89 still hold old card hashes until cleared.
 - **Existing data:** fixes change future behaviour. Rows written wrongly before a fix are not rewritten; finance would correct them from the ledger history.
 - **Live version:** the server runs d3e4fd1 (redeploy 2, 07:12 PM); one more redeploy at the code freeze.
 
@@ -288,7 +288,7 @@ Not changed (recorded): money columns are still left-aligned (29 cells in 10 fil
 ### Every error entry
 
 <!-- errors:start (generated from docs/ERRORS.md) -->
-All 178 entries from docs/ERRORS.md (172 of 178 fixed.). Each ID has its error (section 2) and, when fixed, its fix (section 5) in docs/LOG.md.
+All 178 entries from docs/ERRORS.md (176 of 178 fixed.). Each ID has its error (section 2) and, when fixed, its fix (section 5) in docs/LOG.md.
 
 | ID | Title | Level | Status |
 |---|---|---|---|
@@ -360,17 +360,17 @@ All 178 entries from docs/ERRORS.md (172 of 178 fixed.). Each ID has its error (
 | E66 | [found later] expire_holds can delete holds released between its SELECT and DELETE | Low | Fixed |
 | E67 | [found later] refund_merchant_summary counts captured once per refund; never refreshed (my F01e bug) | Low | Fixed |
 | E68 | [found later] Seed adds the lifetime payout estimate in float32 | Low | Fixed |
-| E69 | [found later] Seeded fees ignore the seeded fee schedules (suspected) | Low | Skipped |
-| E70 | [found later] Seeded outbox events do not match the seeded history | Low | Skipped |
+| E69 | [found later] Seeded fees ignore the seeded fee schedules (suspected) | Low | Fixed |
+| E70 | [found later] Seeded outbox events do not match the seeded history | Low | Fixed |
 | E71 | [found later] Re-seeding leaves old dead letters with reused outbox ids | Low | Fixed |
-| E72 | [found later] reconcile_march uses authorization time and running-total residue (suspected) | Low | Skipped |
+| E72 | [found later] reconcile_march uses authorization time and running-total residue (suspected) | Low | Fixed |
 | E73 | [found later] CloseBatch never journals the scheme rounding residue (ADR-0002 not implemented) | High | Fixed |
 | E74 | [found later] Balance cache and ledger rebuild measure different things (drift after rebuild) | Medium | Fixed |
 | E75 | [found later] March sweep posts the opposite legs from ADR-0002, charging merchants | Medium | Fixed |
 | E76 | [found later] Dashboard date filter uses UTC days, not Bahrain days | Medium | Fixed |
 | E77 | [found later] Float and toFixed on money in the batch detail page | Low | Fixed |
 | E78 | [found later] Balance rebuild may hit the 30 s timeout; no row lock (suspected) | Low | Fixed |
-| E79 | [found later] Dead helpers with float or wrong-scale money math | Low | Partly fixed |
+| E79 | [found later] Dead helpers with float or wrong-scale money math | Low | Fixed |
 | E80 | [found later] Scheme export fallback can print more than 2 decimals | Low | Fixed |
 | E81 | [found later] Admin Run batch default date uses the UTC day | Low | Fixed |
 | E82 | [found later] Admin "rotate API key" hands staff a full-power merchant key | Medium | Fixed |
