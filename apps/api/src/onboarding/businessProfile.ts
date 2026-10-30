@@ -1,3 +1,4 @@
+import { BadRequestError } from "../lib/errors.js";
 import type { Pool } from "pg";
 import { NotFoundError } from "../lib/errors.js";
 import { todayStamp } from "../lib/dateUtil.js";
@@ -104,6 +105,21 @@ export async function updateBusinessProfile(
   const entries = Object.entries(patch).filter(([, value]) => value !== undefined) as Array<
     [keyof BusinessProfilePatch, string | null]
   >;
+
+  // E145: the PATCH path relied on TypeScript types only; a bad businessType
+  // or country hit the 0014 constraints (500). Checked here for every caller.
+  for (const [key, value] of entries) {
+    const optional = key === "addressLine2" || key === "postalCode";
+    if (value === null ? !optional : typeof value !== "string" || (!optional && value.trim() === "")) {
+      throw new BadRequestError("invalid_request", `${key} must be a non-empty string`);
+    }
+  }
+  if (patch.businessType !== undefined && !["sole_proprietorship", "llc", "partnership", "public_company", "other"].includes(patch.businessType)) {
+    throw new BadRequestError("invalid_business_type", "businessType is not a known type");
+  }
+  if (patch.country !== undefined && !/^[A-Z]{2}$/.test(patch.country)) {
+    throw new BadRequestError("invalid_country", "country must be a 2-letter ISO code");
+  }
 
   if (entries.length === 0) {
     return getBusinessProfile(pool, merchantId);

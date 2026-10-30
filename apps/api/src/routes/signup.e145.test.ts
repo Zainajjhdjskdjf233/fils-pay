@@ -47,3 +47,18 @@ test("testE145_badSignupInputIs400Not201Or500", async () => {
   const ok = await app.inject({ method: "POST", url: "/v1/merchants", payload: body({ country: "BH" }, "e145-password-123456") });
   assert.equal(ok.statusCode, 201, ok.body);
 });
+
+test("testE145_profilePatchChecksTypeAndCountry", async () => {
+  const { updateBusinessProfile } = await import("../onboarding/businessProfile.js");
+  const created = await app.inject({ method: "POST", url: "/v1/merchants", payload: body({}, "e145-password-123456") });
+  const merchantId = (created.json() as { merchantId: string }).merchantId;
+  for (const patch of [{ businessType: "x" }, { country: "BHR" }, { legalName: 42 }]) {
+    await assert.rejects(
+      updateBusinessProfile(pool, merchantId, patch as never),
+      (err: unknown) => (err as { statusCode?: number }).statusCode === 400,
+      `patch ${JSON.stringify(patch)}`,
+    );
+  }
+  const ok = await updateBusinessProfile(pool, merchantId, { city: "Muharraq" });
+  assert.equal(ok.city, "Muharraq");
+});

@@ -1,6 +1,6 @@
 # LOG
 Mode: Competition
-Updated: 05:23 PM (30 Oct 2026)
+Updated: 05:24 PM (30 Oct 2026)
 Summary: Errors 90/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
@@ -1133,7 +1133,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/routes/businessProfile.ts:27-41 (truthiness only); onboarding/signup.ts:44.
 - Error: password "a" → 201; password 123 → argon2 TypeError → 500; businessType "x" or country "BHR" → DB error → 500; emails not lower-cased ("Owner@x.com" cannot log in as "owner@x.com").
 - Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
-- Severity: medium · Status: partly fixed (see section 5, E145; email and the PATCH path open)
+- Severity: medium · Status: partly fixed (see section 5, E145; email format and lower-casing open)
 
 ### E146 — [coverage] Public signup and login have no rate limit; each call runs argon2
 - Where: apps/api/src/routes/businessProfile.ts:20, routes/auth.ts:69; no rate limit in apps/api/src (grep).
@@ -2360,6 +2360,12 @@ ROLLBACK;
 - Test: apps/api/src/routes/signup.e145.test.ts. Before: `short password: 201` (then 500s for a number password, businessType "x", country "BHR"). After: PASS (4 bad → 400; a valid signup → 201); signup and auth tests 17/17.
 - fix-reviewer: APPROVE (seed hashes directly and uses a 16-char password; no other caller of createMerchantWithOwner; every signup test password is 12+). Accepted tightening: lowercase country "bh" is now 400.
 - PARTLY fixed — still open: email format check and lower-casing (signup.ts:82, login matches exactly at auth.ts:63); the PATCH business-profile path (onboarding/businessProfile.ts:68-79) relies on TypeScript types only, so businessType "x" / country "BHR" there likely still give 500 (same root cause, not yet tested).
+- check.sh: OK.
+
+### E145 (PATCH part) — 05:24 PM — the business-profile PATCH checks types, businessType and country
+- Changed: apps/api/src/onboarding/businessProfile.ts updateBusinessProfile: each patched field must be a non-empty string (addressLine2/postalCode may be null); businessType in the 0014 list; country ^[A-Z]{2}$. Checked in the helper, so every caller gets it.
+- Test: routes/signup.e145.test.ts testE145_profilePatchChecksTypeAndCountry. Before: \`patch {"businessType":"x"}\` was not refused (DB constraint → 500 via the route). After: PASS; signup/onboarding/app tests 24/24.
+- E145 stays partly fixed: email format and lower-casing still open.
 - check.sh: OK.
 
 ## 6. Deploy

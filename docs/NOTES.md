@@ -3277,3 +3277,199 @@ The answer now says what is really wrong.
 No. No money could move either way; only the error is clearer.
 
 Commit: a394c96
+
+## N91 — A credit cannot be bigger than a set maximum
+
+### The idea
+Admins can give a shop a credit. A credit has an amount, like a refund voucher.
+
+### The problem
+There was no top limit.
+- A huge amount plus its fee passed the largest safe number and crashed the request (500).
+
+### The fix
+- creditRequestValidation.ts: at most 1,000,000,000 BD; more gets a clear 400.
+
+### The code
+Before (apps/api/src/admin/creditRequestValidation.ts:42):
+```ts
+if (typeof rawAmount !== "number" || !Number.isSafeInteger(rawAmount) || rawAmount <= 0) {
+```
+After:
+```ts
+if (typeof rawAmount !== "number" || !Number.isSafeInteger(rawAmount) || rawAmount <= 0 || rawAmount > MAX_CREDIT_FILS) {
+```
+Too-big credits are refused before any math.
+
+### The proof
+- Before: a huge credit crashed with 500.
+- After: 400; exactly the maximum still works.
+
+### If the judges ask
+"Why that maximum?"
+The case file gives none; we chose a safe value far below the number limit and marked it for Zainab to review.
+
+Commit: d8d42bf
+
+## N92 — A balance correction cannot be absurdly large
+
+### The idea
+Support can correct the balance a shop sees.
+
+### The problem
+A correction of 2^53 fils crashed (500), and 9 quadrillion fils was accepted.
+
+### The fix
+- adminBalanceAdjustments.ts: a safe whole number within the same maximum as credits.
+
+### The code
+Before (apps/api/src/routes/adminBalanceAdjustments.ts:29):
+```ts
+if (typeof source.deltaFils !== "number" || !Number.isInteger(source.deltaFils)) {
+```
+After:
+```ts
+if (typeof source.deltaFils !== "number" || !Number.isSafeInteger(source.deltaFils) || Math.abs(source.deltaFils) > MAX_BALANCE_ADJUSTMENT_FILS) {
+```
+Out-of-range corrections get 400.
+
+### The proof
+- Before: 2^53 → 500.
+- After: 400 for 2^53 and ±9e15; 19 tests pass.
+
+### If the judges ask
+"Is the balance shown here real money?"
+No, it is a display cache; payouts come from the ledger. The cap stops nonsense values.
+
+Commit: dda38bd
+
+## N93 — A capture key cannot be reused on another payment
+
+### The idea
+An idempotency key lets a shop safely retry a request without doing it twice, like a ticket number.
+
+### The problem
+The key ignored which payment it was for.
+- Using the same key on payment B returned A's answer, and B was never captured.
+
+### The fix
+- capture.ts: the payment id is now part of what the key checks.
+
+### The code
+Before (apps/api/src/payments/capture.ts:92):
+```ts
+const requestHash = hashRequest({ amountFils: input.amountFils ?? null });
+```
+After:
+```ts
+const requestHash = hashRequest({ transactionId: input.transactionId, amountFils: input.amountFils ?? null });
+```
+Reusing a key on another payment now gets 422.
+
+### The proof
+- Before: B's capture returned A's 200.
+- After: 422; B stays authorized; 85 payment tests pass.
+
+### If the judges ask
+"Do retries still work?"
+Yes. A retry of the same payment sends the same id, so it replays as before.
+
+Commit: 1354970
+
+## N94 — A paid buyer never sees an error because of a discount
+
+### The idea
+Some shops get a fee discount after each capture.
+
+### The problem
+If the discount step failed after the buyer paid, the buyer got a 500 and might pay again.
+
+### The fix
+- pay.ts: the discount error is logged for a retry; the buyer gets "paid".
+
+### The code
+Before (apps/api/src/paymentLinks/pay.ts:246):
+```ts
+await applyCaptureDiscountAdjustment(pool, { merchantId: link.merchantId, transactionId: txnId });
+```
+After:
+```ts
+try {
+  await applyCaptureDiscountAdjustment(pool, { merchantId: link.merchantId, transactionId: txnId });
+} catch (err) {
+  console.error(`payPaymentLink: discount adjustment failed for transaction ${txnId} ... — retry needed`, err);
+}
+```
+The buyer's answer matches what happened: they paid.
+
+### The proof
+- Before: the request failed with "discount db down".
+- After: 200 paid, and the failure is logged.
+
+### If the judges ask
+"Is the discount lost?"
+It is logged but not retried automatically; that retry is open work, so this entry is only partly fixed.
+
+Commit: 5543ef2
+
+## N95 — A failed capture frees the buyer's card hold
+
+### The idea
+Paying first puts a hold on the card (authorize), then takes the money (capture).
+
+### The problem
+When the capture failed, the hold stayed on the buyer's card.
+- A retry made a second hold.
+
+### The fix
+- pay.ts: after a failed capture, the hold is cancelled (voided).
+
+### The code
+Before (apps/api/src/paymentLinks/pay.ts:193): the link was released, the hold was not.
+After:
+```ts
+await voidTransaction(pool, { transactionId: txnId, merchantId: link.merchantId, actor: { type: "system", id: link.id } })
+```
+The card hold is released at once.
+
+### The proof
+- Before: the payment stayed "authorized".
+- After: "voided", and the link is free again.
+
+### If the judges ask
+"Could it cancel a payment that was taken?"
+No. Voiding only works on payments that are still only authorized.
+
+Commit: d3788b8
+
+## N96 — Sign-up and profile changes check their fields
+
+### The idea
+A new shop signs up with its details and an owner password.
+
+### The problem
+- A one-letter password was accepted.
+- Wrong field types or a 3-letter country crashed the request (500).
+
+### The fix
+- businessProfile.ts (route) and the profile update: strings only, known business types, 2-letter country, password 12-256 characters.
+
+### The code
+Before (apps/api/src/routes/businessProfile.ts:27): only "is the field there?".
+After:
+```ts
+if (owner.password.length < 12 || owner.password.length > 256) {
+  throw new BadRequestError("weak_password", "password must be 12 to 256 characters");
+}
+```
+Bad sign-ups get clear 400 answers.
+
+### The proof
+- Before: password "a" → 201; others → 500.
+- After: all refused with 400; a valid sign-up still works.
+
+### If the judges ask
+"Is email checked?"
+Not yet; email format and lower-casing are still open, so this entry is partly fixed.
+
+Commit: 7a8b0e6

@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 5:15 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 5:24 PM
 
 ## Contents
 1. Status now
@@ -14,20 +14,20 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 5:15 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 87 of 163 fixed.
+- Errors: 90 of 163 fixed.
   - High: 45 of 46 fixed
-  - Medium: 28 of 55 fixed
+  - Medium: 31 of 55 fixed
   - Low: 14 of 62 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
 - Dilmune Cloud: not yet
-- Decisions waiting for Zainab: 27 (search "for Zainab to review" in LOG.md)
+- Decisions waiting for Zainab: 29 (search "for Zainab to review" in LOG.md)
 - Fork: needs a push (VS Code: Git: Push to... → mine)
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 87 of 163 fixed.
+- 🔄 Fix: 90 of 163 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -74,6 +74,12 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 5:15 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- 7a8b0e6 fix(E145): signup checks field types, businessType, country and password length (partly: email, PATCH path open)
+- d3788b8 fix(E130): a failed payment-link capture voids the card authorization
+- 5543ef2 fix(E131): a discount error after a paid link is logged for retry, not a 500 to the buyer (partly: durable retry open)
+- 1354970 fix(E129): capture idempotency hash includes the transaction id
+- dda38bd fix(E140): balance adjustment delta must be a safe integer within a cap (400, not 500)
+- d8d42bf fix(E141): credit base amount capped at 1,000,000,000 BD (400, not 500); notes N85-N90
 - a394c96 fix(E153): a refund with no amount and nothing left is not refundable (409)
 - 0ed1b5a fix(E163): API config refuses unknown NODE_ENV, partial numbers, typo booleans and impossible ranges at boot
 - a84b437 fix(E156): timingSafeEqualHex refuses non-hex input instead of stopping at it
@@ -83,12 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 5:15 PM
 - 173bdda fix(E112, E125, E127): date filters must be real dates and times must carry a zone (transactions, export, settlement)
 - 8f2cf8a fix(E115): analytics dates must exist on the calendar (shared isRealDate)
 - 9d35e0f fix(E57): Fastify client errors keep their 4xx; Postgres invalid-input errors from a request are 400; login merchantId must be a UUID
-- 5a998e4 fix(E106): dashboard batch, list and reconciliation pages show the refund parts; refund demo check recorded
-- e7b8b1b fix(E138): one CSV export at a time per process (503 + Retry-After), 6 columns instead of SELECT *; notes N76-N79
-- f078974 fix(E134): credit effectiveDate must be today (Bahrain) or up to 90 days back; also closes E149
-- 757eab0 fix(E162): adjustment CSV refuses rows with more than 3 columns and any other header
-- b2ebc90 fix(E137): KYC thumbnail limits input pixels and decodes one at a time; oversized images get no thumbnail
-- 8fe5a25 fix(E136): webhook replay and archives are finance/super_admin only; an archive replays once (0084)
 
 ## 7. All errors
 ## High (45 of 46 fixed)
@@ -142,7 +142,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 5:15 PM
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-### Medium (28 of 55 fixed)
+### Medium (31 of 55 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -187,16 +187,16 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 5:15 PM
 | E106 | [found later] Reconciliation and batch pages leave out refund parts | Fixed |
 | E125 | [second review] Filters without a time zone read in the server's local zone | Fixed |
 | E128 | [deep review] Suspended merchant keeps sessions and API keys | Open |
-| E129 | [deep review] Capture idempotency hash ignores the transaction id | Open |
-| E130 | [deep review] Failed link capture leaves the card authorization open | Open |
-| E131 | [deep review] Discount error after a paid link gives the buyer a 500 | Open |
+| E129 | [deep review] Capture idempotency hash ignores the transaction id | Fixed |
+| E130 | [deep review] Failed link capture leaves the card authorization open | Fixed |
+| E131 | [deep review] Discount error after a paid link gives the buyer a 500 | Partly fixed |
 | E139 | [coverage] Capture and the status recompute disagree on a refunded, partly captured transaction | Open |
-| E140 | [coverage] Balance adjustment: a huge deltaFils gives 500, and there is no upper limit | Open |
+| E140 | [coverage] Balance adjustment: a huge deltaFils gives 500, and there is no upper limit | Fixed |
 | E141 | [coverage] Credit: a huge baseAmountFils with reverseFee gives 500 | Fixed |
 | E142 | [coverage] Control characters in credit memos and adjustment reasons are accepted; a NUL byte likely gives 500 | Open |
 | E143 | [coverage] A webhook replay gets a new delivery id; comments and docs/ADMIN.md say it keeps the original | Open |
 | E144 | [coverage] Webhook archive create loads an endpoint's whole history into memory; "pages of 500" is false | Open |
-| E145 | [coverage] Signup: no password rule and no type checks; bad input gives 500 | Open |
+| E145 | [coverage] Signup: no password rule and no type checks; bad input gives 500 | Partly fixed |
 | E146 | [coverage] Public signup and login have no rate limit; each call runs argon2 | Open |
 | E147 | [coverage] A broken image upload gives 500 and leaves an orphan file on disk | Open |
 | E148 | [coverage] No limit on KYC uploads per merchant: the shared disk can be filled | Open |
@@ -270,7 +270,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 5:15 PM
 | E161 | [second review] Recent ledger activity includes the exclusive end date (one extra day) | Fixed |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96
 
 ### N01 — Database setup stopped halfway
 
@@ -3547,4 +3547,200 @@ The answer now says what is really wrong.
 No. No money could move either way; only the error is clearer.
 
 Commit: a394c96
+
+### N91 — A credit cannot be bigger than a set maximum
+
+#### The idea
+Admins can give a shop a credit. A credit has an amount, like a refund voucher.
+
+#### The problem
+There was no top limit.
+- A huge amount plus its fee passed the largest safe number and crashed the request (500).
+
+#### The fix
+- creditRequestValidation.ts: at most 1,000,000,000 BD; more gets a clear 400.
+
+#### The code
+Before (apps/api/src/admin/creditRequestValidation.ts:42):
+```ts
+if (typeof rawAmount !== "number" || !Number.isSafeInteger(rawAmount) || rawAmount <= 0) {
+```
+After:
+```ts
+if (typeof rawAmount !== "number" || !Number.isSafeInteger(rawAmount) || rawAmount <= 0 || rawAmount > MAX_CREDIT_FILS) {
+```
+Too-big credits are refused before any math.
+
+#### The proof
+- Before: a huge credit crashed with 500.
+- After: 400; exactly the maximum still works.
+
+#### If the judges ask
+"Why that maximum?"
+The case file gives none; we chose a safe value far below the number limit and marked it for Zainab to review.
+
+Commit: d8d42bf
+
+### N92 — A balance correction cannot be absurdly large
+
+#### The idea
+Support can correct the balance a shop sees.
+
+#### The problem
+A correction of 2^53 fils crashed (500), and 9 quadrillion fils was accepted.
+
+#### The fix
+- adminBalanceAdjustments.ts: a safe whole number within the same maximum as credits.
+
+#### The code
+Before (apps/api/src/routes/adminBalanceAdjustments.ts:29):
+```ts
+if (typeof source.deltaFils !== "number" || !Number.isInteger(source.deltaFils)) {
+```
+After:
+```ts
+if (typeof source.deltaFils !== "number" || !Number.isSafeInteger(source.deltaFils) || Math.abs(source.deltaFils) > MAX_BALANCE_ADJUSTMENT_FILS) {
+```
+Out-of-range corrections get 400.
+
+#### The proof
+- Before: 2^53 → 500.
+- After: 400 for 2^53 and ±9e15; 19 tests pass.
+
+#### If the judges ask
+"Is the balance shown here real money?"
+No, it is a display cache; payouts come from the ledger. The cap stops nonsense values.
+
+Commit: dda38bd
+
+### N93 — A capture key cannot be reused on another payment
+
+#### The idea
+An idempotency key lets a shop safely retry a request without doing it twice, like a ticket number.
+
+#### The problem
+The key ignored which payment it was for.
+- Using the same key on payment B returned A's answer, and B was never captured.
+
+#### The fix
+- capture.ts: the payment id is now part of what the key checks.
+
+#### The code
+Before (apps/api/src/payments/capture.ts:92):
+```ts
+const requestHash = hashRequest({ amountFils: input.amountFils ?? null });
+```
+After:
+```ts
+const requestHash = hashRequest({ transactionId: input.transactionId, amountFils: input.amountFils ?? null });
+```
+Reusing a key on another payment now gets 422.
+
+#### The proof
+- Before: B's capture returned A's 200.
+- After: 422; B stays authorized; 85 payment tests pass.
+
+#### If the judges ask
+"Do retries still work?"
+Yes. A retry of the same payment sends the same id, so it replays as before.
+
+Commit: 1354970
+
+### N94 — A paid buyer never sees an error because of a discount
+
+#### The idea
+Some shops get a fee discount after each capture.
+
+#### The problem
+If the discount step failed after the buyer paid, the buyer got a 500 and might pay again.
+
+#### The fix
+- pay.ts: the discount error is logged for a retry; the buyer gets "paid".
+
+#### The code
+Before (apps/api/src/paymentLinks/pay.ts:246):
+```ts
+await applyCaptureDiscountAdjustment(pool, { merchantId: link.merchantId, transactionId: txnId });
+```
+After:
+```ts
+try {
+  await applyCaptureDiscountAdjustment(pool, { merchantId: link.merchantId, transactionId: txnId });
+} catch (err) {
+  console.error(`payPaymentLink: discount adjustment failed for transaction ${txnId} ... — retry needed`, err);
+}
+```
+The buyer's answer matches what happened: they paid.
+
+#### The proof
+- Before: the request failed with "discount db down".
+- After: 200 paid, and the failure is logged.
+
+#### If the judges ask
+"Is the discount lost?"
+It is logged but not retried automatically; that retry is open work, so this entry is only partly fixed.
+
+Commit: 5543ef2
+
+### N95 — A failed capture frees the buyer's card hold
+
+#### The idea
+Paying first puts a hold on the card (authorize), then takes the money (capture).
+
+#### The problem
+When the capture failed, the hold stayed on the buyer's card.
+- A retry made a second hold.
+
+#### The fix
+- pay.ts: after a failed capture, the hold is cancelled (voided).
+
+#### The code
+Before (apps/api/src/paymentLinks/pay.ts:193): the link was released, the hold was not.
+After:
+```ts
+await voidTransaction(pool, { transactionId: txnId, merchantId: link.merchantId, actor: { type: "system", id: link.id } })
+```
+The card hold is released at once.
+
+#### The proof
+- Before: the payment stayed "authorized".
+- After: "voided", and the link is free again.
+
+#### If the judges ask
+"Could it cancel a payment that was taken?"
+No. Voiding only works on payments that are still only authorized.
+
+Commit: d3788b8
+
+### N96 — Sign-up and profile changes check their fields
+
+#### The idea
+A new shop signs up with its details and an owner password.
+
+#### The problem
+- A one-letter password was accepted.
+- Wrong field types or a 3-letter country crashed the request (500).
+
+#### The fix
+- businessProfile.ts (route) and the profile update: strings only, known business types, 2-letter country, password 12-256 characters.
+
+#### The code
+Before (apps/api/src/routes/businessProfile.ts:27): only "is the field there?".
+After:
+```ts
+if (owner.password.length < 12 || owner.password.length > 256) {
+  throw new BadRequestError("weak_password", "password must be 12 to 256 characters");
+}
+```
+Bad sign-ups get clear 400 answers.
+
+#### The proof
+- Before: password "a" → 201; others → 500.
+- After: all refused with 400; a valid sign-up still works.
+
+#### If the judges ask
+"Is email checked?"
+Not yet; email format and lower-casing are still open, so this entry is partly fixed.
+
+Commit: 7a8b0e6
 

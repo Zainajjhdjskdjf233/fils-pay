@@ -541,3 +541,39 @@ Where: apps/api/src/config.ts · Commit: 0ed1b5a
 Asking to refund a payment with nothing left gave a confusing error. Now it says the payment is not refundable. A test checks it.
 
 Where: apps/api/src/payments/refundValidation.ts · Commit: a394c96
+
+## N91 — A credit cannot be bigger than a set maximum
+
+A giant credit amount made the server crash with an internal error. Now credits above 1,000,000,000 BD are refused with a clear message. A test checks the limit.
+
+Where: apps/api/src/admin/creditRequestValidation.ts · Commit: d8d42bf
+
+## N92 — A balance correction cannot be absurdly large
+
+A huge balance correction crashed the server or set a nonsense balance. Now corrections must be safe whole numbers under a limit. A test tries three huge values.
+
+Where: apps/api/src/routes/adminBalanceAdjustments.ts · Commit: dda38bd
+
+## N93 — A capture key cannot be reused on another payment
+
+Reusing the same retry key on a second payment returned the first payment's answer, so the second payment was never taken. Now the key is tied to its payment. A test shows the reuse is refused.
+
+Where: apps/api/src/payments/capture.ts · Commit: 1354970
+
+## N94 — A paid buyer never sees an error because of a discount
+
+If the shop's fee discount failed after the buyer paid, the buyer saw an error and might pay again. Now the buyer sees "paid" and the failure is logged for a retry. A test forces the failure.
+
+Where: apps/api/src/paymentLinks/pay.ts · Commit: 5543ef2
+
+## N95 — A failed capture frees the buyer's card hold
+
+When taking the money failed, the hold stayed on the buyer's card. Now the hold is cancelled at once. A test forces a failed capture.
+
+Where: apps/api/src/paymentLinks/pay.ts · Commit: d3788b8
+
+## N96 — Sign-up and profile changes check their fields
+
+Sign-up accepted one-letter passwords and crashed on wrong field types. Now passwords must be 12 to 256 characters and fields are checked. Tests try bad sign-ups and profile changes.
+
+Where: apps/api/src/routes/businessProfile.ts · Commit: 7a8b0e6
