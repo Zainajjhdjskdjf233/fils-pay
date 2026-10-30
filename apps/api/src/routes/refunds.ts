@@ -4,6 +4,7 @@ import { requireMerchantAuth, requireMerchantRole, requireMerchantWriterActor } 
 import { assertRefundRequestScope, initiateMerchantRefund } from "../refunds/initiateMerchantRefund.js";
 import { BadRequestError } from "../lib/errors.js";
 
+const MAX_REASON_LENGTH = 500;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
@@ -36,8 +37,8 @@ export async function refundRoutes(app: FastifyInstance): Promise<void> {
       if (amountFils !== undefined && (typeof amountFils !== "number" || !Number.isSafeInteger(amountFils) || amountFils <= 0)) {
         throw new BadRequestError("invalid_amount", "amountFils must be a positive whole number of fils");
       }
-      if (reason !== undefined && typeof reason !== "string") {
-        throw new BadRequestError("invalid_request", "reason must be a string");
+      if (reason !== undefined && (typeof reason !== "string" || reason.length > MAX_REASON_LENGTH)) {
+        throw new BadRequestError("invalid_request", `reason must be a string of at most ${MAX_REASON_LENGTH} characters`);
       }
       const result = await initiateMerchantRefund(app.db, app.acquirer, {
         merchantId: auth.merchantId,

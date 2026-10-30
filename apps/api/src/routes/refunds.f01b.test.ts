@@ -10,6 +10,7 @@ import { buildApp } from "../app.js";
 import { loadConfig } from "../config.js";
 import { issueApiKey } from "../apiKeys/issue.js";
 import { recordKycReview } from "../onboarding/review.js";
+import { randomToken, sha256Hex } from "../lib/crypto.js";
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
@@ -107,4 +108,50 @@ test("testF01b_otherMerchantPathIsForbidden", async () => {
     payload: { transactionId: b.transactionId, amountFils: 100 },
   });
   assert.equal(res.statusCode, 403, res.body);
+});
+
+// F01b follow-ups (fix-reviewer): reason length, support role, timeline.
+
+test("testF01b_overlongReasonRejected", async () => {
+  const { merchantId, headers, transactionId } = await merchantWithCapturedPayment("longreason");
+  const res = await app.inject({
+    method: "POST", url: `/v1/merchants/${merchantId}/refunds`, headers: { ...headers, "idempotency-key": randomUUID() },
+    payload: { transactionId, amountFils: 100, reason: "x".repeat(501) },
+  });
+  assert.equal(res.statusCode, 400, res.body);
+});
+
+test("testF01b_supportUserCannotRefund", async () => {
+  const { merchantId, transactionId } = await merchantWithCapturedPayment("support");
+  const u = await pool.query<{ id: string }>(
+    `INSERT INTO merchant_users (merchant_id, email, role, password_hash) VALUES ($1, $2, 'support', 'unused') RETURNING id`,
+    [merchantId, `f01b-support-${randomUUID()}@example.test`],
+  );
+  const raw = randomToken(32);
+  await pool.query(
+    `INSERT INTO sessions (merchant_user_id, token_hash, authenticated, expires_at) VALUES ($1, $2, true, now() + interval '1 hour')`,
+    [u.rows[0]!.id, sha256Hex(raw)],
+  );
+  const res = await app.inject({
+    method: "POST", url: `/v1/merchants/${merchantId}/refunds`,
+    headers: { cookie: `${config.cookieName}=${raw}`, "idempotency-key": randomUUID() },
+    payload: { transactionId, amountFils: 100 },
+  });
+  assert.equal(res.statusCode, 403, res.body);
+});
+
+test("testF01b_refundShowsInTimeline", async () => {
+  const { merchantId, headers, transactionId } = await merchantWithCapturedPayment("timeline");
+  const res = await app.inject({
+    method: "POST", url: `/v1/merchants/${merchantId}/refunds`, headers: { ...headers, "idempotency-key": randomUUID() },
+    payload: { transactionId, amountFils: 1_250 },
+  });
+  assert.equal(res.statusCode, 200, res.body);
+  const events = await app.inject({ method: "GET", url: `/v1/transactions/${transactionId}/events`, headers });
+  assert.equal(events.statusCode, 200, events.body);
+  const list = (events.json() as { events?: Array<{ eventType?: string; type?: string; amountFils: number }> }).events
+    ?? (events.json() as Array<{ eventType?: string; type?: string; amountFils: number }>);
+  const refundEvent = list.find((e) => (e.eventType ?? e.type) === "refund_partial");
+  assert.ok(refundEvent, events.body);
+  assert.equal(refundEvent.amountFils, -1_250);
 });
