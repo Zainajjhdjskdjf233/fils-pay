@@ -109,6 +109,9 @@ services:
     image: filspay-settlement:local
     command: ["daemon"]
     restart: unless-stopped
+    # E176: SIGTERM lets a running batch finish (internalapi/server.go: 30 s
+    # shutdownTimeout); Docker's default 10 s would SIGKILL it first.
+    stop_grace_period: 40s
     environment:
       DATABASE_URL: postgres://filspay_settlement:${FILSPAY_SETTLEMENT_DB_PASSWORD}@postgres:5432/filspay?sslmode=disable
       SETTLEMENT_INTERNAL_TOKEN: ${SETTLEMENT_INTERNAL_TOKEN:?run ops/gen-env.sh}
