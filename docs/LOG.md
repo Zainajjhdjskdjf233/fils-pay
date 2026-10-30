@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 11:14 AM (30 Oct 2026)
-Summary: Errors 26/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
+Updated: 11:17 AM (30 Oct 2026)
+Summary: Errors 27/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -352,7 +352,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: high
 - Proposed fix: `UNIQUE(event_type, aggregate_id)` + `ON CONFLICT DO NOTHING`; one disbursement per batch.
 - Expected result: two processes → one notification.
-- Status: open
+- Status: fixed (see section 5)
 
 ### E31 — Reconciliation report query is slow and over-counts
 - Where: apps/api/src/settlement/query.ts:367-376
@@ -1146,6 +1146,16 @@ ROLLBACK;
 - Decision (for Zainab to review): no automatic refund in the (now unexpected) finalize-miss path; it logs "refund needed" and returns the transactionId — Why: refunds need a merchant actor today (refunds.created_by_type CHECK, 0042:24) — Alternative: allow a system refund actor (schema change).
 - Review: fix-reviewer → CHANGES (capture window), fixed; re-review → CHANGES (pool starvation: each locked pay holds one connection and needs a second); applied its three fixes: (1) the claim uses `FOR UPDATE SKIP LOCKED`, so a buyer arriving during a capture gets 409 at once instead of waiting on the lock while holding a connection; (2) an in-process limit lets at most floor(pgPoolMax/2) pays hold a link lock (routes/paymentLinks.ts passes it; config.ts:200 pgPoolMax 5); (3) the lock connection is released before voiding, and a broken one is discarded (`release(err)`). Not sent for a third review (the changes are the reviewer's own suggestions). Copilot CLI not installed.
 - Actual result: matches expected (second payer gets an error, link captured once).
+
+### E30 — 11:17 AM — one payout notification and one disbursement per batch
+- Changed:
+  - apps/settlement/internal/settlement/payout_notify.go: EnqueuePayoutNotifications runs the NOT EXISTS scan and the INSERTs in one transaction that first takes `pg_advisory_xact_lock(hashtext('settlement.paid notifications'))`. FH's note "claude: outbox_events has a unique index on (event_type, aggregate_id)" is false (0009 has none).
+  - apps/api/src/webhooks/payoutDisbursement.ts: per-batch advisory lock + `INSERT … WHERE NOT EXISTS` — the dispatcher calls this once per delivery row (dispatcher.ts:160-163), so a shop with two webhook endpoints got two payout instructions for one batch.
+- Decision (for Zainab to review): advisory locks instead of the unique indexes LOG proposed — Why: creating a unique index fails on any database that already holds duplicates from the incident, and removing them means deleting rows (needs a human) — Alternative: clean up duplicates, then add `UNIQUE` partial indexes (stronger, survives code that skips the lock).
+- Test: settlement/payout_notify_e30_test.go (two goroutines × 3 rounds, 30 paid batches). Before: `16 / 15 / 20 batches notified more than once; 46 / 45 / 50 events for 30 batches` (3 runs). After: PASS 3/3. api webhooks/payoutDisbursement.e30.test.ts. Before: `actual: 3` disbursements for one batch. After: PASS.
+- Regression: full-db-test.sh = baseline (5 known failures); Go 70 pass.
+- Review: two small lock wrappers → no fix-reviewer; Copilot CLI not installed.
+- Actual result: matches expected (two processes → one notification).
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)
