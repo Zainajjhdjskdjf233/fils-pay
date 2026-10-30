@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 12:44 PM (30 Oct 2026)
-Summary: Errors 47/90 fixed (+2 partly: E13, E50; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: not started · CHECKPOINT reached
+Updated: 12:45 PM (30 Oct 2026)
+Summary: Errors 47/98 fixed (+2 partly: E13, E50; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -807,6 +807,54 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Proof: code read (security-review agent (12:59 PM); checked by me).
 - Severity: low · Status: open
 
+### E91 — [found later] Every service connects as one Postgres superuser
+- Where: ops/docker-compose.yml:21 (POSTGRES_USER filspay = superuser in the postgres image), :49/:64/:84/:100/:117 same URL for migrate, seed, api, settlement, reporting; :85 "TODO(YA, Jan): give the api its own role before anything is hosted"
+- Error: any injection or code execution in any service gets superuser (COPY … TO PROGRAM runs OS commands). High if hosted as-is → part of the E02 plan (one role per service).
+- Proof: code read (backend security-review agent (1:03 PM); checked by me).
+- Severity: medium · Status: open
+
+### E92 — [found later] Ledger "immutability" claim is false; admin_audit_log has no protection
+- Where: db/migrations/0007_ledger_double_entry.sql:72-74 (comment) vs :43-70 (trigger only checks each group sums to 0); 0034_admin_audit_log.sql has no trigger (grep: 0)
+- Error: deleting a whole group, moving it to another merchant, rescaling both legs or back-dating all commit without error; audit rows can be erased.
+- Proof: code read (backend security-review agent (1:03 PM); checked by me).
+- Severity: medium · Status: open
+
+### E93 — [found later] sqlFilter builds a DELETE with no WHERE for null/undefined filters and pastes identifiers
+- Where: scripts/lib/sqlFilter.ts:8,13,17,21,30 (`continue` on null/undefined; `DELETE FROM ${table} ${clause}`)
+- Error: `buildDelete("holds", { id: undefined })` → `DELETE FROM holds`; keys/table are not quoted (injection if they ever come from input). E12 covered empty arrays only.
+- Proof: agent ran it (scratchpad/sqlf.ts): `{"text":"DELETE FROM holds","values":[]}`.
+- Severity: medium · Status: open
+
+### E94 — [found later] Settlement internal API: plain HTTP on all interfaces; token strength not checked
+- Where: apps/settlement/internal/internalapi/server.go:135 (binds "":8091); apps/api/src/config.ts:185-187 (only empty token rejected); docs say the token is "dev-token" (ARCHITECTURE.md:90, ops/README.md:61)
+- Error: any container on the network with the shared token can run money operations; no admin identity or audit on the Go side. Token compare itself is constant-time (fine).
+- Proof: code read (backend security-review agent (1:03 PM); checked by me).
+- Severity: low · Status: open
+
+### E95 — [found later] Internal settlement errors are returned to admin browsers
+- Where: apps/api/src/admin/settlementClient.ts:124-154 (path, fetch error, 500 bytes of body in AppError.message); plugins/errorHandler.ts:17
+- Error: internal hostnames/ports and upstream errors shown to finance/super_admin.
+- Proof: code read (backend security-review agent (1:03 PM); checked by me).
+- Severity: low · Status: open
+
+### E96 — [found later] Reporting consumer trusts payload merchant and amounts; negative amounts pass
+- Where: apps/reporting/src/consumer/applyEvent.ts:93-118 (trend row written under payload.merchantId/amounts, not the batch's own); my E53 validation (`Number.isSafeInteger`) accepts negatives
+- Error: a bad producer can put merchant X's batch into Y's dashboard or push negative volume. (Validation is my own E53 code.)
+- Proof: code read (backend security-review agent (1:03 PM); checked by me).
+- Severity: low · Status: open
+
+### E97 — [found later] Reporting config accepts bad numbers ("15s" → 15 ms)
+- Where: apps/reporting/src/config.ts:22-31 (Number.parseInt; comment "'15s' fails loudly" is false; no lower bound)
+- Error: a typo makes the worker hit the DB every millisecond, or LIMIT -1 stops reporting.
+- Proof: code read (backend security-review agent (1:03 PM); checked by me).
+- Severity: low · Status: open
+
+### E98 — [found later] Raw Postgres error text goes into logs and the dead-letter table
+- Where: apps/reporting/src/consumer/runConsumerPass.ts (E53 park: err.message up to 1000 chars)
+- Error: SQLSTATE 22/23 messages echo input values (PII risk if payloads ever carry it). My own E53 code.
+- Proof: code read (backend security-review agent (1:03 PM); checked by me).
+- Severity: low · Status: open
+
 ## 3. Hidden things
 
 ### H01 — "The Order of the Prompt" and its Five Rules
@@ -992,7 +1040,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Meaning: leave unregistered; deleting it needs Zainab.
 
 ### H39 — More false comments found in the second hunt
-- apps/web/src/api/client.ts:40 "CORS is locked to the two origins in config" — there is no CORS at all (E61). apps/api/src/admin/impersonation.ts:106 "admin-disable trigger" — none exists (E85). requireMerchantAuth.ts "impersonation can't reach write routes" — false for saved-filters (E88). apps/reporting runConsumerPass.ts:15-17 "two processes serialize on that row" — false (E62). db/seed/generate.ts:209-210 "safe to run against a shared/staging database" — false (E65).
+- apps/web/src/api/client.ts:40 "CORS is locked to the two origins in config" — there is no CORS at all (E61). apps/api/src/admin/impersonation.ts:106 "admin-disable trigger" — none exists (E85). requireMerchantAuth.ts "impersonation can't reach write routes" — false for saved-filters (E88). db/migrations/0069_reporting_saved_filters.sql:17-19 says transactionsReportQuery pastes filter values into SQL — false (only $n placeholders, transactionsReportQuery.ts:40-61). apps/settlement internalapi/server.go:193-194 says requirePost runs before the token check — false (line 121 wraps the token check outside). apps/reporting runConsumerPass.ts:15-17 "two processes serialize on that row" — false (E62). db/seed/generate.ts:209-210 "safe to run against a shared/staging database" — false (E65).
 
 ## 4. Features (from the brief)
 

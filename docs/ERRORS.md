@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 47 of 90 fixed.
+Summary: 47 of 98 fixed.
 
 ## High (26 of 28 fixed)
 
@@ -48,7 +48,7 @@ Summary: 47 of 90 fixed.
 | E52 | Every refund fails: code inserts reason = NULL, migration 0070 forbids NULL | Fixed |
 | E73 | [found later] CloseBatch never journals the scheme rounding residue (ADR-0002 not implemented) | Fixed |
 
-## Medium (20 of 31 fixed)
+## Medium (20 of 34 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -83,8 +83,11 @@ Summary: 47 of 90 fixed.
 | E76 | [found later] Dashboard date filter uses UTC days, not Bahrain days | Open |
 | E82 | [found later] Admin "rotate API key" hands staff a full-power merchant key | Open |
 | E83 | [found later] Legal name and CR number editable after KYC approval, no re-review | Open |
+| E91 | [found later] Every service connects as one Postgres superuser | Open |
+| E92 | [found later] Ledger immutability claim false; audit log unprotected | Open |
+| E93 | [found later] sqlFilter builds DELETE with no WHERE for null/undefined filters | Open |
 
-## Low (1 of 31 fixed)
+## Low (1 of 36 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -119,3 +122,8 @@ Summary: 47 of 90 fixed.
 | E88 | [found later] Read-only impersonation and API keys can write saved filters | Open |
 | E89 | [found later] Unsalted SHA-256 of card number and CVV stored | Open |
 | E90 | [found later] KYC download puts the raw filename into a header | Open |
+| E94 | [found later] Settlement internal API: plain HTTP on all interfaces; weak token accepted | Open |
+| E95 | [found later] Internal settlement errors returned to admin browsers | Open |
+| E96 | [found later] Reporting trusts payload merchant/amounts; negative amounts pass (my E53 check) | Open |
+| E97 | [found later] Reporting config accepts bad numbers ("15s" → 15 ms) | Open |
+| E98 | [found later] Raw Postgres error text in logs and dead letters (my E53 code) | Open |
