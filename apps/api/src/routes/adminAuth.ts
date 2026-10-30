@@ -54,13 +54,17 @@ interface AdminUserRow {
 export async function adminAuthRoutes(app: FastifyInstance): Promise<void> {
   app.post<{ Body: LoginBody }>("/login", { preHandler: app.authRateLimit }, async (request, reply) => { // E146
     const { email, password } = request.body ?? {};
-    if (!email || !password) {
+    if (!email || !password || typeof email !== "string" || typeof password !== "string") {
       throw new BadRequestError("invalid_request", "email and password are required");
     }
 
+    // E177: letter case does not matter; an exact match wins, then a fixed order.
     const userResult = await app.db.query<AdminUserRow>(
-      `SELECT id, email, role, password_hash FROM admin_users WHERE email = $1 AND status = 'active'`,
-      [email],
+      `SELECT id, email, role, password_hash FROM admin_users
+        WHERE lower(email) = lower($1) AND status = 'active'
+        ORDER BY (email = $1) DESC, id
+        LIMIT 1`,
+      [email.trim()],
     );
     const user = userResult.rows[0];
 

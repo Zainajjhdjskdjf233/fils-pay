@@ -37,9 +37,9 @@ export async function redeemAdminInvite(
   const result = await pool.query<{ id: string; role: string }>(
     `UPDATE admin_invites
         SET redeemed_at = now()
-      WHERE code = $1 AND email = $2 AND redeemed_at IS NULL AND expires_at > now()
+      WHERE code = $1 AND lower(email) = lower($2) AND redeemed_at IS NULL AND expires_at > now() -- E177: any letter case
      RETURNING id, role`,
-    [input.code, input.email],
+    [input.code, input.email.trim()],
   );
   const row = result.rows[0];
   if (!row) {

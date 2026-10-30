@@ -1739,3 +1739,15 @@ test("testE85_grantStopsOnAdminDisableOrLogout", async () => {
     }
   }
 });
+
+// E177 [deep review]: admin login must not depend on letter case in the email.
+test("testE177_adminLoginIgnoresEmailCase", async () => {
+  const { id, email } = await createAdminUser("support", "e177");
+  const mixed = `E177-${randomUUID().slice(0, 8)}@Admin.TEST`;
+  await pool.query(`UPDATE admin_users SET email = $2 WHERE id = $1`, [id, mixed]);
+  assert.ok(email);
+  const res = await app.inject({ method: "POST", url: "/v1/admin/auth/login", payload: { email: mixed.toLowerCase(), password: ADMIN_PASSWORD } });
+  assert.equal(res.statusCode, 200, res.body);
+  const bad = await app.inject({ method: "POST", url: "/v1/admin/auth/login", payload: { email: 123, password: ADMIN_PASSWORD } });
+  assert.equal(bad.statusCode, 400, bad.body);
+});

@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 08:23 PM (30 Oct 2026)
-Summary: Errors 157/177 fixed (+8 partly: E50, E92, E131, E48, E67, E78, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 08:25 PM (30 Oct 2026)
+Summary: Errors 158/177 fixed (+8 partly: E50, E92, E131, E48, E67, E78, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1319,7 +1319,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/routes/adminAuth.ts:62 (admin login lookup) and apps/api/src/admin/inviteCode.ts:40 (invite lookup) compare email exactly.
 - Error: an admin who types their address with different capital letters cannot log in or redeem an invite; not a takeover (the password still has to match the row). Same family as E145, admin side.
 - Proof: fix-reviewer on E145 (08:23 PM); code read by me.
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E177)
 
 ## 3. Hidden things
 
@@ -2916,6 +2916,12 @@ ROLLBACK;
 - Changed: apps/api/src/config.ts parseRangedIntEnv for SETTLEMENT_INTERNAL_REQUEST_TIMEOUT_MS 1000-600000, PAYMENT_LINK_RESERVATION_TIMEOUT_SECONDS 0-3600, WEBHOOK_MAX_ATTEMPTS 0-50, WEBHOOK_BACKOFF_BASE_MS 100-3600000, WEBHOOK_BACKOFF_CAP_MS 1000-86400000, WEBHOOK_POLL_INTERVAL_MS 100-600000, WEBHOOK_REQUEST_TIMEOUT_MS 100-60000 (ranges for Zainab to review; 0 kept where tests use it on purpose).
 - Before: config.e163b.test.ts extended with five out-of-range values — accepted. After: refused. The seven test files that set these values pass on a fresh migrated DB (filspay_e163_202311_15359): 44/44.
 - With the earlier parts (05:11 PM and fb851fb) E163 is now fully fixed.
+- check.sh (clean environment): OK. Needs a redeploy.
+
+### E177 — 08:25 PM — admin login and admin invites match emails without regard to letter case
+- Changed: apps/api/src/routes/adminAuth.ts /login: lower(email) = lower($1), exact match first, then id, LIMIT 1; email and password must be strings (a number email used to reach the query). apps/api/src/admin/inviteCode.ts redeemAdminInvite: lower(email) = lower($2).
+- Before: testE177_adminLoginIgnoresEmailCase (admin.test.ts) — an admin stored as E177-…@Admin.TEST could not log in with the lower-case address. After: 200; a numeric email gives 400. Admin and invite suites 85/85.
+- No fix-reviewer: the same pattern the reviewer approved for E145 (8794b16).
 - check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy

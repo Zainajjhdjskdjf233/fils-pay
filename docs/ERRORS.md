@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 157 of 177 fixed.
+Summary: 158 of 177 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -131,7 +131,7 @@ Summary: 157 of 177 fixed.
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-## Low (59 of 71 fixed)
+## Low (60 of 71 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -205,4 +205,4 @@ Summary: 157 of 177 fixed.
 | E174 | [second review] Payment-link expiresAt rolls over (2026-02-30) or is read zone-less | Fixed |
 | E175 | [second review] Webhook URLs with embedded credentials are accepted but never deliverable | Fixed |
 | E176 | [deep review] A redeploy stops settlement after 10 s, although it waits 30 s for a running batch | Fixed |
-| E177 | [deep review] Admin login and admin invites match emails case-sensitively | Open |
+| E177 | [deep review] Admin login and admin invites match emails case-sensitively | Fixed |
