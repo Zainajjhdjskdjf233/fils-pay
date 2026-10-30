@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 7:12 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 7:20 PM
 
 ## Contents
 1. Status now
@@ -14,20 +14,20 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:12 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 123 of 176 fixed.
+- Errors: 128 of 176 fixed.
   - High: 46 of 46 fixed
   - Medium: 42 of 60 fixed
-  - Low: 35 of 70 fixed
+  - Low: 40 of 70 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
 - Dilmune Cloud: live
-- Decisions waiting for Zainab: 33 (search "for Zainab to review" in LOG.md)
+- Decisions waiting for Zainab: 34 (search "for Zainab to review" in LOG.md)
 - Fork: needs a push (VS Code: Git: Push to... → mine)
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 123 of 176 fixed.
+- 🔄 Fix: 128 of 176 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -74,6 +74,11 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:12 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- db9c444 fix(E81): admin Run batch date defaults to yesterday in Bahrain
+- 5cd0d37 fix(E107): dashboard shows expired payment links as expired, without Cancel
+- 2a8a534 fix(E98): parked reporting events store error codes and names, not raw Postgres messages
+- bf1cbb7 fix(E97): reporting settings must be whole numbers in a range
+- 287b2c0 fix(E95): settlement errors no longer show internal paths, hosts or upstream bodies to admins
 - d3e4fd1 fix(E176): settlement gets 40 s to finish a running batch when a redeploy stops it
 - dacc5f8 fix(E114): parallel OTP resends issue exactly one new code
 - 5e4a32a fix(E93): sqlFilter refuses an unfiltered DELETE and non-identifier names
@@ -84,11 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:12 PM
 - ceacc85 fix(E90): KYC download header uses a safe filename plus an encoded filename*
 - 86818c4 fix(E40): a failing ROLLBACK no longer hides the real error; the broken client is destroyed
 - e8c9454 fix(E47,E113): admin OTP verify issues a new session token; promotion checks the session state
-- 09c7707 fix(E148): KYC uploads capped at 20 per merchant, refused before any disk write
-- ef20f9d fix(E171): saved filters are capped at 50 per merchant under a per-merchant lock
-- aa35616 fix(E167): merchant OTP verify issues a new session token; E150 recorded as a decision for review
-- 49e0c14 fix(E54): backoff test passes the neutral jitter; full suite now has 0 failures; N115 hash
-- 045afc1 fix(E157): a KYC upload with several files is refused (400 too_many_files); notes N109-N115
 
 ## 7. All errors
 ## High (46 of 46 fixed)
@@ -207,7 +207,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:12 PM
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-### Low (35 of 70 fixed)
+### Low (40 of 70 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -233,7 +233,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:12 PM
 | E78 | [found later] Balance rebuild may hit the 30 s timeout; no row lock (suspected) | Open |
 | E79 | [found later] Dead helpers with float or wrong-scale money math | Open |
 | E80 | [found later] Scheme export fallback can print more than 2 decimals | Open |
-| E81 | [found later] Admin Run batch default date uses the UTC day | Open |
+| E81 | [found later] Admin Run batch default date uses the UTC day | Fixed |
 | E84 | [found later] CSRF from same-site pages (Lax only, text/plain accepted) | Open |
 | E85 | [found later] Impersonation grant survives admin disable/logout | Open |
 | E86 | [found later] Dashboard dev proxy forwards /v1/admin; shared cookie jar | Partly fixed |
@@ -242,11 +242,11 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:12 PM
 | E89 | [found later] Unsalted SHA-256 of card number and CVV stored | Open |
 | E90 | [found later] KYC download puts the raw filename into a header | Fixed |
 | E94 | [found later] Settlement internal API: plain HTTP on all interfaces; weak token accepted | Partly fixed |
-| E95 | [found later] Internal settlement errors returned to admin browsers | Open |
+| E95 | [found later] Internal settlement errors returned to admin browsers | Fixed |
 | E96 | [found later] Reporting trusts payload merchant/amounts; negative amounts pass (my E53 check) | Open |
-| E97 | [found later] Reporting config accepts bad numbers ("15s" → 15 ms) | Open |
-| E98 | [found later] Raw Postgres error text in logs and dead letters (my E53 code) | Open |
-| E107 | [found later] Expired payment links shown as active with Cancel | Open |
+| E97 | [found later] Reporting config accepts bad numbers ("15s" → 15 ms) | Fixed |
+| E98 | [found later] Raw Postgres error text in logs and dead letters (my E53 code) | Fixed |
+| E107 | [found later] Expired payment links shown as active with Cancel | Fixed |
 | E108 | [found later] List pages can append rows from an old filter (suspected) | Open |
 | E109 | [found later] Small admin/checkout display bugs | Open |
 | E110 | [second review] Streaming CSV export pages on occurred_at only (unused code) | Open |
@@ -283,7 +283,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:12 PM
 | E176 | [deep review] A redeploy stops settlement after 10 s, although it waits 30 s for a running batch | Fixed |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101 · N102 · N103 · N104 · N105 · N106 · N107 · N108 · N109 · N110 · N111 · N112 · N113 · N114 · N115 · N116 · N117 · N118 · N119 · N120 · N121 · N122 · N123 · N124 · N125 · N126 · N127 · N128 · N129
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101 · N102 · N103 · N104 · N105 · N106 · N107 · N108 · N109 · N110 · N111 · N112 · N113 · N114 · N115 · N116 · N117 · N118 · N119 · N120 · N121 · N122 · N123 · N124 · N125 · N126 · N127 · N128 · N129 · N130 · N131 · N132 · N133 · N134
 
 ### N01 — Database setup stopped halfway
 
@@ -4833,4 +4833,180 @@ Docker now waits longer than the service's own 30 seconds.
 No; each step is one transaction that rolls back, and a re-run skips finished batches.
 
 Commit: d3e4fd1
+
+### N130 — Settlement errors stay inside
+
+#### The idea
+The admin console asks the payout service to run. If it fails, staff see a message. It is like a shop counter: the customer hears "please wait", not the kitchen's internal shouting.
+
+#### The problem
+The message showed internal details.
+- Internal paths, host names and the service's raw error text reached the browser.
+
+#### The fix
+- errors.ts: an error can carry a "detail" that is never sent.
+- settlementClient.ts: a short fixed message for staff; the details go into "detail".
+- errorHandler.ts: the detail is written to the server log.
+
+#### The code
+Before (apps/api/src/admin/settlementClient.ts:146):
+```ts
+`settlement internal call to ${path} returned ${response.status}: ${excerpt}`,
+```
+After:
+```ts
+"The settlement service reported an error. Check the settlement logs before retrying.",
+`settlement internal call to ${path} returned ${response.status}: ${excerpt}`, // log only
+```
+Staff see a clear message; engineers still find the details in the log.
+
+#### The proof
+- Before: the message had "/internal/run-batch" and the raw upstream text.
+- After: none of it in the message; all of it in the log detail.
+
+#### If the judges ask
+"Only finance staff see this. Why hide it?"
+Internal names help an attacker who takes over a staff account; the log keeps them for us.
+
+Commit: 287b2c0
+
+### N131 — Settings must be real numbers
+
+#### The idea
+The reporting worker reads settings like "check every 15000 ms". It is like an oven dial: it should not accept nonsense.
+
+#### The problem
+"15s" was read as 15 milliseconds.
+- The worker would hit the database every 15 ms.
+- A comment said this case fails; it did not.
+
+#### The fix
+- reporting config.ts: digits only, inside a range; anything else stops the worker at start.
+
+#### The code
+Before (apps/reporting/src/config.ts:27):
+```ts
+const parsed = Number.parseInt(value, 10);
+```
+After:
+```ts
+if (!/^\d+$/.test(value.trim())) throw new Error(`loadConfig: ${name} must be a whole number, got "${value}"`);
+```
+A typo is caught at start, not in production traffic.
+
+#### The proof
+- Before: "15s" accepted.
+- After: "15s", "0", "1.5", "-1" refused; normal values load.
+
+#### If the judges ask
+"Why stop the worker instead of using the default?"
+A silent default hides the typo; stopping makes someone fix it.
+
+Commit: bf1cbb7
+
+### N132 — No input values in error records
+
+#### The idea
+When the reporting worker cannot use an event, it parks it in a "dead letter" table. Like a lost-and-found box with a label.
+
+#### The problem
+The label was the raw database message.
+- Some database messages repeat the bad input value.
+- That could put personal data into logs.
+
+#### The fix
+- runConsumerPass.ts: store the error code and the column name, not the message.
+
+#### The code
+Before (apps/reporting/src/consumer/runConsumerPass.ts:75):
+```ts
+const message = err instanceof Error ? err.message : String(err);
+```
+After:
+```ts
+const message = describeParkError(err); // "SQLSTATE 22P02 column=..."
+```
+The label says what kind of error and where, never the value.
+
+#### The proof
+- Before: the full message was stored.
+- After: a test message with an email keeps the code and column, without the email.
+
+#### If the judges ask
+"Is it harder to debug now?"
+A little; the row still points to the event id, so the full event can be found.
+
+Commit: 2a8a534
+
+### N133 — Expired links look expired
+
+#### The idea
+A shop sees its payment links on the dashboard. A link has an end time, like a coupon.
+
+#### The problem
+A link past its end time still showed "active".
+- It also showed a Cancel button.
+- The "active" filter included it.
+
+#### The fix
+- serialize.ts: an active link past its end time is shown as "expired".
+- query.ts: the filter uses the same rule.
+- Web: "expired" added to the filter and coloured red.
+
+#### The code
+Before (apps/api/src/paymentLinks/serialize.ts:56):
+```ts
+status: row.status,
+```
+After:
+```ts
+status: row.status === "active" && row.expires_at.getTime() <= Date.now() ? "expired" : row.status,
+```
+The shop sees the true state; the Cancel button only shows for live links.
+
+#### The proof
+- Before: the expired link came back "active".
+- After: "expired"; the active filter leaves it out.
+
+#### If the judges ask
+"Why not store 'expired' in the database?"
+Nothing runs at the exact end time to change it; working it out on read is always right.
+
+Commit: 5cd0d37
+
+### N134 — Yesterday in Bahrain
+
+#### The idea
+Staff run a payout batch for a day. The page fills in "yesterday" for them, like a calendar that turns the page at midnight.
+
+#### The problem
+The page used the UTC day.
+- Between midnight and 3 AM in Bahrain it filled in two days ago.
+
+#### The fix
+- New bahrainDate.ts: yesterday in Bahrain time.
+- SettlementPage.tsx uses it.
+
+#### The code
+Before (apps/admin/src/pages/settlement/SettlementPage.tsx:20):
+```ts
+date.setDate(date.getDate() - 1);
+return date.toISOString().slice(0, 10);
+```
+After:
+```ts
+const d = new Date(now.getTime() + BAHRAIN_OFFSET_MS);
+d.setUTCDate(d.getUTCDate() - 1);
+```
+The date follows Bahrain time, like the rest of the system.
+
+#### The proof
+- Before: at 1:30 AM Bahrain it showed 2026-10-28.
+- After: 2026-10-29.
+
+#### If the judges ask
+"Why a fixed +3 hours?"
+Bahrain has no daylight saving, and the API and settlement use the same rule.
+
+Commit: db9c444
 

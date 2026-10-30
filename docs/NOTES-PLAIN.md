@@ -775,3 +775,33 @@ Where: apps/api/src/routes/auth.ts · Commit: dacc5f8
 On a redeploy, Docker stopped the payout service after 10 seconds, but it needs up to 30 to finish. Now it gets 40. Nothing was lost before, because unfinished steps roll back, but a run could restart.
 
 Where: ops/docker-compose.yml · Commit: d3e4fd1
+
+## N130 — Settlement errors stay inside
+
+When the payout service failed, staff saw internal paths and raw error text. Now they see a short message, and the details go to the server log. A test proves the message is clean and the log keeps the details.
+
+Where: apps/api/src/admin/settlementClient.ts · Commit: 287b2c0
+
+## N131 — Settings must be real numbers
+
+A setting like "15s" was read as 15 milliseconds, so the worker could flood the database. Now only plain whole numbers in a sensible range are accepted. Anything else stops the worker at start. A test proves it.
+
+Where: apps/reporting/src/config.ts · Commit: bf1cbb7
+
+## N132 — No input values in error records
+
+When an event could not be used, the raw database message was saved, and it can contain the bad value. Now only the error code and column name are saved. A test proves the value is gone.
+
+Where: apps/reporting/src/consumer/runConsumerPass.ts · Commit: 2a8a534
+
+## N133 — Expired links look expired
+
+Links past their end time still showed "active" with a Cancel button. Now they show "expired", and the filter agrees. A test proves both.
+
+Where: apps/api/src/paymentLinks/serialize.ts · Commit: 5cd0d37
+
+## N134 — Yesterday in Bahrain
+
+The admin page filled in the wrong day between midnight and 3 AM in Bahrain. Now it uses Bahrain time. A test checks the night hours and a leap day.
+
+Where: apps/admin/src/lib/bahrainDate.ts · Commit: db9c444

@@ -4550,3 +4550,179 @@ Docker now waits longer than the service's own 30 seconds.
 No; each step is one transaction that rolls back, and a re-run skips finished batches.
 
 Commit: d3e4fd1
+
+## N130 — Settlement errors stay inside
+
+### The idea
+The admin console asks the payout service to run. If it fails, staff see a message. It is like a shop counter: the customer hears "please wait", not the kitchen's internal shouting.
+
+### The problem
+The message showed internal details.
+- Internal paths, host names and the service's raw error text reached the browser.
+
+### The fix
+- errors.ts: an error can carry a "detail" that is never sent.
+- settlementClient.ts: a short fixed message for staff; the details go into "detail".
+- errorHandler.ts: the detail is written to the server log.
+
+### The code
+Before (apps/api/src/admin/settlementClient.ts:146):
+```ts
+`settlement internal call to ${path} returned ${response.status}: ${excerpt}`,
+```
+After:
+```ts
+"The settlement service reported an error. Check the settlement logs before retrying.",
+`settlement internal call to ${path} returned ${response.status}: ${excerpt}`, // log only
+```
+Staff see a clear message; engineers still find the details in the log.
+
+### The proof
+- Before: the message had "/internal/run-batch" and the raw upstream text.
+- After: none of it in the message; all of it in the log detail.
+
+### If the judges ask
+"Only finance staff see this. Why hide it?"
+Internal names help an attacker who takes over a staff account; the log keeps them for us.
+
+Commit: 287b2c0
+
+## N131 — Settings must be real numbers
+
+### The idea
+The reporting worker reads settings like "check every 15000 ms". It is like an oven dial: it should not accept nonsense.
+
+### The problem
+"15s" was read as 15 milliseconds.
+- The worker would hit the database every 15 ms.
+- A comment said this case fails; it did not.
+
+### The fix
+- reporting config.ts: digits only, inside a range; anything else stops the worker at start.
+
+### The code
+Before (apps/reporting/src/config.ts:27):
+```ts
+const parsed = Number.parseInt(value, 10);
+```
+After:
+```ts
+if (!/^\d+$/.test(value.trim())) throw new Error(`loadConfig: ${name} must be a whole number, got "${value}"`);
+```
+A typo is caught at start, not in production traffic.
+
+### The proof
+- Before: "15s" accepted.
+- After: "15s", "0", "1.5", "-1" refused; normal values load.
+
+### If the judges ask
+"Why stop the worker instead of using the default?"
+A silent default hides the typo; stopping makes someone fix it.
+
+Commit: bf1cbb7
+
+## N132 — No input values in error records
+
+### The idea
+When the reporting worker cannot use an event, it parks it in a "dead letter" table. Like a lost-and-found box with a label.
+
+### The problem
+The label was the raw database message.
+- Some database messages repeat the bad input value.
+- That could put personal data into logs.
+
+### The fix
+- runConsumerPass.ts: store the error code and the column name, not the message.
+
+### The code
+Before (apps/reporting/src/consumer/runConsumerPass.ts:75):
+```ts
+const message = err instanceof Error ? err.message : String(err);
+```
+After:
+```ts
+const message = describeParkError(err); // "SQLSTATE 22P02 column=..."
+```
+The label says what kind of error and where, never the value.
+
+### The proof
+- Before: the full message was stored.
+- After: a test message with an email keeps the code and column, without the email.
+
+### If the judges ask
+"Is it harder to debug now?"
+A little; the row still points to the event id, so the full event can be found.
+
+Commit: 2a8a534
+
+## N133 — Expired links look expired
+
+### The idea
+A shop sees its payment links on the dashboard. A link has an end time, like a coupon.
+
+### The problem
+A link past its end time still showed "active".
+- It also showed a Cancel button.
+- The "active" filter included it.
+
+### The fix
+- serialize.ts: an active link past its end time is shown as "expired".
+- query.ts: the filter uses the same rule.
+- Web: "expired" added to the filter and coloured red.
+
+### The code
+Before (apps/api/src/paymentLinks/serialize.ts:56):
+```ts
+status: row.status,
+```
+After:
+```ts
+status: row.status === "active" && row.expires_at.getTime() <= Date.now() ? "expired" : row.status,
+```
+The shop sees the true state; the Cancel button only shows for live links.
+
+### The proof
+- Before: the expired link came back "active".
+- After: "expired"; the active filter leaves it out.
+
+### If the judges ask
+"Why not store 'expired' in the database?"
+Nothing runs at the exact end time to change it; working it out on read is always right.
+
+Commit: 5cd0d37
+
+## N134 — Yesterday in Bahrain
+
+### The idea
+Staff run a payout batch for a day. The page fills in "yesterday" for them, like a calendar that turns the page at midnight.
+
+### The problem
+The page used the UTC day.
+- Between midnight and 3 AM in Bahrain it filled in two days ago.
+
+### The fix
+- New bahrainDate.ts: yesterday in Bahrain time.
+- SettlementPage.tsx uses it.
+
+### The code
+Before (apps/admin/src/pages/settlement/SettlementPage.tsx:20):
+```ts
+date.setDate(date.getDate() - 1);
+return date.toISOString().slice(0, 10);
+```
+After:
+```ts
+const d = new Date(now.getTime() + BAHRAIN_OFFSET_MS);
+d.setUTCDate(d.getUTCDate() - 1);
+```
+The date follows Bahrain time, like the rest of the system.
+
+### The proof
+- Before: at 1:30 AM Bahrain it showed 2026-10-28.
+- After: 2026-10-29.
+
+### If the judges ask
+"Why a fixed +3 hours?"
+Bahrain has no daylight saving, and the API and settlement use the same rule.
+
+Commit: db9c444
