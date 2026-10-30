@@ -53,3 +53,17 @@ each one will be matched to its entry ID the same way.
   lesson (Judge note J26) is that one tool alone is not enough. Every claim from
   either tool was checked in the code before it was recorded, which kept false
   alarms out and put honest levels on (d) and (h).
+
+## Her method became our rule
+
+After this comparison, Zainab added a "Deep review lens" to CLAUDE.md (Judge note J27):
+1. read whole functions and every function they call;
+2. ask "what if two requests run this at the same moment?" for every read-then-write;
+3. every UPDATE by id must also check the row is still in the expected state;
+4. try strange input (impossible dates, \r and \n, huge or negative numbers, malformed ids): 400, never 500;
+5. defence in depth: the helper below a rule must refuse the forbidden case too.
+
+A second review with this lens was run over every file our fixes changed and the
+auth, OTP, sessions, payments, refunds, payment links, credits and settlement code.
+Its findings are recorded in docs/LOG.md with the tag [deep review].
+

@@ -1,6 +1,6 @@
 # LOG
 Mode: Competition
-Updated: 02:35 PM (30 Oct 2026)
+Updated: 02:37 PM (30 Oct 2026)
 Summary: Errors 54/116 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
@@ -1985,4 +1985,9 @@ How we got it:
 - What happened: Lulwa reviewed the code with a different AI tool and sent 19 items; the 8 items pasted to me were checked one by one in the code. 7 are real and new (E110-E116, all Low), 1 was already fixed (her (f) = our E34). None overlapped the 48 entries from our own second bug hunt (E62-E109) or our High findings.
 - Why it matters: each tool has blind spots — ours went deep on money and concurrency paths (e.g. E73, E99, E104), hers on input validation and session edge cases (dates, CSV quoting, OTP races). Neither list alone is complete; checking every claim in the code before recording it kept false positives out (her (d) and (h) are real but much weaker than they sound, and I recorded them as Low with the reason).
 - Proof: docs/COMPARE.md; LOG entries E110-E116.
+
+### J27 — 02:37 PM — we turned the teammate's method into a rule
+- What happened: Lulwa's tool found bugs ours missed (J26) because it looked differently: whole functions line by line, two requests at once, stale state on every UPDATE by id, strange input, and defence in depth. Zainab wrote that method into CLAUDE.md as the "Deep review lens" (5 rules, tag [deep review]). It now applies to every review and before closing every fix, and a second pass with it was started on every file our fixes changed plus auth, OTP, sessions, payments, refunds, payment links, credits and settlement (3 read-only agents).
+- Why it matters: a one-off lucky catch became a repeatable check; the next fix is reviewed for the same blind spots without needing the second tool.
+- Proof: CLAUDE.md "Deep review lens"; docs/COMPARE.md; findings to be recorded as [deep review].
 
