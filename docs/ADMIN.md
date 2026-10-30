@@ -88,6 +88,8 @@ waiting for the worker. Quick, safe, and repeatable.
 
 > **— unsigned:** replay-batch reuses the original delivery ids, so receivers dedupe fine.
 
+> **Correction (E143):** the line above is false. Each replay gets a NEW delivery id (apps/api/src/webhooks/replay.ts:48, `randomUUID()`), on purpose, so a receiver that already processed the original still processes the replay. A receiver that dedupes by delivery id will therefore treat a replay as a new event; it can link it to the original through the event data (same `type` and `data`).
+
 **Replay a batch** — pick an endpoint, a date range, and which delivery
 statuses to resend (default: `exhausted`; any status can be chosen). Each
 delivery is re-signed and queued; the merchant's receiver sees them as new

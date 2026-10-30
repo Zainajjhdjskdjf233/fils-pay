@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 07:38 PM (30 Oct 2026)
-Summary: Errors 137/176 fixed (+9 partly: E50, E92, E131, E145, E163, E47, E86, E94, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 07:41 PM (30 Oct 2026)
+Summary: Errors 138/176 fixed (+9 partly: E50, E92, E131, E145, E163, E47, E86, E94, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1123,7 +1123,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/webhooks/replay.ts:48-49 `randomUUID()`; false claims at routes/adminMerchants.ts:211 and docs/ADMIN.md:89.
 - Error: A replayed delivery reaches the shop under a new id, so dedupe by id lets the duplicate through. Contract choice for Zainab.
 - Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
-- Severity: medium · Status: open
+- Severity: medium · Status: fixed (see section 5, E143)
 
 ### E144 — [coverage] Webhook archive create loads an endpoint's whole history into memory; "pages of 500" is false
 - Where: apps/api/src/webhooks/archiveReplay.ts:41-61 (one SELECT, no LIMIT, one JSON string); false comment routes/adminMerchants.ts:54-56 and docs/ADMIN.md.
@@ -2758,6 +2758,11 @@ ROLLBACK;
 - Changed: apps/api/src/transactions/exportCsv.ts streamTransactionsExportCsv: cursor (occurred_at, id), ORDER BY occurred_at, id; optional pageSize argument (default 1000, used by the test). The function is still not wired to a route (fix-reviewer note at E138); if it is wired later it no longer drops rows.
 - Before: apps/api/src/transactions/exportCsv.e110.test.ts against the old query with pages of 2 (3 rows at one timestamp) → fail (a row was skipped). My first 'before' run did not prove this: the old code ignored the page-size argument and read all rows in one page; redone with the old code's page size set to 2, then the file was restored exactly (`git diff --quiet`). After: 3 of 3 rows; export suites 10/10.
 - check.sh (clean environment): OK.
+
+### E143 — 07:41 PM — the false 'replay keeps the original delivery id' claims are corrected; the new-id behaviour is kept by decision [coverage]
+- Changed: docs/ADMIN.md:89 now carries a correction under the false unsigned line (kept, as evidence): each replay gets a new delivery id (apps/api/src/webhooks/replay.ts:48 randomUUID()). The false route comment (routes/adminMerchants.ts:211) was already corrected under E136.
+- Decision (Zainab to review): keep a new id per replay. The code's own docblock (replay.ts:25-35) explains why: with the original id, a receiver that already processed the original would silently drop the replay, which defeats the point of replaying. Alternative: reuse the original delivery_event_id (one line) and tell receivers that a replay is not deduped by id.
+- No code change, no test (documentation and contract). check.sh not affected.
 
 ## 6. Deploy
 
