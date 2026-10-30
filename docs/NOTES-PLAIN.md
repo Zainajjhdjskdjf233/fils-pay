@@ -127,3 +127,9 @@ Where: apps/api/src/admin/adjustmentCsvParsing.ts:8 · Commit: 2f06eb4
 The nightly settlement was meant to start just after midnight in Bahrain, but it started around 3 AM. The timer looked at the date in UTC, which is 3 hours behind Bahrain, so for the first 3 hours after midnight it still thought it was yesterday. We now turn the time into the Bahrain date before choosing which day to close. Tests show that at 12:15 AM on 31 Oct it closes 30 Oct, as it should.
 
 Where: apps/settlement/internal/scheduler/daemon.go:70 · Commit: 7af14ce
+
+## N22 — The scheme file no longer rounds up
+
+Every day we send the card network a file listing each payment, and their total was always a few fils higher than ours. The file's amount was rounded up from the full number, while our own record cut the number down. We now make the file's amount from the same cut number, so both totals match. A test shows 39.705 BD now appears as 39.70, matching our 39700 fils.
+
+Where: apps/settlement/internal/settlement/batch.go:279 · Commit: PENDING_N22

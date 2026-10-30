@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 10:51 AM (30 Oct 2026)
-Summary: Errors 18/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
+Updated: 10:54 AM (30 Oct 2026)
+Summary: Errors 19/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -197,7 +197,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: high (CASE-FILE Item 02 bullet 1)
 - Proposed fix: write `amount = amount_fils / 1000` (from the truncated integer).
 - Expected result: gross 39705 → amount_fils 39700 and amount 39.70.
-- Status: open
+- Status: fixed (see section 5)
 
 ### E15 — Batch net payout computed with float32
 - Where: apps/settlement/internal/settlement/payable.go:11; used at batch.go:219
@@ -1048,6 +1048,29 @@ ROLLBACK;
 - Not changed: scheduler/status.go log-only estimate (reads TZ; FH/MK: log-only).
 - Review: one function, no money math → no fix-reviewer; Copilot CLI not installed.
 - Actual result: matches expected (at 00:15 Bahrain on 31 Oct, 30 Oct is due).
+
+### E14 — 10:54 AM — scheme amount = amount_fils / 1000
+- Mode: speed mode (Zainab, 10:52 AM: continue without waiting for plan OKs until 4:30 PM).
+- Changed: apps/settlement/internal/settlement/batch.go:276-279 insert `amount` as `$3::bigint::numeric / 1000` (the same truncated integer as amount_fils) instead of `SchemeAmountBD(line.grossFils)` (untruncated gross, rounded half-up by NUMERIC(10,2)). ADR-0002 Consequences: "amount must be exactly amount_fils / 1000". SchemeAmountBD left in place (now unused; not deleted).
+- Test: scheme_amount_e14_test.go. Before: `amount_fils=39700 amount=39.71, want 39700 and 39.70`; `4740 amount=4.75, want 4.74`. First fix attempt failed with `inconsistent types deduced for parameter $3 (SQLSTATE 42P08)` (one parameter used as bigint and numeric); fixed with explicit `::bigint`. After: PASS, plus existing scheme tests.
+- Regression: full-db-test.sh = baseline (5 known failures); Go 61 pass.
+- Read-only query for old over-stated lines (changes nothing; READ ONLY transaction):
+```sql
+BEGIN TRANSACTION READ ONLY;
+SELECT b.merchant_id, b.batch_date, sel.settlement_batch_id, sel.line_sequence, sel.transaction_id,
+       sel.amount_fils, sel.amount AS amount_in_file_bd,
+       sel.amount_fils::numeric / 1000 AS correct_bd,
+       (sel.amount - sel.amount_fils::numeric / 1000) * 1000 AS over_fils
+  FROM scheme_export_lines sel
+  JOIN settlement_batches b ON b.id = sel.settlement_batch_id
+ WHERE sel.amount IS NOT NULL AND sel.amount <> sel.amount_fils::numeric / 1000
+ ORDER BY b.batch_date, b.merchant_id, sel.line_sequence;
+ROLLBACK;
+```
+  - Proof (test DB filspay_e14_105237_10957, scratchpad/e14-over-lines-CUc2.sql): 2 rows = exactly the 2 lines my red test wrote with the old code; after simulating one more old line (39.71) → 3 rows, `over_fils` 10.
+- Not changed: the 10-fils truncation and where the cut digit goes (residue account, E16).
+- Review: one line, follows the ADR → no fix-reviewer; Copilot CLI not installed.
+- Actual result: matches expected.
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)

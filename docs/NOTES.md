@@ -808,3 +808,39 @@ The clock reading is turned into a Bahrain date before the day is chosen.
 Every other caller gives it a plain date, and that works. Only the timer gave it a clock time, so we fixed the timer and kept the shared function's promise.
 
 Commit: 7af14ce
+
+## N22 — The scheme file no longer rounds up
+
+### The idea
+Each day we send the card scheme a file with one line per payment. Both sides must add up to the same total, like two people checking the same receipt.
+
+### The problem
+Each line stored two amounts that did not match.
+- amount_fils was cut down to 10 fils (39705 → 39700).
+- The BD amount in the file came from the uncut number and was rounded up (39.705 → 39.71).
+- So the scheme total was always a few fils higher than ours.
+
+### The fix
+- batch.go: the BD amount is now amount_fils / 1000, from the same cut number, in whole-number math inside SQL.
+
+### The code
+Before (apps/settlement/internal/settlement/batch.go:277):
+```go
+`, batchID, line.transactionID, int64(truncated), SchemeAmountBD(line.grossFils), i+1)
+```
+After:
+```go
+VALUES ($1, $2, $3::bigint, $3::bigint::numeric / 1000, $4)
+`, batchID, line.transactionID, int64(truncated), i+1)
+```
+Both amounts now come from one number, so they always agree.
+
+### The proof
+- Before: 39705 fils → file amount 39.71 (10 fils over).
+- After: 39705 fils → 39700 fils and 39.70 BD. A read-only query lists old lines that were over.
+
+### If the judges ask
+"Where do the 5 cut fils go?"
+That is a separate question (the rounding residue, E16). This fix only makes the file match our own number, as ADR-0002 says.
+
+Commit: PENDING_N22
