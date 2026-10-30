@@ -192,4 +192,4 @@ Where: apps/api/src/fees/currentFeeScheduleDisplay.ts:39 · Commit: 5b2599c
 
 Finance's balance-correction upload had no protection against uploading the same file twice, so every correction could be counted double. A code comment claimed the filename blocked it, but it did not. Now each upload is fingerprinted by its contents, and the database refuses a second upload with the same fingerprint. A test shows the second upload is rejected and the money is posted only once.
 
-Where: apps/api/src/admin/adjustmentImport.ts:65 · Commit: PENDING_N32
+Where: apps/api/src/admin/adjustmentImport.ts:65 · Commit: c32a3d4
