@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 07:20 PM (30 Oct 2026)
-Summary: Errors 129/176 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 07:22 PM (30 Oct 2026)
+Summary: Errors 130/176 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -747,7 +747,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/settlement/internal/settlement/scheme_export.go:71 `COALESCE(sel.amount, sel.amount_fils::numeric / 1000)::text`
 - Error: only when amount is NULL (0050 backfills); breaks ADR-0002 "exactly two decimals" if reached.
 - Proof: code read (ADR check agent (12:58 PM); checked by me).
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E80)
 
 ### E81 — [found later] Admin "Run batch" default date uses the UTC day
 - Where: apps/admin/src/pages/settlement/SettlementPage.tsx:19-22 `toISOString().slice(0, 10)`
@@ -2699,6 +2699,13 @@ ROLLBACK;
 ### E77 — 07:20 PM — no float or toFixed on money in the batch detail page
 - Changed: apps/web/src/pages/settlement/SettlementBatchDetailPage.tsx:84 parseFloat((grossFils / 10000).toFixed(2)) → Math.min(100, Math.floor(grossFils / 10_000)). The value only sets the width of a decorative bar (1 % per 10 BD gross, capped at 100); no amount is shown from it. ADR-0001 forbids float math on fils.
 - Proof: UI-only, no failing test possible without a browser test setup; web tsc clean, web tests 13/13; `grep -rn 'parseFloat|toFixed' apps/web/src/pages` → no money use left (the admin uses toFixed only on bps percentages).
+- check.sh (clean environment): OK. Needs a redeploy.
+
+### E80 — 07:22 PM — the scheme export fallback gives exactly two truncated decimals
+- Changed: apps/settlement/internal/settlement/scheme_export.go LoadSchemeExportLines: COALESCE(sel.amount, trunc(sel.amount_fils::numeric / 1000, 2))::text (was amount_fils::numeric / 1000).
+- Before: apps/settlement/internal/settlement/scheme_fallback_e80_test.go (amount set to NULL after CloseBatch) → `fallback amount = "4.7400000000000000"`. After: "4.74". Go scheme tests (E80, scheme export, E73, E14) pass.
+- Reached only when amount is NULL (0050 backfilled old rows), so no exported file changes today.
+- Script/settlement code is money-adjacent but the change is a format-only fallback with a test: no fix-reviewer.
 - check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy

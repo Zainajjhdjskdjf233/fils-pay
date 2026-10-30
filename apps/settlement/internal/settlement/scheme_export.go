@@ -68,7 +68,8 @@ type SchemeExportLine struct {
 func LoadSchemeExportLines(ctx context.Context, db *pgxpool.Pool, batchID uuid.UUID) ([]SchemeExportLine, error) {
 	rows, err := db.Query(ctx, `
 		SELECT sel.line_sequence, t.acquirer_reference,
-		       COALESCE(sel.amount, sel.amount_fils::numeric / 1000)::text
+		       -- E80: the fallback is cut to two decimals like TruncateToSchemeAmount (ADR-0002).
+		       COALESCE(sel.amount, trunc(sel.amount_fils::numeric / 1000, 2))::text
 		  FROM scheme_export_lines sel
 		  JOIN transactions t ON t.id = sel.transaction_id
 		 WHERE sel.settlement_batch_id = $1

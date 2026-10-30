@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 129 of 176 fixed.
+Summary: 130 of 176 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -131,7 +131,7 @@ Summary: 129 of 176 fixed.
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-## Low (41 of 70 fixed)
+## Low (42 of 70 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -156,7 +156,7 @@ Summary: 129 of 176 fixed.
 | E77 | [found later] Float and toFixed on money in the batch detail page | Fixed |
 | E78 | [found later] Balance rebuild may hit the 30 s timeout; no row lock (suspected) | Open |
 | E79 | [found later] Dead helpers with float or wrong-scale money math | Open |
-| E80 | [found later] Scheme export fallback can print more than 2 decimals | Open |
+| E80 | [found later] Scheme export fallback can print more than 2 decimals | Fixed |
 | E81 | [found later] Admin Run batch default date uses the UTC day | Fixed |
 | E84 | [found later] CSRF from same-site pages (Lax only, text/plain accepted) | Open |
 | E85 | [found later] Impersonation grant survives admin disable/logout | Open |
