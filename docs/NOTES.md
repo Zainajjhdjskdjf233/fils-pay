@@ -5862,3 +5862,165 @@ A typo in a security setting is caught before the API serves anyone.
 We did; they are listed for Zainab to review, and they keep 0 where tests rely on it.
 
 Commit: dba5b93
+
+## N169 — Staff emails in any case
+
+### The idea
+Staff log in to the admin console with their email. Like N167 for shops, letter case should not matter.
+
+### The problem
+Admin login and admin invites compared the email exactly.
+- "Ali@Shop.com" could not log in as "ali@shop.com".
+
+### The fix
+- adminAuth.ts and inviteCode.ts: compare in lower case; an exact match wins.
+
+### The code
+Before (apps/api/src/routes/adminAuth.ts:62):
+```sql
+WHERE email = $1 AND status = 'active'
+```
+After:
+```sql
+WHERE lower(email) = lower($1) AND status = 'active' ORDER BY (email = $1) DESC, id LIMIT 1
+```
+Staff can log in however they type their address.
+
+### The proof
+- Before: lower-case login refused.
+- After: 200; a non-text email gets 400.
+
+### If the judges ask
+"Could this let one admin log in as another?"
+No; the password is still checked against the same row that was found.
+
+Commit: 70fd999
+
+## N170 — "View as merchant" really works
+
+### The idea
+Support staff can open a shop's dashboard to help it, read-only. Like a guest pass.
+
+### The problem
+The dashboard asked "who is logged in?" and ignored the guest pass.
+- Staff landed on the login page.
+- A "popup blocked" message always showed.
+
+### The fix
+- auth.ts: /me accepts the guest pass after a real shop login, with the read-only role.
+- MerchantDetailPage.tsx: open the tab normally and cut its link back.
+
+### The code
+Before (apps/api/src/routes/auth.ts:327):
+```ts
+{ preHandler: requireSession },
+```
+After:
+```ts
+const grant = grantToken ? await lookupImpersonationGrant(app.db, grantToken) : null;
+```
+Staff see the shop's dashboard, labelled with their own email.
+
+### The proof
+- Before: /me with the guest pass gave 401.
+- After: 200 with the shop, role "support" and the staff email.
+
+### If the judges ask
+"Can staff change anything?"
+No; the guest pass has the read-only support role, and writes are refused (E116, E88).
+
+Commit: aa5ea4d
+
+## N171 — The dev server keeps admin calls out
+
+### The idea
+On a laptop, the dashboard's dev server forwards API calls. Like a receptionist who should send admin visitors to a different door.
+
+### The problem
+It also forwarded admin API calls.
+
+### The fix
+- vite.config.ts: forward everything under /v1 except /v1/admin.
+
+### The code
+Before (apps/web/vite.config.ts:12):
+```ts
+proxy: { "/v1": "http://localhost:3000", ... }
+```
+After:
+```ts
+proxy: { "^/v1/(?!admin(/|$))": "http://localhost:3000", ... }
+```
+The dev setup behaves like the live nginx.
+
+### The proof
+- Before: /v1/admin was forwarded.
+- After: /v1/admin stays on the dev server; /v1/auth/me still reaches the API.
+
+### If the judges ask
+"Does this matter on the live site?"
+The live nginx already blocks /v1/admin on port 80; this makes development match it.
+
+Commit: d02c699
+
+## N172 — The ledger cannot be rewritten
+
+### The idea
+The ledger is the money record. Like ink in an accounts book: you add a correcting line, you never erase.
+
+### The problem
+The database allowed changing or deleting ledger and audit rows.
+- Only the app's own users were blocked; the owner could still rewrite history.
+
+### The fix
+- New migration 0086: triggers refuse changes to ledger rows, and allow only the outcome note on audit rows.
+
+### The code
+Before (db/migrations/0007_ledger_double_entry.sql:72): a comment said "immutable", with nothing behind it.
+After:
+```sql
+CREATE TRIGGER ledger_entries_append_only BEFORE UPDATE OR DELETE ON ledger_entries ...
+```
+History can only grow, for every database user.
+
+### The proof
+- Before: an update and a delete of a ledger row worked.
+- After: both refused; the full test suite passes with the triggers.
+
+### If the judges ask
+"What if a ledger line is wrong?"
+You post a correcting entry, as accounting rules expect; the history stays visible.
+
+Commit: 26b44f2
+
+## N173 — A strong key between services
+
+### The idea
+The API and the payout service share a secret key, like a staff-door code.
+
+### The problem
+Any non-empty code was accepted, even "dev-token" from the docs.
+
+### The fix
+- config.go and config.ts: the code must be at least 32 characters in production.
+
+### The code
+Before (apps/settlement/internal/config/config.go:118):
+```go
+if c.InternalToken == "" {
+```
+After:
+```go
+if len(c.InternalToken) < 32 {
+```
+A weak code stops the service at start.
+
+### The proof
+- Before: "dev-token" accepted.
+- After: refused; the live key is 64 characters, so the live site keeps working.
+
+### If the judges ask
+"The traffic is still plain HTTP?"
+Yes, but only inside a private Docker network with no public port; that is a recorded decision.
+
+Commit: 57f4d87

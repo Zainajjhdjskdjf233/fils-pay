@@ -1009,3 +1009,33 @@ Where: apps/api/src/routes/businessProfile.ts · Commit: 8794b16
 The API accepted any number for security settings, like a 1-digit login code. Now 21 settings have sensible limits, and a bad value stops the API at start. Tests prove it.
 
 Where: apps/api/src/config.ts · Commit: dba5b93
+
+## N169 — Staff emails in any case
+
+Staff could not log in if they typed their email with different capital letters. Now letter case does not matter for admin login and invites. A test proves it.
+
+Where: apps/api/src/routes/adminAuth.ts · Commit: 70fd999
+
+## N170 — "View as merchant" really works
+
+Support staff who chose "View as merchant" landed on the login page, and a false "popup blocked" message always showed. Now the dashboard accepts their read-only pass and shows their own email. A test proves it.
+
+Where: apps/api/src/routes/auth.ts · Commit: aa5ea4d
+
+## N171 — The dev server keeps admin calls out
+
+On a laptop, the dashboard's dev server forwarded admin API calls too. Now it forwards everything except those, like the live site.
+
+Where: apps/web/vite.config.ts · Commit: d02c699
+
+## N172 — The ledger cannot be rewritten
+
+The database allowed money records and audit lines to be changed or deleted by its owner. Now database rules refuse that for everyone, except the outcome note on audit lines. The full test suite still passes.
+
+Where: db/migrations/0086_ledger_audit_append_only.sql · Commit: 26b44f2
+
+## N173 — A strong key between services
+
+The secret shared by the API and the payout service could be as weak as "dev-token". Now it must be at least 32 characters. The live key is already 64.
+
+Where: apps/settlement/internal/config/config.go · Commit: 57f4d87

@@ -288,7 +288,7 @@ Not changed (recorded): money columns are still left-aligned (29 cells in 10 fil
 ### Every error entry
 
 <!-- errors:start (generated from docs/ERRORS.md) -->
-All 177 entries from docs/ERRORS.md (157 of 177 fixed.). Each ID has its error (section 2) and, when fixed, its fix (section 5) in docs/LOG.md.
+All 177 entries from docs/ERRORS.md (161 of 177 fixed.). Each ID has its error (section 2) and, when fixed, its fix (section 5) in docs/LOG.md.
 
 | ID | Title | Level | Status |
 |---|---|---|---|
@@ -377,13 +377,13 @@ All 177 entries from docs/ERRORS.md (157 of 177 fixed.). Each ID has its error (
 | E83 | [found later] Legal name and CR number editable after KYC approval, no re-review | Medium | Fixed |
 | E84 | [found later] CSRF from same-site pages (Lax only, text/plain accepted) | Low | Fixed |
 | E85 | [found later] Impersonation grant survives admin disable/logout | Low | Fixed |
-| E86 | [found later] Dashboard dev proxy forwards /v1/admin; shared cookie jar | Low | Partly fixed |
+| E86 | [found later] Dashboard dev proxy forwards /v1/admin; shared cookie jar | Low | Fixed |
 | E87 | [found later] No anti-framing headers on dashboard and checkout | Low | Fixed |
 | E88 | [found later] Read-only impersonation and API keys can write saved filters | Low | Fixed |
 | E89 | [found later] Unsalted SHA-256 of card number and CVV stored | Low | Fixed |
 | E90 | [found later] KYC download puts the raw filename into a header | Low | Fixed |
 | E91 | [found later] Every service connects as one Postgres superuser | Medium | Fixed |
-| E92 | [found later] Ledger immutability claim false; audit log unprotected | Medium | Partly fixed |
+| E92 | [found later] Ledger immutability claim false; audit log unprotected | Medium | Fixed |
 | E93 | [found later] sqlFilter builds DELETE with no WHERE for null/undefined filters | Medium | Fixed |
 | E94 | [found later] Settlement internal API: plain HTTP on all interfaces; weak token accepted | Low | Partly fixed |
 | E95 | [found later] Internal settlement errors returned to admin browsers | Low | Fixed |
@@ -394,7 +394,7 @@ All 177 entries from docs/ERRORS.md (157 of 177 fixed.). Each ID has its error (
 | E100 | [found later] Checkout tells a charged buyer to try again (reservation_lost) | Medium | Fixed |
 | E101 | [found later] Expired link with stale reservation: Pay form forever, cannot cancel | Medium | Fixed |
 | E102 | [found later] Merchant dashboard logs out after 10 minutes and does not notice | High | Fixed |
-| E103 | [found later] View as merchant cannot work end to end | Medium | Open |
+| E103 | [found later] View as merchant cannot work end to end | Medium | Fixed |
 | E104 | [found later] Bulk Approve KYC approves hidden merchants; server checks no status | High | Fixed |
 | E105 | [found later] Refund drawer keeps its key after a definite 4xx (my F01f bug) | Medium | Fixed |
 | E106 | [found later] Reconciliation and batch pages leave out refund parts | Medium | Fixed |
@@ -468,5 +468,5 @@ All 177 entries from docs/ERRORS.md (157 of 177 fixed.). Each ID has its error (
 | E174 | [second review] Payment-link expiresAt rolls over (2026-02-30) or is read zone-less | Low | Fixed |
 | E175 | [second review] Webhook URLs with embedded credentials are accepted but never deliverable | Low | Fixed |
 | E176 | [deep review] A redeploy stops settlement after 10 s, although it waits 30 s for a running batch | Low | Fixed |
-| E177 | [deep review] Admin login and admin invites match emails case-sensitively | Low | Open |
+| E177 | [deep review] Admin login and admin invites match emails case-sensitively | Low | Fixed |
 <!-- errors:end -->

@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 8:30 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 8:32 PM
 
 ## Contents
 1. Status now
@@ -14,9 +14,9 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:30 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 160 of 177 fixed.
+- Errors: 161 of 177 fixed.
   - High: 46 of 46 fixed
-  - Medium: 53 of 60 fixed
+  - Medium: 54 of 60 fixed
   - Low: 61 of 71 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
@@ -27,7 +27,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:30 PM
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 160 of 177 fixed.
+- 🔄 Fix: 161 of 177 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -74,6 +74,8 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:30 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- 57f4d87 fix(E94): weak settlement internal token refused (partly fixed; internal HTTP kept by decision)
+- 26b44f2 fix(E92): ledger and admin audit log append-only via triggers (migration 0086; E92 fully fixed)
 - d02c699 fix(E86): dashboard dev proxy no longer forwards /v1/admin (E86 fully fixed)
 - aa5ea4d fix(E103): View as merchant works end to end (/me accepts the grant; no false popup-blocked)
 - 70fd999 fix(E177): admin login and invites match emails in any letter case
@@ -87,8 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:30 PM
 - 0a8d82c fix(E96): payout trends use the batch row, not the payload (E96 now fully fixed); LOG: freeze moved to 10:00 PM
 - b7066da fix(E109): webhook replay page clears the old merchant's result (E109 now fully fixed)
 - fb71399 fix(E101): merchant can cancel a link with a stale reservation (E101 now fully fixed)
-- ff78296 fix(E48): admin run-batch enqueues payout notifications (partly fixed)
-- 797a8b2 fix(E67): refund summary counts captured once per transaction (migration 0085; partly fixed)
 
 ## 7. All errors
 ## High (46 of 46 fixed)
@@ -142,7 +142,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:30 PM
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-### Medium (53 of 60 fixed)
+### Medium (54 of 60 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -178,7 +178,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:30 PM
 | E82 | [found later] Admin "rotate API key" hands staff a full-power merchant key | Open |
 | E83 | [found later] Legal name and CR number editable after KYC approval, no re-review | Fixed |
 | E91 | [found later] Every service connects as one Postgres superuser | Fixed |
-| E92 | [found later] Ledger immutability claim false; audit log unprotected | Partly fixed |
+| E92 | [found later] Ledger immutability claim false; audit log unprotected | Fixed |
 | E93 | [found later] sqlFilter builds DELETE with no WHERE for null/undefined filters | Fixed |
 | E100 | [found later] Checkout tells a charged buyer to try again (reservation_lost) | Fixed |
 | E101 | [found later] Expired link with stale reservation: Pay form forever, cannot cancel | Fixed |
@@ -284,7 +284,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:30 PM
 | E177 | [deep review] Admin login and admin invites match emails case-sensitively | Fixed |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101 · N102 · N103 · N104 · N105 · N106 · N107 · N108 · N109 · N110 · N111 · N112 · N113 · N114 · N115 · N116 · N117 · N118 · N119 · N120 · N121 · N122 · N123 · N124 · N125 · N126 · N127 · N128 · N129 · N130 · N131 · N132 · N133 · N134 · N135 · N136 · N137 · N138 · N139 · N140 · N141 · N142 · N143 · N144 · N145 · N146 · N147 · N148 · N149 · N150 · N151 · N152 · N153 · N154 · N155 · N156 · N157 · N158 · N159 · N160 · N161 · N162 · N163 · N164 · N165 · N166 · N167 · N168
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101 · N102 · N103 · N104 · N105 · N106 · N107 · N108 · N109 · N110 · N111 · N112 · N113 · N114 · N115 · N116 · N117 · N118 · N119 · N120 · N121 · N122 · N123 · N124 · N125 · N126 · N127 · N128 · N129 · N130 · N131 · N132 · N133 · N134 · N135 · N136 · N137 · N138 · N139 · N140 · N141 · N142 · N143 · N144 · N145 · N146 · N147 · N148 · N149 · N150 · N151 · N152 · N153 · N154 · N155 · N156 · N157 · N158 · N159 · N160 · N161 · N162 · N163 · N164 · N165 · N166 · N167 · N168 · N169 · N170 · N171 · N172 · N173
 
 ### N01 — Database setup stopped halfway
 
@@ -6146,4 +6146,166 @@ A typo in a security setting is caught before the API serves anyone.
 We did; they are listed for Zainab to review, and they keep 0 where tests rely on it.
 
 Commit: dba5b93
+
+### N169 — Staff emails in any case
+
+#### The idea
+Staff log in to the admin console with their email. Like N167 for shops, letter case should not matter.
+
+#### The problem
+Admin login and admin invites compared the email exactly.
+- "Ali@Shop.com" could not log in as "ali@shop.com".
+
+#### The fix
+- adminAuth.ts and inviteCode.ts: compare in lower case; an exact match wins.
+
+#### The code
+Before (apps/api/src/routes/adminAuth.ts:62):
+```sql
+WHERE email = $1 AND status = 'active'
+```
+After:
+```sql
+WHERE lower(email) = lower($1) AND status = 'active' ORDER BY (email = $1) DESC, id LIMIT 1
+```
+Staff can log in however they type their address.
+
+#### The proof
+- Before: lower-case login refused.
+- After: 200; a non-text email gets 400.
+
+#### If the judges ask
+"Could this let one admin log in as another?"
+No; the password is still checked against the same row that was found.
+
+Commit: 70fd999
+
+### N170 — "View as merchant" really works
+
+#### The idea
+Support staff can open a shop's dashboard to help it, read-only. Like a guest pass.
+
+#### The problem
+The dashboard asked "who is logged in?" and ignored the guest pass.
+- Staff landed on the login page.
+- A "popup blocked" message always showed.
+
+#### The fix
+- auth.ts: /me accepts the guest pass after a real shop login, with the read-only role.
+- MerchantDetailPage.tsx: open the tab normally and cut its link back.
+
+#### The code
+Before (apps/api/src/routes/auth.ts:327):
+```ts
+{ preHandler: requireSession },
+```
+After:
+```ts
+const grant = grantToken ? await lookupImpersonationGrant(app.db, grantToken) : null;
+```
+Staff see the shop's dashboard, labelled with their own email.
+
+#### The proof
+- Before: /me with the guest pass gave 401.
+- After: 200 with the shop, role "support" and the staff email.
+
+#### If the judges ask
+"Can staff change anything?"
+No; the guest pass has the read-only support role, and writes are refused (E116, E88).
+
+Commit: aa5ea4d
+
+### N171 — The dev server keeps admin calls out
+
+#### The idea
+On a laptop, the dashboard's dev server forwards API calls. Like a receptionist who should send admin visitors to a different door.
+
+#### The problem
+It also forwarded admin API calls.
+
+#### The fix
+- vite.config.ts: forward everything under /v1 except /v1/admin.
+
+#### The code
+Before (apps/web/vite.config.ts:12):
+```ts
+proxy: { "/v1": "http://localhost:3000", ... }
+```
+After:
+```ts
+proxy: { "^/v1/(?!admin(/|$))": "http://localhost:3000", ... }
+```
+The dev setup behaves like the live nginx.
+
+#### The proof
+- Before: /v1/admin was forwarded.
+- After: /v1/admin stays on the dev server; /v1/auth/me still reaches the API.
+
+#### If the judges ask
+"Does this matter on the live site?"
+The live nginx already blocks /v1/admin on port 80; this makes development match it.
+
+Commit: d02c699
+
+### N172 — The ledger cannot be rewritten
+
+#### The idea
+The ledger is the money record. Like ink in an accounts book: you add a correcting line, you never erase.
+
+#### The problem
+The database allowed changing or deleting ledger and audit rows.
+- Only the app's own users were blocked; the owner could still rewrite history.
+
+#### The fix
+- New migration 0086: triggers refuse changes to ledger rows, and allow only the outcome note on audit rows.
+
+#### The code
+Before (db/migrations/0007_ledger_double_entry.sql:72): a comment said "immutable", with nothing behind it.
+After:
+```sql
+CREATE TRIGGER ledger_entries_append_only BEFORE UPDATE OR DELETE ON ledger_entries ...
+```
+History can only grow, for every database user.
+
+#### The proof
+- Before: an update and a delete of a ledger row worked.
+- After: both refused; the full test suite passes with the triggers.
+
+#### If the judges ask
+"What if a ledger line is wrong?"
+You post a correcting entry, as accounting rules expect; the history stays visible.
+
+Commit: 26b44f2
+
+### N173 — A strong key between services
+
+#### The idea
+The API and the payout service share a secret key, like a staff-door code.
+
+#### The problem
+Any non-empty code was accepted, even "dev-token" from the docs.
+
+#### The fix
+- config.go and config.ts: the code must be at least 32 characters in production.
+
+#### The code
+Before (apps/settlement/internal/config/config.go:118):
+```go
+if c.InternalToken == "" {
+```
+After:
+```go
+if len(c.InternalToken) < 32 {
+```
+A weak code stops the service at start.
+
+#### The proof
+- Before: "dev-token" accepted.
+- After: refused; the live key is 64 characters, so the live site keeps working.
+
+#### If the judges ask
+"The traffic is still plain HTTP?"
+Yes, but only inside a private Docker network with no public port; that is a recorded decision.
+
+Commit: 57f4d87
 
