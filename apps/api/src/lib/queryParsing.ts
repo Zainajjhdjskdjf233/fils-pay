@@ -1,3 +1,4 @@
+import { BadRequestError } from "./errors.js";
 /** Shared request-input checks: bad input must give 400, never reach SQL as a 500. */
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -12,4 +13,23 @@ export function isRealDate(v: unknown, dateOnly = false): v is string {
   const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
   const day = new Date(Date.UTC(y, mo - 1, d));
   return day.getUTCFullYear() === y && day.getUTCMonth() === mo - 1 && day.getUTCDate() === d && !Number.isNaN(Date.parse(v));
+}
+
+/** E112/E125: an optional date filter: YYYY-MM-DD, or a time WITH its zone
+ *  (Z or ±hh:mm). Anything else is 400 — never `new Date(garbage)`, a rolled
+ *  over 2026-02-30, or a zone-less time read in the server's own zone. */
+export function parseOptionalDate(v: unknown, name: string): Date | undefined {
+  if (v === undefined || v === "") return undefined;
+  if (!isRealDate(v)) {
+    throw new BadRequestError("invalid_date", `${name} must be a real date (YYYY-MM-DD, or a time with a zone such as Z or +03:00)`);
+  }
+  return new Date(v);
+}
+
+/** E127: a required business date, YYYY-MM-DD on the real calendar. */
+export function requireBusinessDate(v: unknown, name: string): string {
+  if (!isRealDate(v, true)) {
+    throw new BadRequestError("invalid_request", `${name} must be a real date formatted YYYY-MM-DD`);
+  }
+  return v;
 }

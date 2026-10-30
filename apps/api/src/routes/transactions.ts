@@ -1,3 +1,4 @@
+import { parseOptionalDate } from "../lib/queryParsing.js";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { toFils } from "@filspay/money";
 import { requireApiKey } from "../apiKeys/verify.js";
@@ -150,8 +151,8 @@ export async function transactionRoutes(app: FastifyInstance): Promise<void> {
       return listTransactions(app.db, {
         merchantId: request.merchantAuth!.merchantId,
         status,
-        from: q.from ? new Date(q.from) : undefined,
-        to: q.to ? new Date(q.to) : undefined,
+        from: parseOptionalDate(q.from, "from"), // E112/E125
+        to: parseOptionalDate(q.to, "to"),
         search: q.search,
         limit,
         cursor: q.cursor ?? null,
@@ -168,8 +169,8 @@ export async function transactionRoutes(app: FastifyInstance): Promise<void> {
 
       const csv = await buildTransactionsExportCsv(app.db, {
         merchantId: request.merchantAuth!.merchantId,
-        from: q.from ? new Date(q.from) : undefined,
-        to: q.to ? new Date(q.to) : undefined,
+        from: parseOptionalDate(q.from, "from"), // E112/E125
+        to: parseOptionalDate(q.to, "to"),
         status,
       });
 

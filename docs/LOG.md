@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 04:51 PM (30 Oct 2026)
-Summary: Errors 77/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 04:52 PM (30 Oct 2026)
+Summary: Errors 80/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -939,7 +939,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/routes/transactions.ts:148,166 (`new Date(q.from)` with no validation)
 - Error: `from=garbage` → Invalid Date → Postgres error → 500 instead of 400 (same family as E57).
 - Proof: a second review with another AI tool (pasted by Zainab, 2:30 PM); checked by me in the code.
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E112)
 
 ### E113 — [second review] Session promotion after OTP updates by id only
 - Where: apps/api/src/auth/sessions.ts:58 and adminAuth/sessions.ts:73 (`UPDATE … WHERE id = $1`)
@@ -981,7 +981,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/routes/transactions.ts:148,166 (`new Date(q.from)`); same pattern in settlement.ts:48-49
 - Error: `from=2026-03-01T00:00` means 2026-02-28T21:00Z on a Bahrain-zone machine and 2026-03-01T00:00Z in a UTC container (checked with node under both zones) — the same filter returns different rows on different servers.
 - Proof: the second review (items i-k, pasted by Zainab, 2:50 PM); checked by me in the code.
-- Severity: medium · Status: open
+- Severity: medium · Status: fixed (see section 5, E112)
 
 ### E126 — [second review] Pagination limits parsed with parseInt in each route; NaN reaches SQL
 - Where: transactions.ts:143, paymentLinks.ts:126, settlement.ts:44, webhooks.ts:195, adminMerchants.ts:100, adminCredits.ts:51, adminAdjustmentImport.ts:81 (`Number.parseInt(q.limit, 10)`)
@@ -994,7 +994,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/routes/settlement.ts:59-66 (reconciliation/summary only check presence) and :48-49 (list)
 - Error: `from=2026-02-30` rolls over in JS (`…T00:00:00+03:00`) or fails in Postgres (`::date`) → wrong window or 500.
 - Proof: the second review (items i-k, pasted by Zainab, 2:50 PM); checked by me in the code.
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E112)
 
 ### E119 — [deep review] The CSV adjustment import bypasses the two-person credit rule
 - Where: apps/api/src/admin/adjustmentImport.ts:78-90 (posts real merchant_payable legs per row) and routes/adminAdjustmentImport.ts:43 (one finance or super_admin); creditThreshold.ts:11,15 (credits above 50 BD need a second approver, E09).
@@ -2274,6 +2274,14 @@ ROLLBACK;
 - Test: apps/api/src/routes/analytics.e115.test.ts. Before: `…/top-links?from=2026-01-01&to=2026-02-29: 200`. After: PASS (4 impossible dates → 400; the real leap day 2024-02-29 → 200); analytics + reporting tests 15/15.
 - check.sh: OK.
 - Actual result: an analytics request can no longer silently answer for a different range than the one asked.
+
+### E112 (+E125, E127) — 04:52 PM — date filters are real dates, and a time carries its zone
+- Changed: apps/api/src/lib/queryParsing.ts: `parseOptionalDate` (YYYY-MM-DD, or a time with Z/±hh:mm; else 400 `invalid_date`) and `requireBusinessDate` (YYYY-MM-DD on the real calendar). Used in routes/transactions.ts list and export (were `new Date(q.from)`), routes/settlement.ts batch list, reconciliation and summary (only presence was checked).
+- One root cause, three entries: E112 garbage/impossible dates, E125 zone-less times read in the server's own zone, E127 settlement dates.
+- Checked first: the dashboard sends `YYYY-MM-DDT00:00:00.000Z` (apps/web/src/format.ts:36-37) and settlement pages send YYYY-MM-DD — both still accepted.
+- Test: apps/api/src/routes/dateFilters.e112.test.ts. Before: `/v1/transactions?from=2026-02-30: 200`. After: PASS (7 bad → 400, 5 good incl. the dashboard format → 200); route tests 31/31.
+- check.sh: OK.
+- Actual result: the same date filter means the same thing on every server, and impossible dates are refused.
 
 ## 6. Deploy
 

@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 77 of 163 fixed.
+Summary: 80 of 163 fixed.
 
 ## High (45 of 46 fixed)
 
@@ -66,7 +66,7 @@ Summary: 77 of 163 fixed.
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-## Medium (26 of 55 fixed)
+## Medium (27 of 55 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -109,7 +109,7 @@ Summary: 77 of 163 fixed.
 | E103 | [found later] View as merchant cannot work end to end | Open |
 | E105 | [found later] Refund drawer keeps its key after a definite 4xx (my F01f bug) | Fixed |
 | E106 | [found later] Reconciliation and batch pages leave out refund parts | Fixed |
-| E125 | [second review] Filters without a time zone read in the server's local zone | Open |
+| E125 | [second review] Filters without a time zone read in the server's local zone | Fixed |
 | E128 | [deep review] Suspended merchant keeps sessions and API keys | Open |
 | E129 | [deep review] Capture idempotency hash ignores the transaction id | Open |
 | E130 | [deep review] Failed link capture leaves the card authorization open | Open |
@@ -126,7 +126,7 @@ Summary: 77 of 163 fixed.
 | E148 | [coverage] No limit on KYC uploads per merchant: the shared disk can be filled | Open |
 | E163 | [second review] API config never refuses bad settings (prefixes, booleans, NODE_ENV typo turns off security defaults, no ranges) | Open |
 
-## Low (6 of 62 fixed)
+## Low (8 of 62 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -170,13 +170,13 @@ Summary: 77 of 163 fixed.
 | E109 | [found later] Small admin/checkout display bugs | Open |
 | E110 | [second review] Streaming CSV export pages on occurred_at only (unused code) | Open |
 | E111 | [second review] CSV quoting ignores carriage returns | Open |
-| E112 | [second review] Invalid date filters reach the DB (500 instead of 400) | Open |
+| E112 | [second review] Invalid date filters reach the DB (500 instead of 400) | Fixed |
 | E113 | [second review] Session promotion after OTP updates by id only (defence in depth) | Open |
 | E114 | [second review] Concurrent OTP resends can rotate the challenge twice | Open |
 | E115 | [second review] Impossible dates like 2026-02-30 are accepted | Fixed |
 | E116 | [second review] Writer actor does not reject impersonation (defence in depth) | Open |
 | E126 | [second review] Pagination limits parsed with parseInt; NaN reaches SQL | Open |
-| E127 | [second review] Settlement date filters accept impossible dates | Open |
+| E127 | [second review] Settlement date filters accept impossible dates | Fixed |
 | E132 | [deep review] Reconciliation reads its figures from different snapshots | Open |
 | E133 | [second review] Report filter JSON used without a shape check | Fixed |
 | E149 | [coverage] Credit effectiveDate "0000-01-01" passes validation; Postgres likely refuses it (500) | Fixed |

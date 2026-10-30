@@ -1,3 +1,4 @@
+import { parseOptionalDate, requireBusinessDate } from "../lib/queryParsing.js";
 import type { FastifyInstance } from "fastify";
 import { requireMerchantAuth, requireMerchantRole } from "../auth/requireMerchantAuth.js";
 import { NotFoundError, BadRequestError } from "../lib/errors.js";
@@ -45,8 +46,8 @@ export async function settlementRoutes(app: FastifyInstance): Promise<void> {
 
       return listSettlementBatches(app.db, {
         merchantId: request.merchantAuth!.merchantId,
-        from: q.from ? new Date(q.from) : undefined,
-        to: q.to ? new Date(q.to) : undefined,
+        from: parseOptionalDate(q.from, "from"), // E127
+        to: parseOptionalDate(q.to, "to"),
         status,
         limit,
         cursor: q.cursor ?? null,
@@ -60,10 +61,9 @@ export async function settlementRoutes(app: FastifyInstance): Promise<void> {
     "/reconciliation",
     { preHandler: [requireMerchantAuth, requireMerchantRole("owner", "finance")] },
     async (request) => {
-      const { from, to } = request.query;
-      if (!from || !to) {
-        throw new BadRequestError("invalid_request", "from and to (YYYY-MM-DD) are required");
-      }
+      // E127: real calendar dates (only presence was checked; 2026-02-30 rolled over).
+      const from = requireBusinessDate(request.query.from, "from");
+      const to = requireBusinessDate(request.query.to, "to");
 
       return getReconciliationReport(app.db, {
         merchantId: request.merchantAuth!.merchantId,
@@ -78,10 +78,9 @@ export async function settlementRoutes(app: FastifyInstance): Promise<void> {
     "/summary",
     { preHandler: [requireMerchantAuth, requireMerchantRole("owner", "finance")] },
     async (request) => {
-      const { from, to } = request.query;
-      if (!from || !to) {
-        throw new BadRequestError("invalid_request", "from and to (YYYY-MM-DD) are required");
-      }
+      // E127: real calendar dates (only presence was checked; 2026-02-30 rolled over).
+      const from = requireBusinessDate(request.query.from, "from");
+      const to = requireBusinessDate(request.query.to, "to");
 
       return getSettlementSummary(app.db, {
         merchantId: request.merchantAuth!.merchantId,
