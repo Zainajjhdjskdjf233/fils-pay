@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 4:54 AM (30 Oct 2026)
-Summary: Errors 14/59 fixed · Hidden 33 found · Features 0/2 done · Deploy: not started
+Updated: 4:55 AM (30 Oct 2026)
+Summary: Errors 15/59 fixed · Hidden 33 found · Features 0/2 done (F01 API part done) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1031,3 +1031,8 @@ Order follows the fix order: app-stopping → high security → (features) → w
 ### J16 — 1:30 AM — run stopped: usage limit
 - What happened: the overnight run stopped at the usage limit after F01b (f84083a). F01b is committed with tests passing, but it is NOT yet recorded in section 5, has NO fix-reviewer review, and has no NOTES entry (N15). Next steps: review + record F01b; F01c (refund.succeeded webhook: dispatcher.ts eligible list + envelope.ts); then the checkpoint. Settlement (Go /internal/refund-adjustment or batch reading refunds), reports (0072 join, consumer subscribe) and the refund page need Zainab's design OK (many files).
 - Proof: git log (f84083a); full-db-test.sh = baseline (5 known failures).
+
+### J17 — 4:55 AM — a decision made by the human (pending)
+- What happened: the overnight run reached the checkpoint. Done: app-stopping errors E01, E51; high security E03-E12 (E13 partly, E02 skipped: needs Docker); refunds core, route and webhook (E52, F01a/E28, F01b, F01c). Remaining F01 parts (settlement payouts in Go, reports, refund page) and F02 (Dilmune Cloud) need Zainab's design choices or tools she has not approved. Per the rules the run stops here and waits for her choice of next entries.
+- Why it matters: the AI does not choose the money design or install Docker on its own.
+- Proof: git log since a12d4c7; full-db-test.sh = 5 known failures only.
