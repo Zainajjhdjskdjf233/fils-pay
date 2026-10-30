@@ -6,6 +6,7 @@ import { formatIsoDate } from "./lib/dateFormat.js";
 import { startWebhookDispatcher, type WebhookDispatcherHandle } from "./webhooks/dispatcher.js";
 import { createFetchTransport } from "./webhooks/transport.js";
 import { listenHost } from "./lib/listenHost.js";
+import { sweepMissingDiscountAdjustments } from "./payments/discountAdjustment.js";
 
 async function main(): Promise<void> {
   const config = loadConfig(process.env);
@@ -32,6 +33,18 @@ async function main(): Promise<void> {
   // am: we only run one replica anyway (512mb). fine
   const dispatcher: WebhookDispatcherHandle = startWebhookDispatcher(pool, webhookTransport, config);
 
+  // E131: retry missed discount adjustments once a minute (idempotent; see
+  // payments/discountAdjustment.ts sweepMissingDiscountAdjustments).
+  let sweeping = false;
+  const discountSweep = setInterval(() => {
+    if (sweeping) return;
+    sweeping = true;
+    sweepMissingDiscountAdjustments(pool)
+      .catch((err: unknown) => console.error("[discount-sweep] pass failed", err))
+      .finally(() => { sweeping = false; });
+  }, 60_000);
+  discountSweep.unref();
+
   let shuttingDown = false;
   /**
    * Graceful shutdown: stop the dispatcher (waits for the in-flight pass),
@@ -42,6 +55,7 @@ async function main(): Promise<void> {
     if (shuttingDown) return;
     shuttingDown = true;
     console.log(`[index] received ${signal}, shutting down`);
+    clearInterval(discountSweep);
     dispatcher
       .stop()
       .then(() => app.close())

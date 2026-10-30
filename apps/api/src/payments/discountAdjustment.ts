@@ -84,3 +84,47 @@ export async function applyCaptureDiscountAdjustment(
     }
   });
 }
+
+/**
+ * E131: the durable retry. applyCaptureDiscountAdjustment runs after a paid
+ * checkout has committed; if it fails there, nothing re-ran it and the
+ * merchant missed the discount credit. This sweep finds captures (last 2 hours) of
+ * discounted merchants that have fewer adjustment credits than capture
+ * events and calls the same idempotent function, which writes only the
+ * missing ones under the transaction's row lock.
+ */
+export async function sweepMissingDiscountAdjustments(pool: Pool, limit = 100): Promise<number> {
+  const candidates = await pool.query<{ id: string; merchant_id: string }>(
+    `SELECT t.id, t.merchant_id
+       FROM transactions t
+       JOIN merchants m ON m.id = t.merchant_id
+      WHERE m.negotiated_discount_bps > 0
+        AND t.captured_fils > 0
+        -- fix-reviewer: a short window. A missed adjustment is retried within a
+        -- minute; a long window would let a later change of the merchant's
+        -- discount rate resize old adjustments (E178).
+        AND t.created_at > now() - interval '2 hours'
+        -- only events whose discount is above 0 get an adjustment (half-even
+        -- rounding of fee * bps / 10000 is 0 when fee * bps <= 5000)
+        AND (SELECT count(*) FROM transaction_events e
+              WHERE e.transaction_id = t.id AND e.event_type IN ('captured', 'partially_captured')
+                AND (CASE WHEN jsonb_typeof(e.metadata->'feeFils') = 'number' AND e.metadata->>'feeFils' ~ '^[0-9]{1,15}$'
+                          THEN (e.metadata->>'feeFils')::bigint ELSE 0 END) * m.negotiated_discount_bps > 5000)
+          > (SELECT count(*) FROM ledger_entries l
+              WHERE l.transaction_id = t.id AND l.direction = 'credit'
+                AND l.description = 'capture: negotiated discount adjustment')
+      ORDER BY t.created_at
+      LIMIT $1`,
+    [limit],
+  );
+  let repaired = 0;
+  for (const row of candidates.rows) {
+    try {
+      await applyCaptureDiscountAdjustment(pool, { merchantId: row.merchant_id, transactionId: row.id });
+      repaired += 1;
+    } catch (err) {
+      console.error(`[discount-sweep] transaction ${row.id}: ${(err as Error).message}`);
+    }
+  }
+  return repaired;
+}

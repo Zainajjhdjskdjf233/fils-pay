@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 164 of 177 fixed.
+Summary: 165 of 178 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -66,7 +66,7 @@ Summary: 164 of 177 fixed.
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-## Medium (54 of 60 fixed)
+## Medium (55 of 60 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -113,7 +113,7 @@ Summary: 164 of 177 fixed.
 | E128 | [deep review] Suspended merchant keeps sessions and API keys | Fixed |
 | E129 | [deep review] Capture idempotency hash ignores the transaction id | Fixed |
 | E130 | [deep review] Failed link capture leaves the card authorization open | Fixed |
-| E131 | [deep review] Discount error after a paid link gives the buyer a 500 | Partly fixed |
+| E131 | [deep review] Discount error after a paid link gives the buyer a 500 | Fixed |
 | E139 | [coverage] Capture and the status recompute disagree on a refunded, partly captured transaction | Fixed |
 | E140 | [coverage] Balance adjustment: a huge deltaFils gives 500, and there is no upper limit | Fixed |
 | E141 | [coverage] Credit: a huge baseAmountFils with reverseFee gives 500 | Fixed |
@@ -131,7 +131,7 @@ Summary: 164 of 177 fixed.
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-## Low (64 of 71 fixed)
+## Low (64 of 72 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -206,3 +206,4 @@ Summary: 164 of 177 fixed.
 | E175 | [second review] Webhook URLs with embedded credentials are accepted but never deliverable | Fixed |
 | E176 | [deep review] A redeploy stops settlement after 10 s, although it waits 30 s for a running batch | Fixed |
 | E177 | [deep review] Admin login and admin invites match emails case-sensitively | Fixed |
+| E178 | [deep review] Discount adjustments are matched to capture events by position, at today's rate | Open |

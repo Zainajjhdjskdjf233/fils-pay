@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 08:40 PM (30 Oct 2026)
-Summary: Errors 164/177 fixed (+6 partly: E50, E131, E48, E67, E78, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 08:44 PM (30 Oct 2026)
+Summary: Errors 165/178 fixed (+6 partly: E50, E131, E48, E67, E78, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -689,10 +689,12 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: db/seed/generate.ts:817-829 uses fixture mdrBps 250 while alpha-retail has schedules 245/225 (fixtures/transactions.ts:451).
 - Proof: suspected — needs a seeded DB to confirm.
 - Severity: low · Status: open
+- Confirmed (08:43 PM), deferred: alpha-retail's seeded fees use the flat fixture rate (fixture.mdrBps = 250) at eight places in db/seed/generate.ts (:302, :315, :405, :480, :493, :598, :661, :718), while the seed gives it fee schedules of 245 bps (from 2026-03-01) and 225 bps (from 2026-08-01) at :827-833. Fix: one effective-rate lookup by date, used at all eight places. Dev sample data only (never on the live server); over the 20-minute rule tonight.
 
 ### E70 — [found later] Seeded outbox events do not match the seeded history
 - Where: db/seed/generate.ts:651-690 (outbox created_at = now(), so August captures roll up on the seed day; 60 high-volume batches get no batch_closed event).
 - Severity: low · Status: open
+- Deferred (08:43 PM): dev sample data only (outbox created_at = now() and missing batch_closed events for the 60 high-volume batches, db/seed/generate.ts:651-690). The live server never runs the seed (LOG §6 rules; E65 guard).
 
 ### E71 — [found later] Re-seeding leaves old dead letters with reused outbox ids
 - Where: db/seed/generate.ts:98-148 TABLES_TO_RESET lacks reporting_dead_letters (0078); outbox ids restart, so ON CONFLICT DO NOTHING hides a new bad event with a reused id.
@@ -1056,7 +1058,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 ### E131 — [deep review] A discount error after a paid link gives the buyer a 500
 - Where: apps/api/src/paymentLinks/pay.ts:246 `await applyCaptureDiscountAdjustment(...)` runs after the link is finalized and COMMITTED, outside any try.
 - Error: if it throws, the buyer was charged and the link is paid, but the buyer sees 500 and may try another card.
-- Severity: medium · Status: partly fixed (see section 5, E131; durable retry open)
+- Severity: medium · Status: fixed (see section 5, E131)
 
 ### E132 — [deep review] Reconciliation reads its six figures from different snapshots
 - Where: apps/api/src/settlement/query.ts:304 `Promise.all([...pool.query...])`: each query may use a different connection and moment.
@@ -1321,6 +1323,13 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Error: an admin who types their address with different capital letters cannot log in or redeem an invite; not a takeover (the password still has to match the row). Same family as E145, admin side.
 - Proof: fix-reviewer on E145 (08:23 PM); code read by me.
 - Severity: low · Status: fixed (see section 5, E177)
+
+### E178 — [deep review] Discount adjustments are matched to capture events by position, at today's rate
+- Where: apps/api/src/payments/discountAdjustment.ts:52-76 (applyCaptureDiscountAdjustment computes each event's discount with the merchant's CURRENT negotiated_discount_bps and posts discounts.slice(existingCount)).
+- Error: if the rate changes between a capture and a later call, an old zero-discount event can become non-zero (an extra credit) or a non-zero one can drop out (a missing credit). Example from the fix-reviewer: fees [1, 250] at 2000 bps → one credit of 50; raise to 6000 bps → list [1, 150], count 2 > 1, an extra 150 is posted.
+- Proof: fix-reviewer on E131 (08:47 PM); code read by me. The E131 sweep is limited to captures from the last 2 hours to keep it from triggering this.
+- Fix idea: store the rate and fee used on each adjustment (or the capture event id it belongs to) and match by event, not by position.
+- Severity: low · Status: open
 
 ## 3. Hidden things
 
@@ -2970,6 +2979,13 @@ ROLLBACK;
 - Proof: apps/reporting/src/consumer/refundSummaryRefresh.e67.test.ts (refund event, no manual REFRESH → the summary holds the refund) failed on the old code (fresh DB filspay_e67_203820_19792) and passes now; fresh DB filspay_e67b_203957_27216 applies 81/81 migrations; refund report suites 6/6; reporting consumer suites 21/21.
 - With the earlier part (797a8b2) E67 is now fully fixed.
 - check.sh (clean environment): OK. Needs a redeploy (migration).
+
+### E131 — 08:44 PM — (rest) a missed discount adjustment after a paid checkout is retried automatically within a minute
+- Changed: apps/api/src/payments/discountAdjustment.ts sweepMissingDiscountAdjustments(): finds captures from the last 2 hours of discounted merchants with fewer adjustment credits than non-zero-discount capture events (fee × bps > 5000, the same as half-even rounding to above 0) and calls the existing idempotent applyCaptureDiscountAdjustment for each; a bad feeFils value is treated as 0 instead of breaking the query. apps/api/src/index.ts runs it every 60 s (one pass at a time, unref, cleared on shutdown). New db/migrations/0088_ledger_discount_adjustment_idx.sql: partial index on ledger_entries(transaction_id) for adjustment rows (the ledger had no transaction_id index).
+- Before: apps/api/src/payments/discountSweep.e131.test.ts could not run (no sweep existed): a capture whose adjustment failed stayed without its credit. After: one credit of 50 fils (20 % of fee 250), still one after a second sweep; malformed feeFils values ('abc', 1.5, 20 digits) do not break the sweep. Sweep + payment suites 30/30 and 2/2.
+- Second review (Copilot): not run — copilot not found (LOG line 1567). fix-reviewer: CHANGES NEEDED on my first version — (1) an unsafe ::bigint cast let one bad event break the sweep for everyone; (2) no index for the per-transaction ledger count; (3) over a 30-day window the sweep could post a wrong extra credit after a discount-rate change, because adjustments are matched to events by position at today's rate. Our answer: agree — cast guarded, index added (0088), window cut to 2 hours, and (3) recorded as new entry E178. It confirmed no double credit (both paths lock the transaction row, then count) and that fee × bps > 5000 matches applyRateFils exactly.
+- With the earlier part (E131 at 05:19 PM) E131 is now fully fixed.
+- check.sh (clean environment): OK. Needs a redeploy (api image, migration).
 
 ## 6. Deploy
 
