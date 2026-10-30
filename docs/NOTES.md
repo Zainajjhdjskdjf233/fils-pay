@@ -2292,4 +2292,4 @@ The total is checked too, so splitting into many small rows does not help.
 "Why not build approval for imports?"
 It needs a new table and screens. The limit closes the hole today; staged approval is marked for Zainab.
 
-Commit: PENDING_N62
+Commit: c973988

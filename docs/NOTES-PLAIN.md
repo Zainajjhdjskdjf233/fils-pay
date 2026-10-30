@@ -372,4 +372,4 @@ Where: apps/settlement/internal/settlement/batch.go:67 · Commit: fb945fa
 
 Credits over 50 BD normally need a second person to approve them, but the balance-correction file upload let one admin post any amount, even a million BD. Now an upload is refused if any line, or all lines together, go over 50 BD; bigger corrections must use the two-person credit process. A test shows the million-BD file is refused and nothing is posted.
 
-Where: apps/api/src/admin/adjustmentImport.ts:65 · Commit: PENDING_N62
+Where: apps/api/src/admin/adjustmentImport.ts:65 · Commit: c973988

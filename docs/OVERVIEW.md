@@ -74,6 +74,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:49 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- c973988 fix(E119): CSV adjustment import capped at the two-person threshold (per row and total)
 - fb945fa fix(E118): a business day can only be closed after it has ended — early close stranded later captures
 - a3975a9 fix(E117): OTP guess limit per user across logins; older codes and pending sessions end at login
 - a8fdcb1 feat(capacity): load shedding (503 + Retry-After), CPU rebalanced to Postgres, k6 checkout test; capacity ~15 checkouts/s
@@ -88,7 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:49 PM
 - ad4a77b fix(E60): reconciliation ledger figure excludes payout lines — next-day payouts looked like a gap
 - 976d166 fix(E44): reconciliation pending fee uses the settlement formula (schedule, tier, integer)
 - eebf7d4 fix(E42): reporting cursor on (txid, id) below the snapshot horizon — late commits were skipped
-- 41c9754 fix(E53): bad outbox events are parked in reporting_dead_letters instead of blocking the worker
 
 ## 7. All errors
 ## High (33 of 34 fixed)
@@ -2521,5 +2521,5 @@ The total is checked too, so splitting into many small rows does not help.
 "Why not build approval for imports?"
 It needs a new table and screens. The limit closes the hole today; staged approval is marked for Zainab.
 
-Commit: PENDING_N62
+Commit: c973988
 
