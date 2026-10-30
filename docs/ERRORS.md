@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 155 of 176 fixed.
+Summary: 156 of 177 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -66,7 +66,7 @@ Summary: 155 of 176 fixed.
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-## Medium (50 of 60 fixed)
+## Medium (51 of 60 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -120,7 +120,7 @@ Summary: 155 of 176 fixed.
 | E142 | [coverage] Control characters in credit memos and adjustment reasons are accepted; a NUL byte likely gives 500 | Fixed |
 | E143 | [coverage] A webhook replay gets a new delivery id; comments and docs/ADMIN.md say it keeps the original | Fixed |
 | E144 | [coverage] Webhook archive create loads an endpoint's whole history into memory; "pages of 500" is false | Fixed |
-| E145 | [coverage] Signup: no password rule and no type checks; bad input gives 500 | Partly fixed |
+| E145 | [coverage] Signup: no password rule and no type checks; bad input gives 500 | Fixed |
 | E146 | [coverage] Public signup and login have no rate limit; each call runs argon2 | Fixed |
 | E147 | [coverage] A broken image upload gives 500 and leaves an orphan file on disk | Fixed |
 | E148 | [coverage] No limit on KYC uploads per merchant: the shared disk can be filled | Fixed |
@@ -131,7 +131,7 @@ Summary: 155 of 176 fixed.
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-## Low (59 of 70 fixed)
+## Low (59 of 71 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -205,3 +205,4 @@ Summary: 155 of 176 fixed.
 | E174 | [second review] Payment-link expiresAt rolls over (2026-02-30) or is read zone-less | Fixed |
 | E175 | [second review] Webhook URLs with embedded credentials are accepted but never deliverable | Fixed |
 | E176 | [deep review] A redeploy stops settlement after 10 s, although it waits 30 s for a running batch | Fixed |
+| E177 | [deep review] Admin login and admin invites match emails case-sensitively | Open |

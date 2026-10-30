@@ -62,3 +62,22 @@ test("testE145_profilePatchChecksTypeAndCountry", async () => {
   const ok = await updateBusinessProfile(pool, merchantId, { city: "Muharraq" });
   assert.equal(ok.city, "Muharraq");
 });
+
+// E145 (rest): the owner email must look like an email, and login must not
+// depend on letter case (signup stored it as typed; login compared exactly).
+test("testE145_ownerEmailIsCheckedAndCaseInsensitive", async () => {
+  for (const email of ["not-an-email", "a@b", "x y@example.test", "a\r\n@example.test", "a\u0000b@example.test"]) {
+    const b = body({}, "e145-password-123456");
+    b.owner.email = email;
+    const res = await app.inject({ method: "POST", url: "/v1/merchants", payload: b });
+    assert.equal(res.statusCode, 400, `${JSON.stringify(email)}: ${res.statusCode} ${res.body}`);
+  }
+  const b = body({}, "e145-password-123456");
+  const mixed = `Owner-${randomUUID().slice(0, 8)}@Example.TEST`;
+  b.owner.email = mixed;
+  const created = await app.inject({ method: "POST", url: "/v1/merchants", payload: b });
+  assert.equal(created.statusCode, 201, created.body);
+  const merchantId = (created.json() as { merchantId: string }).merchantId;
+  const login = await app.inject({ method: "POST", url: "/v1/auth/login", payload: { merchantId, email: mixed.toLowerCase(), password: "e145-password-123456" } });
+  assert.equal(login.statusCode, 200, `lower-case login: ${login.body}`);
+});

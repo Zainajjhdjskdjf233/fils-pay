@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 08:18 PM (30 Oct 2026)
-Summary: Errors 155/176 fixed (+10 partly: E50, E92, E131, E145, E163, E48, E67, E78, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 08:21 PM (30 Oct 2026)
+Summary: Errors 156/177 fixed (+10 partly: E50, E92, E131, E145, E163, E48, E67, E78, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1137,7 +1137,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/routes/businessProfile.ts:27-41 (truthiness only); onboarding/signup.ts:44.
 - Error: password "a" → 201; password 123 → argon2 TypeError → 500; businessType "x" or country "BHR" → DB error → 500; emails not lower-cased ("Owner@x.com" cannot log in as "owner@x.com").
 - Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
-- Severity: medium · Status: partly fixed (see section 5, E145; email format and lower-casing open)
+- Severity: medium · Status: fixed (see section 5, E145)
 
 ### E146 — [coverage] Public signup and login have no rate limit; each call runs argon2
 - Where: apps/api/src/routes/businessProfile.ts:20, routes/auth.ts:69; no rate limit in apps/api/src (grep).
@@ -1314,6 +1314,12 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Error: on `compose up -d --build` the old settlement container gets SIGTERM and is killed with SIGKILL 10 s later, cutting the 30 s graceful wait short. No money is lost: every batch step is one Postgres transaction that rolls back (scheduler/daemon.go:5-9), and the daemon re-runs the same business day idempotently (daemon.go:22-29; batch.go:82 ON CONFLICT DO NOTHING, :95 FOR UPDATE). But a run that was nearly done starts over.
 - Proof: code read (07:05 PM) while answering the submission question "how does a redeploy avoid interrupting a settlement run"; `grep -n stop_grace_period ops/docker-compose.yml` → nothing.
 - Severity: low · Status: fixed (see section 5, E176)
+
+### E177 — [deep review] Admin login and admin invites match emails case-sensitively
+- Where: apps/api/src/routes/adminAuth.ts:62 (admin login lookup) and apps/api/src/admin/inviteCode.ts:40 (invite lookup) compare email exactly.
+- Error: an admin who types their address with different capital letters cannot log in or redeem an invite; not a takeover (the password still has to match the row). Same family as E145, admin side.
+- Proof: fix-reviewer on E145 (08:23 PM); code read by me.
+- Severity: low · Status: open
 
 ## 3. Hidden things
 
@@ -2892,6 +2898,13 @@ ROLLBACK;
 - Changed: new testmain_e56_test.go in internal/internalapi, internal/ledger, internal/settlement and internal/splits (the four packages whose tests use the DB): a TestMain holds pg_advisory_lock(hashtext('filspay-go-db-tests')) for the whole package run, so packages take turns on the shared database without needing -p 1. Without DATABASE_URL nothing changes.
 - Before: 12:41 AM, 3 parallel runs of go test ./... → 1 failing package (`diff.CachedBefore = 25000, want 888888`, LOG E56). After: 3 parallel runs (no -p 1) → 0 failing lines; go vet clean. check.sh keeps -p 1.
 - check.sh (clean environment): OK. Test-only change.
+
+### E145 — 08:21 PM — (rest) the owner email is checked and stored lower-case; merchant login is case-insensitive
+- Changed: apps/api/src/routes/businessProfile.ts: the owner email is trimmed, lower-cased and must look like an email (no whitespace or control characters, an @ and a dot, at most 254) → 400 invalid_email. apps/api/src/routes/auth.ts /login: lower(mu.email) = lower($2), an exact-case match wins, then mu.id (fixed tiebreak for old rows that differ only by case); email and password must be strings.
+- Before: testE145_ownerEmailIsCheckedAndCaseInsensitive (signup.e145.test.ts) failed — 'not-an-email' was accepted, and a lower-case login for an owner who signed up as Owner-…@Example.TEST was refused. After: all bad shapes (including CR LF and NUL) 400; lower-case login 200. Signup, auth and app suites 22/22.
+- Second review (Copilot): not run — copilot not found (LOG line 1567). fix-reviewer: APPROVE; E04 still holds (the same row gets the password check, OTP and session, auth.ts:80-104); two old rows differing only by case can at worst make a login fail, never cross over; suggested a fixed tiebreak and blocking all control characters — both taken; findOtpRecipient (auth/users.ts:19) is unused leftover code; admin emails are matched case-sensitively — recorded as new entry E177.
+- With the earlier part (E145 at 05:23 PM) E145 is now fully fixed.
+- check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy
 

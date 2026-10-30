@@ -54,7 +54,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
   app.post<{ Body: LoginBody }>("/login", { preHandler: app.authRateLimit }, async (request, reply) => { // E146
     const { merchantId, email, password } = request.body ?? {};
     // E57: a non-UUID merchantId reached Postgres (500).
-    if (!merchantId || !email || !password || typeof merchantId !== "string" || !UUID_RE.test(merchantId)) {
+    if (!merchantId || !email || !password || typeof merchantId !== "string" || typeof email !== "string" || typeof password !== "string" || !UUID_RE.test(merchantId)) {
       throw new BadRequestError("invalid_request", "merchantId, email and password are required");
     }
 
@@ -62,8 +62,10 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       `SELECT mu.id, mu.merchant_id, mu.email, mu.role, mu.password_hash
          FROM merchant_users mu
          JOIN merchants m ON m.id = mu.merchant_id
-        WHERE mu.merchant_id = $1 AND mu.email = $2 AND m.status = 'active'`,
-      [merchantId, email],
+        WHERE mu.merchant_id = $1 AND lower(mu.email) = lower($2) AND m.status = 'active'
+        ORDER BY (mu.email = $2) DESC, mu.id
+        LIMIT 1`, // E145: case-insensitive; an exact match wins if old rows differ only by case
+      [merchantId, email.trim()],
     );
     const user = userResult.rows[0];
 

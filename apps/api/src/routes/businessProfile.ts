@@ -43,6 +43,14 @@ export async function businessProfileRoutes(app: FastifyInstance): Promise<void>
     if (bp.country != null && !/^[A-Z]{2}$/.test(bp.country)) {
       throw new BadRequestError("invalid_country", "country must be a 2-letter ISO code");
     }
+    // E145 (rest): the owner email must look like an email (no spaces or
+    // control characters), and it is stored trimmed and lower-cased so login
+    // does not depend on letter case.
+    const ownerEmail = (owner.email as string).trim().toLowerCase();
+    if (ownerEmail.length > 254 || !/^[^\s@\x00-\x1f\x7f]+@[^\s@\x00-\x1f\x7f]+\.[^\s@\x00-\x1f\x7f]+$/.test(ownerEmail)) {
+      throw new BadRequestError("invalid_email", "owner email is not a valid email address");
+    }
+    owner.email = ownerEmail;
     // Minimum 12 (our choice, for Zainab to review; the case file sets none); max 256 caps argon2 work.
     if (owner.password.length < 12 || owner.password.length > 256) {
       throw new BadRequestError("weak_password", "password must be 12 to 256 characters");
