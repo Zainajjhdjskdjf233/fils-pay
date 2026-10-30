@@ -54,6 +54,8 @@ export function SettlementPage() {
   /** Idempotent per business date: re-running returns the already-closed batches. */
   async function handleRunBatch(event: React.FormEvent): Promise<void> {
     event.preventDefault();
+    // UX: closing a business day cannot be undone, so it asks first.
+    if (!window.confirm(`Run settlement for ${date}${merchantId.trim() ? ` for merchant ${merchantId.trim().slice(0, 8)}…` : " for every eligible merchant"}? Closed batches cannot be reopened.`)) return;
     setRunBusy(true);
     setRunError(null);
     setRunResult(null);
@@ -131,7 +133,7 @@ export function SettlementPage() {
         paid is safe — the settlement service reports it as already-done rather than doing it twice.
       </p>
 
-      {runError ? <p className="admin-error">{runError}</p> : null}
+      {runError ? <p className="admin-error" role="alert">{runError}</p> : null}
 
       <RequireRole
         allow={["finance", "super_admin"]}
@@ -155,8 +157,8 @@ export function SettlementPage() {
               onChange={(e) => setMerchantId(e.target.value)}
             />
           </label>
-          <button type="submit" disabled={runBusy}>
-            {runBusy ? "Running..." : "Run batch"}
+          <button type="submit" className="admin-button-primary" disabled={runBusy}>
+            {runBusy ? "Running… (this can take a minute)" : "Run batch"}
           </button>
         </form>
       </RequireRole>
@@ -209,7 +211,7 @@ export function SettlementPage() {
         merchant on the platform at once, so it asks before it runs.
       </p>
 
-      {rebuildError ? <p className="admin-error">{rebuildError}</p> : null}
+      {rebuildError ? <p className="admin-error" role="alert">{rebuildError}</p> : null}
 
       <RequireRole
         allow={["finance", "super_admin"]}
@@ -279,7 +281,7 @@ export function SettlementPage() {
         once, so it asks before it runs.
       </p>
 
-      {analyticsError ? <p className="admin-error">{analyticsError}</p> : null}
+      {analyticsError ? <p className="admin-error" role="alert">{analyticsError}</p> : null}
 
       <RequireRole
         allow={["finance", "super_admin"]}
@@ -364,7 +366,7 @@ export function SettlementPage() {
         </form>
       </RequireRole>
 
-      {mdrError ? <p className="admin-error">{mdrError}</p> : null}
+      {mdrError ? <p className="admin-error" role="alert">{mdrError}</p> : null}
 
       {mdrResult ? (
         <div>
@@ -374,7 +376,7 @@ export function SettlementPage() {
           </p>
           {/* E120: batches the recalculation refused to change */}
           {(mdrResult.skipped ?? []).length > 0 ? (
-            <p className="admin-error">
+            <p className="admin-error" role="alert">
               {(mdrResult.skipped ?? []).length} batch(es) not changed: the new fee is larger than the
               batch&apos;s net payout ({(mdrResult.skipped ?? []).map((b) => b.batchDate).join(", ")}). Review by hand.
             </p>
