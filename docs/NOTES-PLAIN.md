@@ -300,4 +300,4 @@ Where: apps/settlement/internal/settlement/recalculate_mdr.go:169 · Commit: 376
 
 The settlement summary page was slow for big shops because the database read every payment event ever stored, not just the month asked for. We added an index, which lets the database jump straight to the right days. On a copy with about 400,000 events it went from 66 to 52 milliseconds, and it will no longer slow down as history grows. The same copy also confirmed the earlier triple-counting bug at full size.
 
-Where: db/migrations/0081_transaction_events_capture_time_idx.sql:7 · Commit: PENDING_N50
+Where: db/migrations/0081_transaction_events_capture_time_idx.sql:7 · Commit: fffaa6c

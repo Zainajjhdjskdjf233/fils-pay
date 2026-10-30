@@ -1862,4 +1862,4 @@ Postgres now reads only the capture events inside the chosen dates.
 "Only 20 % faster?"
 On a fast laptop, yes. The point is that it no longer grows with history; the real check is the load test on the 0.5-vCPU limit.
 
-Commit: PENDING_N50
+Commit: fffaa6c
