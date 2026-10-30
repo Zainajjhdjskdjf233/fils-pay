@@ -172,7 +172,7 @@ Summary: 134 of 176 fixed.
 | E98 | [found later] Raw Postgres error text in logs and dead letters (my E53 code) | Fixed |
 | E107 | [found later] Expired payment links shown as active with Cancel | Fixed |
 | E108 | [found later] List pages can append rows from an old filter (suspected) | Open |
-| E109 | [found later] Small admin/checkout display bugs | Open |
+| E109 | [found later] Small admin/checkout display bugs | Partly fixed |
 | E110 | [second review] Streaming CSV export pages on occurred_at only (unused code) | Open |
 | E111 | [second review] CSV quoting ignores carriage returns | Fixed |
 | E112 | [second review] Invalid date filters reach the DB (500 instead of 400) | Fixed |

@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
 Updated: 07:33 PM (30 Oct 2026)
-Summary: Errors 134/176 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Summary: Errors 135/176 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -921,7 +921,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: admin CreditsPage.tsx:59-68 (loadMore double-click duplicates); AdjustmentImportPage.tsx:71 ("posting X" uses the sum of absolute values); CheckoutPage.tsx:118 (raw UTC paidAt); WebhookReplayPage (old result kept on merchant change)
 - Error: cosmetic / confusing.
 - Proof: code read (web/admin bug-hunt agent (1:10 PM); checked by me).
-- Severity: low · Status: open
+- Severity: low · Status: partly fixed (3 of 4, see section 5, E109; WebhookReplayPage open)
 
 ### E110 — [second review] Streaming CSV export pages on occurred_at only (skips equal timestamps)
 - Where: apps/api/src/transactions/exportCsv.ts:89 (`occurred_at > $5`, cursor = last occurred_at)
@@ -2733,6 +2733,12 @@ ROLLBACK;
 - Second review (Copilot): not run — copilot not found (LOG line 1567). fix-reviewer: CHANGES NEEDED on my first version — capture.ts:245 (hold release) and :268 (event type) still tested newStatus === 'captured', so on this path the hold would stay active and the final event would be labelled partially_captured. Our answer: agree — fixed with fullyCaptured and two asserts added to the test before committing. With refunded_fils = 0 the status is the same as before (refundState.ts:46-52).
 - check.sh (clean environment): OK. Needs a redeploy.
 
+### E109 — 07:33 PM — three of the four small display bugs fixed (checkout time, credits double load, import total wording)
+- Changed: apps/web/src/pages/checkout/CheckoutPage.tsx shows paidAt through dateTime() (format.ts:23) instead of the raw UTC ISO text. apps/admin/src/pages/credits/CreditsPage.tsx: a ref blocks a second 'Load more' while one is running (a double-click appended the same page twice). apps/admin/src/pages/adjustments/AdjustmentImportPage.tsx: the notice says the total counts credits and debits as positive (totalPostedFils is the sum of absolute amounts, adjustmentImport.ts:19), instead of 'posting X in total'.
+- Still open: WebhookReplayPage keeps the previous merchant's result after a merchant change.
+- Proof: UI-only, no browser test setup; web and admin tsc clean; web tests 13/13.
+- check.sh (clean environment): OK. Needs a redeploy.
+
 ## 6. Deploy
 
 ### Official submission rules (04:28 PM, from Zainab; they override older plans)
@@ -3007,4 +3013,4 @@ The inherited `.gitignore` had `.claude/` on line 8, added in the very first com
 ### J30 — 03:59 PM — faster, still one fix at a time
 Zainab asked for speed without losing safety. Two read-only agents now plan ahead (next open entry each): they read the code and write a fix plan and the failing test into the scratchpad, and never edit the repo. Only Claude Code edits code, one entry at a time: check the plan against the code, run the test red, fix, run the full regression, commit. If a fix breaks a test that cannot be fixed in a few minutes, only that entry's files are restored (`git show HEAD:<file> > <file>`, because `git checkout --` is not allowed) and the entry is marked skipped. Low entries get a one-paragraph note. First result: E62 planned by an agent, verified and committed.
 - Judge note (07:03 PM): check.sh said TESTS FAILED three times (E47, E90, E88). I first wrote 'possible flaky test'. The real cause was my own shell: DATABASE_URL was still set, so check.sh ran the full suite on a dirty shared test DB. Clean runs and a fresh-DB regression (0 failures) prove the code was fine. Lesson: run check.sh in a clean environment.
-- Judge note (07:35 PM): the fix-reviewer stopped a regression in my own E139 fix. I changed the status rule in capture, but two later lines still used the status label to mean "fully captured"; a card hold would have stayed active. Fixed before the commit, with asserts on the hold and the event.
+- Judge note (07:33 PM): the fix-reviewer stopped a regression in my own E139 fix. I changed the status rule in capture, but two later lines still used the status label to mean "fully captured"; a card hold would have stayed active. Fixed before the commit, with asserts on the hold and the event.

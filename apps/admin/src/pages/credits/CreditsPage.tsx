@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { formatBhd, toFils } from "@filspay/money";
 import {
@@ -49,6 +49,8 @@ export function CreditsPage() {
       setNextCursor(page.nextCursor);
     } catch (err) {
       setLoadError(describeError(err));
+    } finally {
+      loadingMore.current = false;
     }
   }, [status]);
 
@@ -56,8 +58,11 @@ export function CreditsPage() {
     void load();
   }, [load]);
 
+  // E109: a double-click on "Load more" fetched the same page twice and showed duplicates.
+  const loadingMore = useRef(false);
   async function loadMore(): Promise<void> {
-    if (!nextCursor) return;
+    if (!nextCursor || loadingMore.current) return;
+    loadingMore.current = true;
     try {
       const page = await listCreditRequests({ status, cursor: nextCursor });
       setItems((current) => [...current, ...(page.items ?? [])]);

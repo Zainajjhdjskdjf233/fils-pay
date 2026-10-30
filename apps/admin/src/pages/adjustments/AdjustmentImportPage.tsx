@@ -68,7 +68,8 @@ export function AdjustmentImportPage() {
         filename.trim() ? filename.trim() : undefined,
       );
       setNotice(
-        `Applied ${result.rowCount} row(s), posting ${bhd(result.totalPostedFils)} in total.`,
+        // E109: totalPostedFils is the sum of absolute amounts (adjustmentImport.ts:19), not a net total.
+        `Applied ${result.rowCount} row(s); ${bhd(result.totalPostedFils)} moved in total (credits and debits both counted as positive).`,
       );
       setCsvContent("");
       setFilename("");
