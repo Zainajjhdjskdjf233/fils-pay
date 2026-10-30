@@ -1,3 +1,4 @@
+import { isRealDate } from "../lib/queryParsing.js";
 import type { FastifyInstance } from "fastify";
 import { requireMerchantAuth } from "../auth/requireMerchantAuth.js";
 import { BadRequestError } from "../lib/errors.js";
@@ -18,11 +19,10 @@ interface TopLinksQuery extends DateRangeQuery {
   limit?: string;
 }
 
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-/** Strict YYYY-MM-DD that also round-trips through Date (rejects 2026-02-30). */
+/** Strict YYYY-MM-DD on the real calendar. E115: the old check said it
+ *  "rejects 2026-02-30" but Date.parse rolled such dates over. */
 function isValidDateString(value: string): boolean {
-  return DATE_RE.test(value) && !Number.isNaN(Date.parse(value));
+  return isRealDate(value, true);
 }
 
 function pad2(n: number): string {

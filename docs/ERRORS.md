@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 76 of 163 fixed.
+Summary: 77 of 163 fixed.
 
 ## High (45 of 46 fixed)
 
@@ -126,7 +126,7 @@ Summary: 76 of 163 fixed.
 | E148 | [coverage] No limit on KYC uploads per merchant: the shared disk can be filled | Open |
 | E163 | [second review] API config never refuses bad settings (prefixes, booleans, NODE_ENV typo turns off security defaults, no ranges) | Open |
 
-## Low (5 of 62 fixed)
+## Low (6 of 62 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -173,7 +173,7 @@ Summary: 76 of 163 fixed.
 | E112 | [second review] Invalid date filters reach the DB (500 instead of 400) | Open |
 | E113 | [second review] Session promotion after OTP updates by id only (defence in depth) | Open |
 | E114 | [second review] Concurrent OTP resends can rotate the challenge twice | Open |
-| E115 | [second review] Impossible dates like 2026-02-30 are accepted | Open |
+| E115 | [second review] Impossible dates like 2026-02-30 are accepted | Fixed |
 | E116 | [second review] Writer actor does not reject impersonation (defence in depth) | Open |
 | E126 | [second review] Pagination limits parsed with parseInt; NaN reaches SQL | Open |
 | E127 | [second review] Settlement date filters accept impossible dates | Open |

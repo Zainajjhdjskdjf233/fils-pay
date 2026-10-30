@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 04:49 PM (30 Oct 2026)
-Summary: Errors 76/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 04:51 PM (30 Oct 2026)
+Summary: Errors 77/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -957,7 +957,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/routes/analytics.ts:25 (`DATE_RE.test && !isNaN(Date.parse(v))`; comment says it "rejects 2026-02-30") and the transactions filters
 - Error: `Date.parse("2026-02-30")` rolls over to 2 March (node: Mon Mar 02 2026), so a bad date silently becomes another date.
 - Proof: a second review with another AI tool (pasted by Zainab, 2:30 PM); checked by me in the code.
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5)
 
 ### E116 — [second review] requireMerchantWriterActor does not reject admin impersonation
 - Where: apps/api/src/auth/requireMerchantAuth.ts:129-134 (impersonation recorded as merchant_session)
@@ -2268,6 +2268,12 @@ ROLLBACK;
 - Test: apps/api/src/routes/badInput.e57.test.ts. Before: `broken JSON: 500 {"error":"internal_error"}`, then `/v1/transactions/not-a-uuid: 500`. After: PASS (2 tests); auth/app tests 17/17.
 - Regression: api 450/451 (the known E54 test), reporting 18/18, web 13/13, Go 80. Scripts showed 1 failure (testE16_secondRunPostsNothing, 9 !== 12): not this change but a race in my own E75 test, which swept March on the same DB while E16 inserted its March rows; E75 test moved to May (separate commit). Scripts then 10/10 four times.
 - Actual result: the live site's automated tests get 4xx for malformed requests instead of 500.
+
+### E115 — 04:51 PM — impossible calendar dates are 400 in analytics
+- Changed: apps/api/src/lib/queryParsing.ts: `isRealDate` (moved from routes/reporting.ts, E133) checks the day exists on the calendar; apps/api/src/routes/analytics.ts `isValidDateString` uses it (the old `Date.parse` check rolled 2026-02-30 and 2026-02-29 over; its comment "rejects 2026-02-30" was false). routes/reporting.ts imports the shared helper (no behaviour change).
+- Test: apps/api/src/routes/analytics.e115.test.ts. Before: `…/top-links?from=2026-01-01&to=2026-02-29: 200`. After: PASS (4 impossible dates → 400; the real leap day 2024-02-29 → 200); analytics + reporting tests 15/15.
+- check.sh: OK.
+- Actual result: an analytics request can no longer silently answer for a different range than the one asked.
 
 ## 6. Deploy
 

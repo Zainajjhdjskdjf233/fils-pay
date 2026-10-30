@@ -1,3 +1,4 @@
+import { isRealDate, UUID_RE } from "../lib/queryParsing.js";
 import type { FastifyInstance } from "fastify";
 import { requireMerchantAuth } from "../auth/requireMerchantAuth.js";
 import { runTransactionsReport, type TransactionReportFilter } from "../reporting/transactionsReportQuery.js";
@@ -89,20 +90,6 @@ export async function reportingRoutes(app: FastifyInstance): Promise<void> {
 }
 
 const REPORT_STATUSES = ["authorized", "captured", "partially_captured", "voided", "refunded", "chargeback"];
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-// YYYY-MM-DD, optionally with a time and an explicit zone (Z or ±hh:mm).
-const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})(T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2}))?$/;
-
-function isRealDate(v: unknown): boolean {
-  if (typeof v !== "string") return false;
-  const m = DATE_RE.exec(v);
-  if (!m) return false;
-  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
-  const day = new Date(Date.UTC(y, mo - 1, d));
-  // 2026-02-30 rolls over to March in JS: reject it.
-  return day.getUTCFullYear() === y && day.getUTCMonth() === mo - 1 && day.getUTCDate() === d && !Number.isNaN(Date.parse(v));
-}
-
 /**
  * E133 (second review, item 30): the parsed filter went straight into the
  * report query. Wrong shape, types, status or dates gave 500 from Postgres or
