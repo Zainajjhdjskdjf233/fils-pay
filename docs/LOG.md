@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 09:25 PM (30 Oct 2026)
-Summary: Errors 168/178 fixed (+3 partly: E50, E94, E178; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 09:29 PM (30 Oct 2026)
+Summary: Errors 170/178 fixed (+3 partly: E50, E94, E178; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -545,7 +545,8 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/payments/capture.ts:196 vs Go ComputeSettlementFee
 - Error: ledger fee at capture ≠ batch fee for discounted merchants.
 - Severity: medium
-- Status: partly fixed (payment-link discount, see section 5); formula difference open
+- Status: fixed (see section 5, E50)
+- Decision (Claude, Zainab approved deciding without review): settlement's formula is the contract — discount the amount, then apply the MDR (discounted_fee.go); the capture records the rate it used and the adjustment it is owed (discountAdjFils = fee − settlementFee), and both the adjustment and the E131 sweep use that one value — Why: payouts already use settlement's formula, so making capture match it changes no payout and only removes a 1-fils-level difference in the capture ledger (e.g. 1020 fils at 250 bps, 12.5 %: net fee 23 before, 22 now, as the batch charges) — Alternative: make settlement use capture's formula (full MDR, then credit fee × discount) — it would change payouts
 
 ### E51 — [found later] API and seed cannot start: built-in dev key is 34 bytes, check needs 32
 - Where: apps/api/src/config.ts:153 (`DEV_FALLBACK_WEBHOOK_KEY_B64`), :172 (length check), :249-250
@@ -3020,6 +3021,14 @@ ROLLBACK;
 - Not changed (decision): the incremental cache path itself (balances/cache.go) and the rebuild (ledger/rebuild.go, E18).
 - check.sh (clean environment): OK. Needs a redeploy.
 
+### E50 — 09:29 PM — capture-time discount follows settlement's formula exactly (code in 961e7f9)
+- Changed: apps/api/src/payments/capture.ts records mdrBps (the rate the fee used) and discountAdjFils = fee − applyRateFils(amount − applyRateFils(amount, discountBps), mdrBps) on each capture event. apps/api/src/payments/discountAdjustment.ts uses discountAdjFils when present (else the recorded-rate formula, else the old fee × discount for events from before), and the E131 sweep SQL counts events by the same recorded value.
+- Before: apps/api/src/payments/discountFormula.e50.test.ts (1020 fils, 250 bps, 12.5 %) → adjustment 3 (net fee 23 ≠ settlement 22). After: 4 (net fee 22). Sweep test: a 60-fils capture owed 1 fils is retried; a capture owed 0 is not a candidate. Payment, payment-link and transaction suites 98/98.
+- Second review (Copilot): not run — copilot not found (LOG line 1567). fix-reviewer: CHANGES NEEDED on my first version — the sweep's fee × bps > 5000 rule no longer matched the new formula (a 60-fils capture owed 1 fils was never retried; a capture owed 0 stayed a candidate for 2 h). Our answer: agree — capture now records discountAdjFils and both paths read it, test added. It confirmed 0 ≤ adjustment ≤ fee and that old events keep their positions; noted existing differences when the volume tier or a fee schedule changes between capture and batch (not from this change).
+- Records note: the code was committed as 961e7f9 before these records, because my decision helper did not match E50's heading (no [tag]); fixed and recorded in the next commit.
+- With the earlier part (payment-link discount) E50 is now fully fixed.
+- check.sh (clean environment): OK. Needs a redeploy.
+
 ## 6. Deploy
 
 ### Official submission rules (04:28 PM, from Zainab; they override older plans)
@@ -3334,3 +3343,4 @@ Zainab asked for speed without losing safety. Two read-only agents now plan ahea
 - Judge note (09:25 PM): E74 — the cached balance could silently disagree with the ledger; staff now see the ledger figure first and any drift in red.
 - Judge note (09:27 PM): E150 — left as designed after checking it cannot lose or invent money.
 - Judge note (09:27 PM): E94 — internal traffic stays on the private network; the shared secret is now refused when weak.
+- Judge note (09:29 PM): E50 — capture and settlement could charge a discounted shop different fees by a fils; capture now records exactly what settlement charges.

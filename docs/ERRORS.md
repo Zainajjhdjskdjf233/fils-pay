@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 169 of 178 fixed.
+Summary: 170 of 178 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -66,7 +66,7 @@ Summary: 169 of 178 fixed.
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-## Medium (58 of 60 fixed)
+## Medium (59 of 60 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -87,7 +87,7 @@ Summary: 169 of 178 fixed.
 | E42 | Outbox consumer can skip events | Fixed |
 | E43 | refund_merchant_summary view joins on the wrong column | Fixed |
 | E44 | Reconciliation "pending" estimate uses float and the wrong rate | Fixed |
-| E50 | Fee at capture ignores the negotiated discount that settlement applies | Partly fixed |
+| E50 | Fee at capture ignores the negotiated discount that settlement applies | Fixed |
 | E53 | One malformed outbox event stops the whole reporting consumer | Fixed |
 | E58 | Session vs impersonation order may mix identities (FP-198 comment) — closed: not a bug, testE58 (admin.test.ts) locks it | Skipped |
 | E60 | Reconciliation counts payouts of earlier days as an unexplained gap | Fixed |
