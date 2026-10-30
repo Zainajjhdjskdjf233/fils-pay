@@ -559,3 +559,36 @@ test("testF01_discountedMerchantGetsBackOnlyTheNetFee", async () => {
   assert.equal(res.statusCode, 200, JSON.stringify(res.body));
   assert.equal((res.body as { feeReversedFils: number }).feeReversedFils, Number(net.rows[0]!.net), "reverse the fee actually paid");
 });
+
+// E139 [coverage]: capture and the refund/recompute rule must agree. Auth
+// 10000, capture 4000, refund 4000, capture 6000: capture used to set
+// 'captured' (ignoring the refund); the shared rule says 'partially_refunded'.
+test("testE139_captureAfterARefundUsesTheSharedStatusRule", async () => {
+  const merchant = await createApprovedMerchantWithApiKey("e139");
+  const txn = await capturedTransaction(merchant.rawKey, 10_000, 4_000);
+  const actor = await apiKeyActor(merchant.merchantId);
+  const refund = await processRefund(pool, approvingAcquirer, {
+    transactionId: txn.id, merchantId: merchant.merchantId, amountFils: toFils(4_000), idempotencyKey: randomUUID(), actor,
+  });
+  assert.equal(refund.statusCode, 200, JSON.stringify(refund.body));
+  const capture = await app.inject({
+    method: "POST", url: `/v1/transactions/${txn.id}/capture`,
+    headers: { authorization: `Bearer ${merchant.rawKey}`, "idempotency-key": randomUUID() },
+    payload: { amountFils: 6_000 },
+  });
+  assert.equal(capture.statusCode, 200, capture.body);
+  const row = await pool.query<{ status: string; captured_fils: string; refunded_fils: string }>(
+    `SELECT status, captured_fils, refunded_fils FROM transactions WHERE id = $1`, [txn.id],
+  );
+  assert.equal(Number(row.rows[0]!.captured_fils), 10_000);
+  assert.equal(Number(row.rows[0]!.refunded_fils), 4_000);
+  assert.equal(row.rows[0]!.status, "partially_refunded");
+  // fix-reviewer: the hold is released and the final event is 'captured'.
+  const hold = await pool.query<{ status: string }>(`SELECT status FROM holds WHERE transaction_id = $1`, [txn.id]);
+  assert.deepEqual(hold.rows.map((r) => r.status), ["released"]);
+  const last = await pool.query<{ event_type: string }>(
+    `SELECT event_type FROM transaction_events WHERE transaction_id = $1 AND event_type IN ('captured', 'partially_captured') ORDER BY occurred_at DESC, id DESC LIMIT 1`,
+    [txn.id],
+  );
+  assert.equal(last.rows[0]!.event_type, "captured");
+});

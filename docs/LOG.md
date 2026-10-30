@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 07:29 PM (30 Oct 2026)
-Summary: Errors 133/176 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 07:33 PM (30 Oct 2026)
+Summary: Errors 134/176 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1097,7 +1097,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/payments/capture.ts:198 sets status ignoring refunded_fils; payments/refundState.ts:47-49 and transactionStatusRecompute.ts:38 use another rule.
 - Error: auth 10000, capture 4000, refund 4000, capture 6000 → 'captured'; a recompute later changes it to 'partially_refunded'. Status reports differ by which code ran last; no money moves (refund limits use amounts).
 - Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
-- Severity: medium · Status: open
+- Severity: medium · Status: fixed (see section 5, E139)
 
 ### E140 — [coverage] Balance adjustment: a huge deltaFils gives 500, and there is no upper limit
 - Where: apps/api/src/routes/adminBalanceAdjustments.ts:29 `Number.isInteger`, :40 `toFils` throws RangeError; errorHandler maps it to 500.
@@ -2727,6 +2727,12 @@ ROLLBACK;
 - Still true: RunDailyBatch stops at the first merchant error (batch.go:509, pre-existing), so a bad row still blocks later merchants that night, now with a logged error instead of a crash.
 - check.sh (clean environment): OK. Needs a redeploy.
 
+### E139 — 07:33 PM — capture uses the same status rule as refunds and the admin recompute [coverage]
+- Changed: apps/api/src/payments/capture.ts: the locked SELECT also reads refunded_fils; the new status comes from nextStatusAfterRefund (payments/refundState.ts), like processRefund and admin/transactionStatusRecompute.ts. A separate fullyCaptured flag (captured == authorized) now drives the hold release and the event type.
+- Before: testE139_captureAfterARefundUsesTheSharedStatusRule (processRefund.test.ts; auth 10000, capture 4000, refund 4000, capture 6000) → `actual: 'captured'`, expected 'partially_refunded'. After: 'partially_refunded'; hold 'released'; last capture event 'captured'. Payment suites 73/73.
+- Second review (Copilot): not run — copilot not found (LOG line 1567). fix-reviewer: CHANGES NEEDED on my first version — capture.ts:245 (hold release) and :268 (event type) still tested newStatus === 'captured', so on this path the hold would stay active and the final event would be labelled partially_captured. Our answer: agree — fixed with fullyCaptured and two asserts added to the test before committing. With refunded_fils = 0 the status is the same as before (refundState.ts:46-52).
+- check.sh (clean environment): OK. Needs a redeploy.
+
 ## 6. Deploy
 
 ### Official submission rules (04:28 PM, from Zainab; they override older plans)
@@ -3001,3 +3007,4 @@ The inherited `.gitignore` had `.claude/` on line 8, added in the very first com
 ### J30 — 03:59 PM — faster, still one fix at a time
 Zainab asked for speed without losing safety. Two read-only agents now plan ahead (next open entry each): they read the code and write a fix plan and the failing test into the scratchpad, and never edit the repo. Only Claude Code edits code, one entry at a time: check the plan against the code, run the test red, fix, run the full regression, commit. If a fix breaks a test that cannot be fixed in a few minutes, only that entry's files are restored (`git show HEAD:<file> > <file>`, because `git checkout --` is not allowed) and the entry is marked skipped. Low entries get a one-paragraph note. First result: E62 planned by an agent, verified and committed.
 - Judge note (07:03 PM): check.sh said TESTS FAILED three times (E47, E90, E88). I first wrote 'possible flaky test'. The real cause was my own shell: DATABASE_URL was still set, so check.sh ran the full suite on a dirty shared test DB. Clean runs and a fresh-DB regression (0 failures) prove the code was fine. Lesson: run check.sh in a clean environment.
+- Judge note (07:35 PM): the fix-reviewer stopped a regression in my own E139 fix. I changed the status rule in capture, but two later lines still used the status label to mean "fully captured"; a card hold would have stayed active. Fixed before the commit, with asserts on the hold and the event.

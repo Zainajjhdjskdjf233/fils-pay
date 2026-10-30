@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 133 of 176 fixed.
+Summary: 134 of 176 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -66,7 +66,7 @@ Summary: 133 of 176 fixed.
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-## Medium (42 of 60 fixed)
+## Medium (43 of 60 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -114,7 +114,7 @@ Summary: 133 of 176 fixed.
 | E129 | [deep review] Capture idempotency hash ignores the transaction id | Fixed |
 | E130 | [deep review] Failed link capture leaves the card authorization open | Fixed |
 | E131 | [deep review] Discount error after a paid link gives the buyer a 500 | Partly fixed |
-| E139 | [coverage] Capture and the status recompute disagree on a refunded, partly captured transaction | Open |
+| E139 | [coverage] Capture and the status recompute disagree on a refunded, partly captured transaction | Fixed |
 | E140 | [coverage] Balance adjustment: a huge deltaFils gives 500, and there is no upper limit | Fixed |
 | E141 | [coverage] Credit: a huge baseAmountFils with reverseFee gives 500 | Fixed |
 | E142 | [coverage] Control characters in credit memos and adjustment reasons are accepted; a NUL byte likely gives 500 | Fixed |
