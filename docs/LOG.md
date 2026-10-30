@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 11:00 AM (30 Oct 2026)
-Summary: Errors 22/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
+Updated: 11:02 AM (30 Oct 2026)
+Summary: Errors 23/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -237,7 +237,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: high
 - Proposed fix: make the button call the ledger rebuild.
 - Expected result: button and CLI give the same balance.
-- Status: open
+- Status: fixed (see section 5)
 
 ### E19 — MDR recalculation changes batches that were already paid
 - Where: apps/settlement/internal/settlement/recalculate_mdr.go:57, :67, :108-110, :116
@@ -1104,6 +1104,17 @@ ROLLBACK;
 - Still a human question (CASE-FILE: "Is it safe to run again?"): with this fix a re-run posts nothing for merchants already swept. Whether production was swept twice must be checked on production with a read-only count of rows with this description per merchant (more than 2 rows per merchant = swept more than once).
 - Review: script only, small → no fix-reviewer; Copilot CLI not installed.
 - Actual result: matches expected (second run posts nothing).
+
+### E18 — 11:02 AM — the balance button and the CLI give the same number
+- Changed:
+  - apps/settlement/internal/internalapi/server.go (handleRebuildBalances): `ledger.RebuildAllBalances` (the CLI's ledger sum) instead of `ledger.RefreshBalanceCache` (merchant_payable_position view = scheme_export_lines gross only). RefreshBalanceCache now unused; not deleted.
+  - apps/settlement/internal/ledger/rebuild.go (RebuildMerchantBalance): one `INSERT … SELECT SUM … ON CONFLICT DO UPDATE … RETURNING` so `rebuild-balances --merchant` writes the cache it computes (it only returned it; main.go:153 am: comment said it wrote).
+  - internalapi/server_test.go:295: message text said "scheme-export-derived total"; corrected (the assertion value 12000 is the same either way in that test).
+- Test: internalapi/rebuild_e18_test.go. Before: `button after = 10000, CLI = 9750, want both 9750`; `cached_payable_fils = 135000 after rebuild --merchant, want 7000`. After: 2/2 PASS + all internalapi and ledger tests.
+- Regression: full-db-test.sh = baseline (5 known failures); Go 68 pass.
+- Not changed: YA's TODO in RebuildAllBalances (no row lock against a concurrent CloseBatch increment) — a separate race; recorded here as open.
+- Review: two small call/SQL changes → no fix-reviewer; Copilot CLI not installed.
+- Actual result: matches expected.
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)

@@ -151,3 +151,9 @@ Where: apps/settlement/internal/settlement/payable.go:11 · Commit: 2db05e0
 A one-time clean-up script for March doubled its effect every time it was run, because nothing remembered that it had already run. It also used UTC months, so it missed the first 3 hours of March in Bahrain. Now it checks whether each shop was already cleaned up and skips it, it cannot run twice at the same moment, and it uses Bahrain months. A test that runs it twice now sees only one clean-up.
 
 Where: scripts/reconcile_march.ts:86 · Commit: d69061a
+
+## N26 — The balance button and the CLI now agree
+
+The admin site's "Recalculate cached balances" button and the command-line tool gave different balances, because they added up different records. The button only counted the payment lines sent to the card network, not fees or payouts, which is how a 135K balance became 7K. Now the button uses the same full ledger as the tool, and the tool's single-shop mode also saves its result. A test shows both now give the same number.
+
+Where: apps/settlement/internal/internalapi/server.go:270 · Commit: PENDING_N26

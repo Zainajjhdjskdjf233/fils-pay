@@ -265,7 +265,9 @@ func handleRunBatch(pool *pgxpool.Pool) http.Handler {
 // action. Takes no body; any body sent is ignored.
 func handleRebuildBalances(pool *pgxpool.Pool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		diffs, err := ledger.RefreshBalanceCache(r.Context(), pool)
+		// E18 (FP-203): the same ledger rebuild as the CLI. RefreshBalanceCache
+		// summed scheme_export_lines (gross only), so balances dropped 135K -> 7K.
+		diffs, err := ledger.RebuildAllBalances(r.Context(), pool)
 		if err != nil {
 			log.Printf("settlement internal api: rebuild-balances failed: %v", err)
 			writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "rebuild_balances_failed"})

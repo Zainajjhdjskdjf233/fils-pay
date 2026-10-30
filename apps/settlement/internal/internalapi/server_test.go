@@ -292,7 +292,7 @@ func TestRebuildBalances_ValidToken(t *testing.T) {
 		t.Errorf("before = %d, want 999999 (the drifted cached value)", diff.Before)
 	}
 	if diff.After != 12000 {
-		t.Errorf("after = %d, want 12000 (the scheme-export-derived total)", diff.After)
+		t.Errorf("after = %d, want 12000 (the merchant_payable ledger total, E18; the scheme line happens to match here)", diff.After)
 	}
 	if !diff.Changed {
 		t.Error("changed = false, want true")
