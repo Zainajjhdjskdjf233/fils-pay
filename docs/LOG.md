@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 05:24 PM (30 Oct 2026)
-Summary: Errors 90/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 05:25 PM (30 Oct 2026)
+Summary: Errors 91/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -933,7 +933,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/transactions/exportCsv.ts:22 (quotes only on `,` `"` `\n`)
 - Error: a reference containing \r breaks the row in some CSV readers.
 - Proof: a second review with another AI tool (pasted by Zainab, 2:30 PM); checked by me in the code.
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E111)
 
 ### E112 — [second review] Invalid date filters reach the database in transaction list and export
 - Where: apps/api/src/routes/transactions.ts:148,166 (`new Date(q.from)` with no validation)
@@ -2366,6 +2366,11 @@ ROLLBACK;
 - Changed: apps/api/src/onboarding/businessProfile.ts updateBusinessProfile: each patched field must be a non-empty string (addressLine2/postalCode may be null); businessType in the 0014 list; country ^[A-Z]{2}$. Checked in the helper, so every caller gets it.
 - Test: routes/signup.e145.test.ts testE145_profilePatchChecksTypeAndCountry. Before: \`patch {"businessType":"x"}\` was not refused (DB constraint → 500 via the route). After: PASS; signup/onboarding/app tests 24/24.
 - E145 stays partly fixed: email format and lower-casing still open.
+- check.sh: OK.
+
+### E111 — 05:25 PM — CSV export quotes cells with a carriage return
+- Changed: apps/api/src/transactions/exportCsv.ts csvEscape: a value with \\r is quoted too (only , " and \\n were).
+- Test: apps/api/src/transactions/exportCsv.e111.test.ts (reference "order\\r42"). Before: fail (unquoted). After: PASS; export tests 9/9.
 - check.sh: OK.
 
 ## 6. Deploy

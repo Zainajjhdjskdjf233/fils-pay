@@ -23,7 +23,8 @@ function csvEscape(value: string): string {
   if (/^[=+\-@\t\r]/.test(value)) {
     value = `'${value}`;
   }
-  if (value.includes(",") || value.includes('"') || value.includes("\n")) {
+  // E111: \r too — an unquoted carriage return splits the row in spreadsheets.
+  if (value.includes(",") || value.includes('"') || value.includes("\n") || value.includes("\r")) {
     return `"${value.replace(/"/g, '""')}"`;
   }
   return value;
