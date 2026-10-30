@@ -142,7 +142,7 @@ export function CheckoutPage() {
   if (payState.kind === "success") {
     return (
       <main className="checkout-page">
-        <div className="checkout-card">
+        <div className="checkout-card checkout-state">
           <div className="checkout-badge checkout-badge-ok" aria-hidden="true">✓</div>
           <h1 className="checkout-title">Payment successful</h1>
           <p className="checkout-lead">Thank you. {link.merchantDisplayName} has received your payment.</p>
