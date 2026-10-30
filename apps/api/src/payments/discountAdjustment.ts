@@ -63,8 +63,8 @@ export async function applyCaptureDiscountAdjustment(
           AND description = 'capture: negotiated discount adjustment'`,
       [input.transactionId],
     );
-    const events = await client.query<{ metadata: { feeFils?: number; discountBps?: number } }>(
-      `SELECT metadata FROM transaction_events
+    const events = await client.query<{ amount_fils: string; metadata: { feeFils?: number; discountBps?: number; mdrBps?: number; discountAdjFils?: number } }>(
+      `SELECT amount_fils, metadata FROM transaction_events
         WHERE transaction_id = $1 AND event_type IN ('captured', 'partially_captured')
         ORDER BY id`,
       [input.transactionId],
@@ -75,9 +75,27 @@ export async function applyCaptureDiscountAdjustment(
       const recorded = e.metadata?.discountBps;
       return Number.isInteger(recorded) && (recorded as number) >= 0 && (recorded as number) <= 10_000 ? (recorded as number) : discountBps;
     };
-    const discounts = events.rows
-      .map((e) => applyRateFils(toFils(Math.max(0, e.metadata?.feeFils ?? 0)), rateOf(e)))
-      .filter((d) => d > 0);
+    // E50 (decided): the contract is settlement's formula — discount the
+    // amount, then apply the MDR (apps/settlement discounted_fee.go). With the
+    // MDR rate recorded on the event, the adjustment is exactly
+    // fee − settlementFee, so capture's net fee equals the batch fee. Events
+    // without mdrBps (before this change) keep the old fee × discount.
+    const discountFor = (e: { amount_fils: string; metadata: { feeFils?: number; mdrBps?: number; discountBps?: number; discountAdjFils?: number } }): number => {
+      // The amount capture recorded (E50) wins; it is what the sweep counts too.
+      const recordedAdj = e.metadata?.discountAdjFils;
+      if (Number.isSafeInteger(recordedAdj) && (recordedAdj as number) >= 0) return recordedAdj as number;
+      const fee = Math.max(0, e.metadata?.feeFils ?? 0);
+      const bps = rateOf(e);
+      const mdr = e.metadata?.mdrBps;
+      if (Number.isInteger(mdr) && (mdr as number) >= 0 && (mdr as number) <= 10_000) {
+        const amount = toFils(Number(e.amount_fils));
+        const discountedAmount = Number(amount) - Number(applyRateFils(amount, bps));
+        const settlementFee = Number(applyRateFils(toFils(discountedAmount), mdr as number));
+        return Math.max(0, fee - settlementFee);
+      }
+      return Number(applyRateFils(toFils(fee), bps));
+    };
+    const discounts = events.rows.map(discountFor).filter((d) => d > 0);
     if (discounts.length === 0) return;
 
     for (const discountFils of discounts.slice(Number(countRow.rows[0]?.adjustments ?? 0))) {
@@ -113,15 +131,19 @@ export async function sweepMissingDiscountAdjustments(pool: Pool, limit = 100): 
         -- minute; a long window would let a later change of the merchant's
         -- discount rate resize old adjustments (E178).
         AND t.created_at > now() - interval '2 hours'
-        -- only events whose discount is above 0 get an adjustment (half-even
-        -- rounding of fee * bps / 10000 is 0 when fee * bps <= 5000)
+        -- only events with an adjustment above 0: the recorded discountAdjFils
+        -- (E50) when present, else the old rule (half-even rounding of
+        -- fee * bps / 10000 is 0 when fee * bps <= 5000)
         AND (SELECT count(*) FROM transaction_events e
               WHERE e.transaction_id = t.id AND e.event_type IN ('captured', 'partially_captured')
-                AND (CASE WHEN jsonb_typeof(e.metadata->'feeFils') = 'number' AND e.metadata->>'feeFils' ~ '^[0-9]{1,15}$'
+                AND CASE WHEN jsonb_typeof(e.metadata->'discountAdjFils') = 'number' AND e.metadata->>'discountAdjFils' ~ '^[0-9]{1,15}$'
+                         THEN (e.metadata->>'discountAdjFils')::bigint > 0
+                         ELSE (CASE WHEN jsonb_typeof(e.metadata->'feeFils') = 'number' AND e.metadata->>'feeFils' ~ '^[0-9]{1,15}$'
                           THEN (e.metadata->>'feeFils')::bigint ELSE 0 END)
                     * (CASE WHEN jsonb_typeof(e.metadata->'discountBps') = 'number' AND e.metadata->>'discountBps' ~ '^[0-9]{1,5}$'
                                  AND (e.metadata->>'discountBps')::int <= 10000
-                            THEN (e.metadata->>'discountBps')::int ELSE m.negotiated_discount_bps END) > 5000)
+                            THEN (e.metadata->>'discountBps')::int ELSE m.negotiated_discount_bps END) > 5000
+                    END)
           > (SELECT count(*) FROM ledger_entries l
               WHERE l.transaction_id = t.id AND l.direction = 'credit'
                 AND l.description = 'capture: negotiated discount adjustment')

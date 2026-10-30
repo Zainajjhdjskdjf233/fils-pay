@@ -271,7 +271,24 @@ export async function captureTransaction(
       actor: input.actor,
       // E178: record the discount rate in force now, so a later adjustment
       // (or the E131 sweep) never resizes this capture with a newer rate.
-      metadata: { feeFils, discountBps: merchant.negotiated_discount_bps, acquirerReference: acquirerResult.acquirerReference },
+      metadata: {
+        feeFils,
+        discountBps: merchant.negotiated_discount_bps,
+        // E50: the MDR rate this fee used, and the discount adjustment this
+        // capture is owed under settlement's formula (discount the amount,
+        // then MDR): fee − settlementFee. The adjustment function and the E131
+        // sweep both read discountAdjFils, so they can never disagree.
+        mdrBps: Math.max(0, effectiveMdrBps - volumeTierBonusBps),
+        discountAdjFils: Math.max(
+          0,
+          Number(feeFils) -
+            Number(applyRateFils(
+              toFils(Number(requestedAmount) - Number(applyRateFils(requestedAmount, merchant.negotiated_discount_bps))),
+              Math.max(0, effectiveMdrBps - volumeTierBonusBps),
+            )),
+        ),
+        acquirerReference: acquirerResult.acquirerReference,
+      },
     });
 
     const body = serializeTransaction(updatedTxn);
