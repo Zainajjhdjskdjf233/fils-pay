@@ -14,6 +14,7 @@ import { test } from "node:test";
 import { Pool } from "pg";
 import { buildApp } from "./app.js";
 import { loadConfig } from "./config.js";
+import sharp from "sharp";
 
 const savedLogLevel = process.env.LOG_LEVEL;
 process.env.LOG_LEVEL = "debug";
@@ -273,13 +274,16 @@ test("KYC upload accepts a real tiny PDF and moves onboarding_status to under_re
   assert.equal(meRes.json().merchant.onboardingStatus, "under_review");
 });
 
-test("KYC upload rejects a commercial_registration submitted as a non-PDF filename", async () => {
+// E46: the rule is checked on the bytes now. This test used to send a real
+// PDF named registration.docx and expect 422 (it pinned the filename check);
+// the real risk is a non-PDF file with a .pdf name, which used to pass.
+test("KYC upload rejects a commercial_registration whose bytes are not a PDF, whatever its name", async () => {
   const { merchantId, cookie } = await signupLoginAndVerify("kycnonpdf");
 
-  const pdfBuffer = Buffer.from("%PDF-1.4\n%mock minimal pdf for test\n%%EOF");
+  const jpegBuffer = await sharp({ create: { width: 20, height: 20, channels: 3, background: "#888" } }).jpeg().toBuffer();
   const { body, contentType } = buildMultipart(
     { documentType: "commercial_registration" },
-    { fieldName: "file", filename: "registration.docx", contentType: "application/pdf", data: pdfBuffer },
+    { fieldName: "file", filename: "registration.pdf", contentType: "application/pdf", data: jpegBuffer },
   );
 
   const res = await app.inject({

@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 07:23 PM (30 Oct 2026)
-Summary: Errors 131/176 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 07:27 PM (30 Oct 2026)
+Summary: Errors 132/176 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -522,7 +522,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/onboarding/kyc.ts:57, :67; routes/kyc.ts:35, :101, :117
 - Error: a JPEG named `cr.pdf` is accepted; filename is put unescaped into Content-Disposition.
 - Severity: low
-- Status: open
+- Status: fixed (see section 5, E46)
 
 ### E47 — Admin console: session not rotated after OTP; no CSP
 - Where: apps/api/src/adminAuth/sessions.ts:65-77; apps/admin/index.html:6; apps/admin/src/api/impersonation.ts:93
@@ -2713,6 +2713,12 @@ ROLLBACK;
 - Before: scripts/expire_holds.e66.test.ts (expired active hold, then released between SELECT and DELETE) → the released hold was deleted. After: it survives with status 'released'. scripts/expire_holds.test.ts pinned the old SQL text; updated to the new text (values ['ids', 'active']). expire_holds + sqlFilter tests 6/6.
 - Kept: the script still hard-deletes expired holds (MK's FP-219 comment in 0005 says so); using status 'expired' instead is a separate choice, not taken.
 - check.sh (clean environment): OK. No redeploy needed (scripts never run on the live server).
+
+### E46 — 07:27 PM — the KYC 'PDF only' rule checks the file's bytes, not its name
+- Changed: apps/api/src/onboarding/kyc.ts:70 uses detected !== 'pdf' (magic bytes, already computed) instead of fileName.endsWith('.pdf'). FH's comment above it proposed exactly this; MK's reply ('detectFileType already rejects non-pdf bytes for these doc types. fixed in FP-231') is false — detectFileType accepts JPEG and PNG for every type.
+- Before: apps/api/src/onboarding/kyc.e46.test.ts — a real JPEG named cr.pdf was accepted as a commercial registration. After: 422 document_must_be_pdf; a real PDF named 'bank letter (scan)' is accepted.
+- Test changed (proof above): app.test.ts 'KYC upload rejects a commercial_registration submitted as a non-PDF filename' sent a real PDF named registration.docx and expected 422 — it pinned the name check. Now it sends JPEG bytes named registration.pdf and expects 422. KYC suites + app.test.ts 20/20.
+- check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy
 
