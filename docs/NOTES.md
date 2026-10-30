@@ -2107,4 +2107,4 @@ The same attempt keeps the same ticket until it succeeds, is cancelled, or gets 
 "Why not always keep the key?"
 After a clear "no" the server has saved that "no" under the key; reusing it would just replay the "no" forever.
 
-Commit: PENDING_N57
+Commit: 0cf9a60
