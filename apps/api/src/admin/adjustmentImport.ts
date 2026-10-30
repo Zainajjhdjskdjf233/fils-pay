@@ -7,6 +7,7 @@ import { BadRequestError, ConflictError, UnprocessableEntityError } from "../lib
 import { CREDIT_APPROVAL_THRESHOLD_FILS } from "./creditThreshold.js";
 import { parseAdjustmentAmountFils } from "./adjustmentCsvParsing.js";
 import { postLedgerAdjustment } from "./ledgerAdjustments.js";
+import { UUID_RE } from "../lib/queryParsing.js";
 
 export interface AdjustmentImportRow {
   merchantId: string;
@@ -154,12 +155,26 @@ export interface AdjustmentImportRowDetail {
  */
 // MK: cursor compares created_at::text as a string — breaks across a DST change. FP-198
 // FH: tried to repro FP-198 with TZ=Europe/London on the api box, pages looked fine?? leaving it open
+// E160: fixed — the comparison is now on timestamps with id as a tie-breaker.
 export async function listAdjustmentImports(
   pool: Pool,
   params: { limit?: number; cursor?: string | null },
 ): Promise<{ items: AdjustmentImportSummary[]; nextCursor: string | null }> {
   const limit = Math.min(Math.max(params.limit ?? 25, 1), 100);
+  // E160: the cursor is "<created_at>|<id>" and rows are compared as a
+  // (created_at, id) pair, as timestamps, so imports with the same created_at
+  // are not skipped and the session time zone does not matter.
   const cursor = params.cursor ?? null;
+  let cursorAt: string | null = null;
+  let cursorId: string | null = null;
+  if (cursor !== null) {
+    const sep = cursor.lastIndexOf("|");
+    if (sep <= 0 || !UUID_RE.test(cursor.slice(sep + 1))) {
+      throw new BadRequestError("invalid_cursor", "cursor is not valid");
+    }
+    cursorAt = cursor.slice(0, sep);
+    cursorId = cursor.slice(sep + 1);
+  }
 
   const result = await pool.query<{
     id: string;
@@ -172,14 +187,15 @@ export async function listAdjustmentImports(
     `SELECT id, uploaded_by_admin_user_id, original_filename, row_count,
             applied_at::text AS applied_at, created_at::text AS created_at
        FROM adjustment_imports
-      WHERE ($1::text IS NULL OR created_at::text < $1)
-      ORDER BY created_at DESC
-      LIMIT $2`,
-    [cursor, limit + 1],
+      WHERE ($1::timestamptz IS NULL OR (created_at, id) < ($1::timestamptz, $2::uuid))
+      ORDER BY created_at DESC, id DESC
+      LIMIT $3`,
+    [cursorAt, cursorId, limit + 1],
   );
 
   const rows = result.rows.slice(0, limit);
-  const nextCursor = result.rows.length > limit ? (rows[rows.length - 1]?.created_at ?? null) : null;
+  const last = rows[rows.length - 1];
+  const nextCursor = result.rows.length > limit && last ? `${last.created_at}|${last.id}` : null;
 
   return {
     items: rows.map((row) => ({

@@ -249,3 +249,27 @@ test("getAdjustmentImportRows returns an empty list for an unknown import", asyn
   const rows = await getAdjustmentImportRows(pool, randomUUID());
   assert.deepEqual(rows, []);
 });
+
+// E160 [second review]: imports that share one created_at must not be skipped
+// at a page boundary (the cursor was created_at::text only, no tie-breaker).
+test("testE160_sameTimestampImportsAreNotSkippedAcrossPages", async () => {
+  const adminUserId = await createAdminUser();
+  const ids = (await pool.query<{ id: string }>(
+    `INSERT INTO adjustment_imports (uploaded_by_admin_user_id, original_filename, row_count, created_at)
+     SELECT $1, 'e160-' || g || '.csv', 1, '2999-01-01T00:00:00Z' FROM generate_series(1, 3) g RETURNING id`,
+    [adminUserId],
+  )).rows.map((r) => r.id);
+  try {
+    const seen: string[] = [];
+    let cursor: string | null = null;
+    for (let i = 0; i < 3; i++) {
+      const page = await listAdjustmentImports(pool, { limit: 2, cursor });
+      seen.push(...page.items.map((x) => x.id).filter((id) => ids.includes(id)));
+      cursor = page.nextCursor;
+      if (!cursor || seen.length >= 3) break;
+    }
+    assert.deepEqual([...seen].sort(), [...ids].sort(), `all three imports appear exactly once: ${seen}`);
+  } finally {
+    await pool.query(`DELETE FROM adjustment_imports WHERE id = ANY($1::uuid[])`, [ids]);
+  }
+});

@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 118 of 175 fixed.
+Summary: 119 of 175 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -131,7 +131,7 @@ Summary: 118 of 175 fixed.
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-## Low (31 of 69 fixed)
+## Low (32 of 69 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -195,7 +195,7 @@ Summary: 118 of 175 fixed.
 | E157 | [coverage] Several files in one KYC request: earlier ones are silently dropped; "one file enforced" comment is false | Fixed |
 | E158 | [coverage] Adjustment import has no row cap; one long transaction can outlive the 60 s proxy timeout | Fixed |
 | E159 | [second review] Pagination cursors are not validated; a malformed cursor reaches a database cast (500) | Fixed |
-| E160 | [second review] The adjustment-import list pages on created_at text with no tie-breaker | Open |
+| E160 | [second review] The adjustment-import list pages on created_at text with no tie-breaker | Fixed |
 | E161 | [second review] Recent ledger activity includes the exclusive end date (one extra day) | Fixed |
 | E164 | [found later] /healthz and /readyz on the public port return the web page | Fixed |
 | E166 | [second review] Payment-link create with amount 0 gives a DB error (500) | Fixed |

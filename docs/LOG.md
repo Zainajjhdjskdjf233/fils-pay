@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 06:59 PM (30 Oct 2026)
-Summary: Errors 118/175 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 2/2 done (F01 done; F02 live, /healthz at the edge waits for the redeploy) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d27ddf0; later fixes need a redeploy, LOG §6) · CHECKPOINT reached
+Updated: 07:01 PM (30 Oct 2026)
+Summary: Errors 119/175 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 2/2 done (F01 done; F02 live, /healthz at the edge waits for the redeploy) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d27ddf0; later fixes need a redeploy, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1224,7 +1224,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/admin/adjustmentImport.ts:173 `created_at::text < $1`, :179 `ORDER BY created_at DESC` only (MK's own comment at :155 names FP-198).
 - Error: Two imports with the same created_at at a page boundary: one is skipped; text order also depends on the session time zone.
 - Proof: the second review (items 32-45, pasted by Zainab at 4:23 PM); checked by me in the code (04:30 PM).
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E160)
 
 ### E161 — [second review] Recent ledger activity includes the exclusive end date (one extra day)
 - Where: apps/api/src/analytics/query.ts:312 `BETWEEN $2::date AND $3::date`; the route defines `to` as exclusive (routes/analytics.ts:63; query.ts:112).
@@ -2629,6 +2629,12 @@ ROLLBACK;
 - Before (suspected in §2, now proven): reason 'a\u0000b' → `500 {"error":"internal_error"}`; memo 'x\u0000y' accepted (Missing expected exception). After: testE142_reasonWithControlCharactersIs400 (NUL, CR LF, tab → 400) and creditRequestValidation.e142.test.ts (NUL, CR LF, ESC → 400; a normal memo is still trimmed and kept). Related suites 41/41.
 - Decision (Zainab to review): tab is refused too in these one-line fields. Alternative: allow tab.
 - Input validation only, no money math changed: no fix-reviewer.
+- check.sh (clean environment): OK. Needs a redeploy.
+
+### E160 — 07:01 PM — the adjustment-import list pages on (created_at, id) as timestamps, so no import is skipped [second review]
+- Changed: apps/api/src/admin/adjustmentImport.ts listAdjustmentImports: cursor is '<created_at>|<id>'; WHERE (created_at, id) < ($1::timestamptz, $2::uuid) ORDER BY created_at DESC, id DESC. A cursor without a valid id → 400 invalid_cursor; an impossible date → Postgres 22008 → 400 (errorHandler, E57). MK's FP-198 comment kept, marked fixed.
+- Before: testE160_sameTimestampImportsAreNotSkippedAcrossPages (3 imports with one created_at, pages of 2) → one import never shown. After: all three exactly once. Suites 23/23. Probe: 'garbage' → 400 invalid_cursor; '2026-02-30|<uuid>' → 22008 (400 through the handler).
+- The admin app passes nextCursor back unchanged (apps/admin/src/api/adjustmentImports.ts:35), so it needs no change; an old-format cursor in an open tab gets 400 once.
 - check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy
