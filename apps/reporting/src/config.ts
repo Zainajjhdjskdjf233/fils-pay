@@ -19,14 +19,17 @@ export interface ReportingConfig {
 }
 
 /**
- * Number.parseInt rejects trailing characters, so '15s' fails loudly at boot.
- * A typo in an interval can never be silently truncated.
+ * E97: the old comment said Number.parseInt rejects "15s"; it does not (it
+ * returns 15). Only plain digits are accepted, inside [min, max].
  */
-function parseIntEnv(value: string | undefined, fallback: number): number {
+function parseIntEnv(name: string, value: string | undefined, fallback: number, min: number, max: number): number {
   if (value === undefined || value === "") return fallback;
-  const parsed = Number.parseInt(value, 10);
-  if (!Number.isFinite(parsed)) {
-    throw new Error(`loadConfig: expected an integer, got "${value}"`);
+  if (!/^\d+$/.test(value.trim())) {
+    throw new Error(`loadConfig: ${name} must be a whole number, got "${value}"`);
+  }
+  const parsed = Number(value.trim());
+  if (parsed < min || parsed > max) {
+    throw new Error(`loadConfig: ${name} must be between ${min} and ${max}, got ${parsed}`);
   }
   return parsed;
 }
@@ -40,9 +43,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ReportingConfi
   return {
     databaseUrl,
     // FH: PG_POOL_MAX is the same name apps/api reads -- setting it in compose changes both. intended?
-    pgPoolMax: parseIntEnv(env.PG_POOL_MAX, 5),
+    pgPoolMax: parseIntEnv("PG_POOL_MAX", env.PG_POOL_MAX, 5, 1, 100),
     // MK: 15s fine. dashboards aren't realtime.
-    reportingPollIntervalMs: parseIntEnv(env.REPORTING_POLL_INTERVAL_MS, 15_000),
-    consumerBatchLimit: parseIntEnv(env.REPORTING_CONSUMER_BATCH_LIMIT, 500),
+    reportingPollIntervalMs: parseIntEnv("REPORTING_POLL_INTERVAL_MS", env.REPORTING_POLL_INTERVAL_MS, 15_000, 100, 3_600_000),
+    consumerBatchLimit: parseIntEnv("REPORTING_CONSUMER_BATCH_LIMIT", env.REPORTING_CONSUMER_BATCH_LIMIT, 500, 1, 10_000),
   };
 }

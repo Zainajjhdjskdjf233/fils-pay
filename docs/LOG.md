@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
 Updated: 07:15 PM (30 Oct 2026)
-Summary: Errors 124/176 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Summary: Errors 125/176 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -849,7 +849,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/reporting/src/config.ts:22-31 (Number.parseInt; comment "'15s' fails loudly" is false; no lower bound)
 - Error: a typo makes the worker hit the DB every millisecond, or LIMIT -1 stops reporting.
 - Proof: code read (backend security-review agent (1:03 PM); checked by me).
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E97)
 
 ### E98 — [found later] Raw Postgres error text goes into logs and the dead-letter table
 - Where: apps/reporting/src/consumer/runConsumerPass.ts (E53 park: err.message up to 1000 chars)
@@ -2671,6 +2671,11 @@ ROLLBACK;
 - Changed: apps/api/src/lib/errors.ts AppError gets an optional 'detail' (never sent). apps/api/src/admin/settlementClient.ts: the three error paths keep their status and code (502 settlement_unreachable, 500 settlement_run_failed) with a fixed message; the old text (path, fetch error, 500 bytes of the upstream body) moves to detail. apps/api/src/plugins/errorHandler.ts logs detail with the code and path.
 - Before: testE95_settlementErrorsHideInternalDetailsFromTheClient — the message carried '/internal/run-batch', the connection error and the upstream body ('panic: … db.internal:5432'). After: none of these in the message; all in detail. settlementClient 9/9; admin route suites 46/46 (they match the code, not the text).
 - Small, one purpose: no fix-reviewer.
+- check.sh (clean environment): OK. Needs a redeploy.
+
+### E97 — 07:15 PM — reporting settings must be whole numbers in a range; a typo stops the worker at boot
+- Changed: apps/reporting/src/config.ts parseIntEnv(name, value, fallback, min, max): only digits; PG_POOL_MAX 1-100, REPORTING_POLL_INTERVAL_MS 100-3,600,000, REPORTING_CONSUMER_BATCH_LIMIT 1-10,000 (ranges for Zainab to review). False comment ('Number.parseInt rejects trailing characters, so 15s fails loudly') corrected: parseInt('15s') is 15.
+- Before: apps/reporting/src/config.e97.test.ts failed ('REPORTING_POLL_INTERVAL_MS=15s must fail at boot'). After: 15s, 0, 1.5, -1 and a 0 pool all refused; normal values load. Compose values (PG_POOL_MAX 3 for reporting, ops/docker-compose.yml:138) are inside the ranges.
 - check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy
