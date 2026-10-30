@@ -78,6 +78,10 @@ export function LoginPage() {
       </p>
 
       {error ? <p className="admin-error" role="alert">{error}</p> : null}
+      {/* UX: say why the login page appeared when a session ended mid-task. */}
+      {!error && step.kind === "credentials" && (location.state as { from?: string } | null)?.from ? (
+        <p className="admin-notice" role="status">Please sign in to continue. You will go back to the page you were on.</p>
+      ) : null}
 
       {step.kind === "credentials" ? (
         <form onSubmit={(e) => void handleCredentials(e)} className="admin-form">

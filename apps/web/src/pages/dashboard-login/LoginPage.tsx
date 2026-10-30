@@ -42,7 +42,12 @@ export function LoginPage() {
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  // UX: say why the login page appeared when a session ended mid-task.
+  const [notice, setNotice] = useState<string | null>(
+    (location.state as { from?: string } | null)?.from
+      ? "Please sign in to continue. You will go back to the page you were on."
+      : null,
+  );
 
   const redirectTo = (location.state as { from?: string } | null)?.from ?? "/dashboard/transactions";
 

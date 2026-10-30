@@ -20,7 +20,7 @@ export function RequireDashboardAuth({ children }: { children: ReactNode }) {
   if (status === "loading") {
     return (
       <main className="dash-centered">
-        <p>Checking your session...</p>
+        <p className="dash-loading">Checking your session…</p>
       </main>
     );
   }
