@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 94 of 163 fixed.
+Summary: 95 of 163 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -66,7 +66,7 @@ Summary: 94 of 163 fixed.
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-## Medium (31 of 55 fixed)
+## Medium (32 of 55 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -110,7 +110,7 @@ Summary: 94 of 163 fixed.
 | E105 | [found later] Refund drawer keeps its key after a definite 4xx (my F01f bug) | Fixed |
 | E106 | [found later] Reconciliation and batch pages leave out refund parts | Fixed |
 | E125 | [second review] Filters without a time zone read in the server's local zone | Fixed |
-| E128 | [deep review] Suspended merchant keeps sessions and API keys | Open |
+| E128 | [deep review] Suspended merchant keeps sessions and API keys | Fixed |
 | E129 | [deep review] Capture idempotency hash ignores the transaction id | Fixed |
 | E130 | [deep review] Failed link capture leaves the card authorization open | Fixed |
 | E131 | [deep review] Discount error after a paid link gives the buyer a 500 | Partly fixed |

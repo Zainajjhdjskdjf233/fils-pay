@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 05:29 PM (30 Oct 2026)
-Summary: Errors 94/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 05:32 PM (30 Oct 2026)
+Summary: Errors 95/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1036,7 +1036,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/auth/users.ts:19 and routes/auth.ts:63 check `m.status = 'active'` only at login; apps/api/src/payments/authorize.ts:87 checks only `onboarding_status`. Session and API-key checks never read merchants.status.
 - Error: a merchant set to 'suspended' or 'closed' (0002_merchants.sql:8) can keep using a live session or API key, including taking payments. Lens rule 5.
 - Limit: no code path sets status = 'suspended' today (grep `UPDATE merchants`), so only a direct DB change reaches it. That is why it is Medium, not High.
-- Severity: medium · Status: open
+- Severity: medium · Status: fixed (see section 5, E128)
 
 ### E129 — [deep review] The capture idempotency hash ignores the transaction id
 - Where: apps/api/src/payments/capture.ts:92 `hashRequest({ amountFils: input.amountFils ?? null })`.
@@ -2392,6 +2392,13 @@ ROLLBACK;
 - Not done, on purpose: git history is NOT rewritten. The leaked value stays in history but is dead: the API refuses to start with it, and gen-env.sh replaces it. The live Dilmune server will be set up only with a secret from gen-env.sh.
 - Honest note: while checking, one grep printed the leaked value into this session's output (it is already public in git history).
 - check.sh: OK.
+
+### E128 — 05:32 PM — a suspended or closed merchant loses its sessions and API keys
+- Changed: apps/api/src/auth/sessions.ts lookupSession (used by requireSession and requireMerchantAuth) and apps/api/src/apiKeys/verify.ts verifyApiKey: JOIN merchants and require status = 'active' (only login checked it).
+- Decision (for Zainab to review): admin impersonation (requireMerchantAuth.ts:85-97) left open so support can still view a suspended merchant.
+- Test: apps/api/src/auth/requireMerchantAuth.e128.test.ts (cookie, Bearer key, /v1/auth/me). Before: `suspended merchant: session must stop` (200). After: PASS; auth/app/transaction tests 46/46.
+- fix-reviewer: APPROVE (these are the only two lookups granting merchant access; pending sessions, admin sessions, impersonation separate). Known limits (Low): logout of a suspended merchant's session now gets 401 and does not revoke it; suspension hides sessions/keys rather than revoking them (re-activating restores them); OTP verify has no status check.
+- Regression: api at baseline v3, reporting 18/18, web 13/13, scripts 10/10, Go 80.
 
 ## 6. Deploy
 

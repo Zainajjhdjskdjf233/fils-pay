@@ -3473,3 +3473,167 @@ Bad sign-ups get clear 400 answers.
 Not yet; email format and lower-casing are still open, so this entry is partly fixed.
 
 Commit: 7a8b0e6
+
+## N97 — CSV cells with a carriage return are quoted
+
+### The idea
+The export is a CSV file that opens in spreadsheets.
+
+### The problem
+A value with a carriage return was not quoted.
+- Spreadsheets split that row in two.
+
+### The fix
+- exportCsv.ts: also quote values that contain \r.
+
+### The code
+Before (apps/api/src/transactions/exportCsv.ts:35):
+```ts
+if (value.includes(",") || value.includes('"') || value.includes("\n")) {
+```
+After:
+```ts
+if (value.includes(",") || value.includes('"') || value.includes("\n") || value.includes("\r")) {
+```
+Such cells are wrapped in quotes.
+
+### The proof
+- Before: "order\r42" was not quoted.
+- After: quoted; 9 export tests pass.
+
+### If the judges ask
+"Is this a security issue?"
+No, it is a correctness issue in exported files.
+
+Commit: b4797ab
+
+## N98 — An impersonating admin cannot act as a writer
+
+### The idea
+Admins can view a shop "as" the shop (impersonation), read-only.
+
+### The problem
+A helper labelled an impersonating admin as a shop session writer.
+
+### The fix
+- requireMerchantAuth.ts: the helper refuses impersonation with 403.
+
+### The code
+Before (apps/api/src/auth/requireMerchantAuth.ts:129):
+```ts
+if (auth.actorType === "merchant_api_key") {
+```
+After:
+```ts
+if (auth.actorType === "admin_impersonation") {
+  throw new ForbiddenError("forbidden", "impersonation is read-only");
+}
+```
+Impersonation can never be recorded as a writer.
+
+### The proof
+- Before: no error.
+- After: 403; 43 admin tests pass.
+
+### If the judges ask
+"Was this exploitable?"
+Not today; every route using it already needs owner or finance. This is defence in depth.
+
+Commit: 6debcca
+
+## N99 — An adjustment file has at most 1000 rows
+
+### The idea
+Finance uploads a CSV of balance corrections.
+
+### The problem
+No row limit; a huge file ran as one long database step, past the 60-second proxy limit.
+
+### The fix
+- adjustmentCsvParsing.ts: more than 1000 rows is refused before anything runs.
+
+### The code
+Before: no limit.
+After (apps/api/src/admin/adjustmentCsvParsing.ts):
+```ts
+if (lines.length - 1 > MAX_ADJUSTMENT_ROWS) {
+  throw new BadRequestError("too_many_rows", `at most ${MAX_ADJUSTMENT_ROWS} rows per import; split the file`);
+}
+```
+Big files must be split.
+
+### The proof
+- Before: 1001 rows accepted.
+- After: 1001 refused, 1000 accepted.
+
+### If the judges ask
+"Why 1000?"
+A safe size for one transaction; it is marked for Zainab to review.
+
+Commit: 89d754e
+
+## N100 — The leaked acquirer secret is dead
+
+### The idea
+The bank (acquirer) signs its callbacks with a shared secret, like a wax seal.
+
+### The problem
+The secret was committed to git history.
+- Our local setup still used that leaked value.
+
+### The fix
+- config.ts: the server refuses to start with the leaked secret (we keep only its hash).
+- gen-env.sh: replaces the leaked value with a new random one.
+
+### The code
+Before (apps/api/src/config.ts:208): any secret was accepted.
+After:
+```ts
+if (acquirerCallbackSigningSecret !== "" && LEAKED_SECRET_SHA256.has(createHash("sha256").update(acquirerCallbackSigningSecret).digest("hex"))) {
+  throw new Error("loadConfig: ... the value leaked in git history; run ops/gen-env.sh for a new one");
+}
+```
+The leaked value can never verify a callback again.
+
+### The proof
+- Before: the server started with the leaked secret.
+- After: it refuses; the local file now has a new 64-character secret.
+
+### If the judges ask
+"Why not rewrite git history?"
+Rewriting cannot recall copies already cloned; making the value useless is the real fix. The live server only gets a new secret.
+
+Commit: 1b8659c
+
+## N101 — A suspended shop loses access
+
+### The idea
+An admin can suspend a shop, like freezing a bank account.
+
+### The problem
+A suspended shop's logins and API keys kept working.
+
+### The fix
+- sessions.ts and verify.ts: a login or key only works if the shop is active.
+
+### The code
+Before (apps/api/src/apiKeys/verify.ts:19):
+```sql
+SELECT id, merchant_id FROM api_keys WHERE key_hash = $1 AND revoked_at IS NULL
+```
+After:
+```sql
+SELECT k.id, k.merchant_id FROM api_keys k JOIN merchants m ON m.id = k.merchant_id
+ WHERE k.key_hash = $1 AND k.revoked_at IS NULL AND m.status = 'active'
+```
+Suspended shops get 401.
+
+### The proof
+- Before: session and key still worked after suspension.
+- After: both get 401; full regression green.
+
+### If the judges ask
+"Are the sessions deleted?"
+No, they are hidden; re-activating the shop restores them. That is recorded as a known limit.
+
+Commit: PENDING_N101

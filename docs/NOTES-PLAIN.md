@@ -577,3 +577,33 @@ Where: apps/api/src/paymentLinks/pay.ts · Commit: d3788b8
 Sign-up accepted one-letter passwords and crashed on wrong field types. Now passwords must be 12 to 256 characters and fields are checked. Tests try bad sign-ups and profile changes.
 
 Where: apps/api/src/routes/businessProfile.ts · Commit: 7a8b0e6
+
+## N97 — CSV cells with a carriage return are quoted
+
+A hidden line-break character in a value split rows when the file opened in a spreadsheet. Now such values are quoted. A test checks it.
+
+Where: apps/api/src/transactions/exportCsv.ts · Commit: b4797ab
+
+## N98 — An impersonating admin cannot act as a writer
+
+An admin viewing a shop "as" the shop could be recorded as the shop's writer by one helper. Now that helper refuses. A test checks it.
+
+Where: apps/api/src/auth/requireMerchantAuth.ts · Commit: 6debcca
+
+## N99 — An adjustment file has at most 1000 rows
+
+A very large correction file ran as one long step and could time out half-way for the user. Now files above 1000 rows are refused. A test checks the limit.
+
+Where: apps/api/src/admin/adjustmentCsvParsing.ts · Commit: 89d754e
+
+## N100 — The leaked acquirer secret is dead
+
+The bank callback secret was in the git history, and our own setup still used it. Now the server refuses to start with that value and the setup script makes a new one. A test reads the old value from history and shows it is refused.
+
+Where: apps/api/src/config.ts · Commit: 1b8659c
+
+## N101 — A suspended shop loses access
+
+A suspended shop could still use its logins and API keys. Now only active shops get in. A test suspends a shop and checks both are refused.
+
+Where: apps/api/src/auth/sessions.ts · Commit: PENDING_N101

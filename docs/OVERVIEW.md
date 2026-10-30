@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 5:24 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 5:32 PM
 
 ## Contents
 1. Status now
@@ -14,20 +14,20 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 5:24 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 90 of 163 fixed.
-  - High: 45 of 46 fixed
-  - Medium: 31 of 55 fixed
-  - Low: 14 of 62 fixed
+- Errors: 95 of 163 fixed.
+  - High: 46 of 46 fixed
+  - Medium: 32 of 55 fixed
+  - Low: 17 of 62 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
 - Dilmune Cloud: not yet
-- Decisions waiting for Zainab: 29 (search "for Zainab to review" in LOG.md)
+- Decisions waiting for Zainab: 31 (search "for Zainab to review" in LOG.md)
 - Fork: needs a push (VS Code: Git: Push to... → mine)
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 90 of 163 fixed.
+- 🔄 Fix: 95 of 163 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -74,6 +74,11 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 5:24 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- 1b8659c fix(E13): leaked acquirer callback secret refused at boot (hash check) and replaced by gen-env.sh; history kept, value dead
+- 89d754e fix(E158): adjustment CSV refuses more than 1000 rows
+- 6debcca fix(E116): the merchant writer helper refuses an admin impersonation actor
+- b4797ab fix(E111): CSV export quotes cells that contain a carriage return
+- 95577a3 fix(E145): business-profile PATCH checks types, businessType and country; notes N91-N96
 - 7a8b0e6 fix(E145): signup checks field types, businessType, country and password length (partly: email, PATCH path open)
 - d3788b8 fix(E130): a failed payment-link capture voids the card authorization
 - 5543ef2 fix(E131): a discount error after a paid link is logged for retry, not a 500 to the buyer (partly: durable retry open)
@@ -84,14 +89,9 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 5:24 PM
 - 0ed1b5a fix(E163): API config refuses unknown NODE_ENV, partial numbers, typo booleans and impossible ranges at boot
 - a84b437 fix(E156): timingSafeEqualHex refuses non-hex input instead of stopping at it
 - f82fb40 fix(E155): webhook PATCH refuses an unknown status with 400
-- 5100b9c fix(E161): recent ledger activity treats the to date as exclusive
-- e92b748 fix(E126): limit must be a whole number in all 8 list routes; notes N80-N84
-- 173bdda fix(E112, E125, E127): date filters must be real dates and times must carry a zone (transactions, export, settlement)
-- 8f2cf8a fix(E115): analytics dates must exist on the calendar (shared isRealDate)
-- 9d35e0f fix(E57): Fastify client errors keep their 4xx; Postgres invalid-input errors from a request are 400; login merchantId must be a UUID
 
 ## 7. All errors
-## High (45 of 46 fixed)
+## High (46 of 46 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -107,7 +107,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 5:24 PM
 | E10 | Impersonation gives write power (super_admin → owner, finance → finance) | Fixed |
 | E11 | Reporting scope lets any merchant read a split child's transactions | Fixed |
 | E12 | expire_holds deletes every hold when there is nothing to expire | Fixed |
-| E13 | Secrets committed to git and the database open to the internet | Partly fixed |
+| E13 | Secrets committed to git and the database open to the internet | Fixed |
 | E14 | Scheme statement always a few fils higher than ours | Fixed |
 | E15 | Batch net payout computed with float32 | Fixed |
 | E16 | March sweep script is not idempotent and uses UTC months | Fixed |
@@ -142,7 +142,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 5:24 PM
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-### Medium (31 of 55 fixed)
+### Medium (32 of 55 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -186,7 +186,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 5:24 PM
 | E105 | [found later] Refund drawer keeps its key after a definite 4xx (my F01f bug) | Fixed |
 | E106 | [found later] Reconciliation and batch pages leave out refund parts | Fixed |
 | E125 | [second review] Filters without a time zone read in the server's local zone | Fixed |
-| E128 | [deep review] Suspended merchant keeps sessions and API keys | Open |
+| E128 | [deep review] Suspended merchant keeps sessions and API keys | Fixed |
 | E129 | [deep review] Capture idempotency hash ignores the transaction id | Fixed |
 | E130 | [deep review] Failed link capture leaves the card authorization open | Fixed |
 | E131 | [deep review] Discount error after a paid link gives the buyer a 500 | Partly fixed |
@@ -202,7 +202,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 5:24 PM
 | E148 | [coverage] No limit on KYC uploads per merchant: the shared disk can be filled | Open |
 | E163 | [second review] API config never refuses bad settings (prefixes, booleans, NODE_ENV typo turns off security defaults, no ranges) | Partly fixed |
 
-### Low (14 of 62 fixed)
+### Low (17 of 62 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -245,12 +245,12 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 5:24 PM
 | E108 | [found later] List pages can append rows from an old filter (suspected) | Open |
 | E109 | [found later] Small admin/checkout display bugs | Open |
 | E110 | [second review] Streaming CSV export pages on occurred_at only (unused code) | Open |
-| E111 | [second review] CSV quoting ignores carriage returns | Open |
+| E111 | [second review] CSV quoting ignores carriage returns | Fixed |
 | E112 | [second review] Invalid date filters reach the DB (500 instead of 400) | Fixed |
 | E113 | [second review] Session promotion after OTP updates by id only (defence in depth) | Open |
 | E114 | [second review] Concurrent OTP resends can rotate the challenge twice | Open |
 | E115 | [second review] Impossible dates like 2026-02-30 are accepted | Fixed |
-| E116 | [second review] Writer actor does not reject impersonation (defence in depth) | Open |
+| E116 | [second review] Writer actor does not reject impersonation (defence in depth) | Fixed |
 | E126 | [second review] Pagination limits parsed with parseInt; NaN reaches SQL | Fixed |
 | E127 | [second review] Settlement date filters accept impossible dates | Fixed |
 | E132 | [deep review] Reconciliation reads its figures from different snapshots | Open |
@@ -264,13 +264,13 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 5:24 PM
 | E155 | [coverage] Webhook PATCH with a bad status gives 500 | Fixed |
 | E156 | [coverage] timingSafeEqualHex accepts extra characters after a valid digest | Fixed |
 | E157 | [coverage] Several files in one KYC request: earlier ones are silently dropped; "one file enforced" comment is false | Open |
-| E158 | [coverage] Adjustment import has no row cap; one long transaction can outlive the 60 s proxy timeout | Open |
+| E158 | [coverage] Adjustment import has no row cap; one long transaction can outlive the 60 s proxy timeout | Fixed |
 | E159 | [second review] Pagination cursors are not validated; a malformed cursor reaches a database cast (500) | Fixed |
 | E160 | [second review] The adjustment-import list pages on created_at text with no tie-breaker | Open |
 | E161 | [second review] Recent ledger activity includes the exclusive end date (one extra day) | Fixed |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101
 
 ### N01 — Database setup stopped halfway
 
@@ -3743,4 +3743,168 @@ Bad sign-ups get clear 400 answers.
 Not yet; email format and lower-casing are still open, so this entry is partly fixed.
 
 Commit: 7a8b0e6
+
+### N97 — CSV cells with a carriage return are quoted
+
+#### The idea
+The export is a CSV file that opens in spreadsheets.
+
+#### The problem
+A value with a carriage return was not quoted.
+- Spreadsheets split that row in two.
+
+#### The fix
+- exportCsv.ts: also quote values that contain \r.
+
+#### The code
+Before (apps/api/src/transactions/exportCsv.ts:35):
+```ts
+if (value.includes(",") || value.includes('"') || value.includes("\n")) {
+```
+After:
+```ts
+if (value.includes(",") || value.includes('"') || value.includes("\n") || value.includes("\r")) {
+```
+Such cells are wrapped in quotes.
+
+#### The proof
+- Before: "order\r42" was not quoted.
+- After: quoted; 9 export tests pass.
+
+#### If the judges ask
+"Is this a security issue?"
+No, it is a correctness issue in exported files.
+
+Commit: b4797ab
+
+### N98 — An impersonating admin cannot act as a writer
+
+#### The idea
+Admins can view a shop "as" the shop (impersonation), read-only.
+
+#### The problem
+A helper labelled an impersonating admin as a shop session writer.
+
+#### The fix
+- requireMerchantAuth.ts: the helper refuses impersonation with 403.
+
+#### The code
+Before (apps/api/src/auth/requireMerchantAuth.ts:129):
+```ts
+if (auth.actorType === "merchant_api_key") {
+```
+After:
+```ts
+if (auth.actorType === "admin_impersonation") {
+  throw new ForbiddenError("forbidden", "impersonation is read-only");
+}
+```
+Impersonation can never be recorded as a writer.
+
+#### The proof
+- Before: no error.
+- After: 403; 43 admin tests pass.
+
+#### If the judges ask
+"Was this exploitable?"
+Not today; every route using it already needs owner or finance. This is defence in depth.
+
+Commit: 6debcca
+
+### N99 — An adjustment file has at most 1000 rows
+
+#### The idea
+Finance uploads a CSV of balance corrections.
+
+#### The problem
+No row limit; a huge file ran as one long database step, past the 60-second proxy limit.
+
+#### The fix
+- adjustmentCsvParsing.ts: more than 1000 rows is refused before anything runs.
+
+#### The code
+Before: no limit.
+After (apps/api/src/admin/adjustmentCsvParsing.ts):
+```ts
+if (lines.length - 1 > MAX_ADJUSTMENT_ROWS) {
+  throw new BadRequestError("too_many_rows", `at most ${MAX_ADJUSTMENT_ROWS} rows per import; split the file`);
+}
+```
+Big files must be split.
+
+#### The proof
+- Before: 1001 rows accepted.
+- After: 1001 refused, 1000 accepted.
+
+#### If the judges ask
+"Why 1000?"
+A safe size for one transaction; it is marked for Zainab to review.
+
+Commit: 89d754e
+
+### N100 — The leaked acquirer secret is dead
+
+#### The idea
+The bank (acquirer) signs its callbacks with a shared secret, like a wax seal.
+
+#### The problem
+The secret was committed to git history.
+- Our local setup still used that leaked value.
+
+#### The fix
+- config.ts: the server refuses to start with the leaked secret (we keep only its hash).
+- gen-env.sh: replaces the leaked value with a new random one.
+
+#### The code
+Before (apps/api/src/config.ts:208): any secret was accepted.
+After:
+```ts
+if (acquirerCallbackSigningSecret !== "" && LEAKED_SECRET_SHA256.has(createHash("sha256").update(acquirerCallbackSigningSecret).digest("hex"))) {
+  throw new Error("loadConfig: ... the value leaked in git history; run ops/gen-env.sh for a new one");
+}
+```
+The leaked value can never verify a callback again.
+
+#### The proof
+- Before: the server started with the leaked secret.
+- After: it refuses; the local file now has a new 64-character secret.
+
+#### If the judges ask
+"Why not rewrite git history?"
+Rewriting cannot recall copies already cloned; making the value useless is the real fix. The live server only gets a new secret.
+
+Commit: 1b8659c
+
+### N101 — A suspended shop loses access
+
+#### The idea
+An admin can suspend a shop, like freezing a bank account.
+
+#### The problem
+A suspended shop's logins and API keys kept working.
+
+#### The fix
+- sessions.ts and verify.ts: a login or key only works if the shop is active.
+
+#### The code
+Before (apps/api/src/apiKeys/verify.ts:19):
+```sql
+SELECT id, merchant_id FROM api_keys WHERE key_hash = $1 AND revoked_at IS NULL
+```
+After:
+```sql
+SELECT k.id, k.merchant_id FROM api_keys k JOIN merchants m ON m.id = k.merchant_id
+ WHERE k.key_hash = $1 AND k.revoked_at IS NULL AND m.status = 'active'
+```
+Suspended shops get 401.
+
+#### The proof
+- Before: session and key still worked after suspension.
+- After: both get 401; full regression green.
+
+#### If the judges ask
+"Are the sessions deleted?"
+No, they are hidden; re-activating the shop restores them. That is recorded as a known limit.
+
+Commit: PENDING_N101
 
