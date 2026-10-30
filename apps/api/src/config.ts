@@ -286,18 +286,18 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
 
     settlementInternalUrl: env.SETTLEMENT_INTERNAL_URL ?? "http://settlement:8091",
     settlementInternalToken,
-    settlementInternalRequestTimeoutMs: parseIntEnv(env.SETTLEMENT_INTERNAL_REQUEST_TIMEOUT_MS, 30_000),
+    settlementInternalRequestTimeoutMs: parseRangedIntEnv("SETTLEMENT_INTERNAL_REQUEST_TIMEOUT_MS", env.SETTLEMENT_INTERNAL_REQUEST_TIMEOUT_MS, 30_000, 1000, 600000),
 
     checkoutBaseUrl: env.CHECKOUT_BASE_URL ?? "http://localhost:5173",
-    paymentLinkReservationTimeoutSeconds: parseIntEnv(env.PAYMENT_LINK_RESERVATION_TIMEOUT_SECONDS, 60),
+    paymentLinkReservationTimeoutSeconds: parseRangedIntEnv("PAYMENT_LINK_RESERVATION_TIMEOUT_SECONDS", env.PAYMENT_LINK_RESERVATION_TIMEOUT_SECONDS, 60, 0, 3600),
 
     // Required in every environment (see the Config doc above): no built-in key.
     webhookSecretEncryptionKey: parseWebhookSecretEncryptionKey(env.WEBHOOK_SECRET_ENCRYPTION_KEY),
-    webhookMaxAttempts: parseIntEnv(env.WEBHOOK_MAX_ATTEMPTS, 8),
-    webhookBackoffBaseMs: parseIntEnv(env.WEBHOOK_BACKOFF_BASE_MS, 30_000),
-    webhookBackoffCapMs: parseIntEnv(env.WEBHOOK_BACKOFF_CAP_MS, 21_600_000),
-    webhookPollIntervalMs: parseIntEnv(env.WEBHOOK_POLL_INTERVAL_MS, 5_000),
-    webhookRequestTimeoutMs: parseIntEnv(env.WEBHOOK_REQUEST_TIMEOUT_MS, 10_000),
+    webhookMaxAttempts: parseRangedIntEnv("WEBHOOK_MAX_ATTEMPTS", env.WEBHOOK_MAX_ATTEMPTS, 8, 0, 50),
+    webhookBackoffBaseMs: parseRangedIntEnv("WEBHOOK_BACKOFF_BASE_MS", env.WEBHOOK_BACKOFF_BASE_MS, 30_000, 100, 3600000),
+    webhookBackoffCapMs: parseRangedIntEnv("WEBHOOK_BACKOFF_CAP_MS", env.WEBHOOK_BACKOFF_CAP_MS, 21_600_000, 1000, 86400000),
+    webhookPollIntervalMs: parseRangedIntEnv("WEBHOOK_POLL_INTERVAL_MS", env.WEBHOOK_POLL_INTERVAL_MS, 5_000, 100, 600000),
+    webhookRequestTimeoutMs: parseRangedIntEnv("WEBHOOK_REQUEST_TIMEOUT_MS", env.WEBHOOK_REQUEST_TIMEOUT_MS, 10_000, 100, 60000),
 
     acquirerCallbackSigningSecret,
     acquirerCallbackRequireSignature: parseBoolEnv(env.ACQUIRER_CALLBACK_REQUIRE_SIGNATURE, true),

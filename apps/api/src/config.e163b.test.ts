@@ -14,6 +14,8 @@ test("testE163_securitySettingsAreRangeChecked", () => {
     ["ARGON2_TIME_COST", "0"], ["ARGON2_MEMORY_KIB", "8"], ["ARGON2_PARALLELISM", "0"],
     ["SESSION_TTL_HOURS", "0"], ["ADMIN_SESSION_TTL_HOURS", "720"], ["IMPERSONATION_TTL_MINUTES", "0"],
     ["ACQUIRER_FAILURE_RATE", "5"],
+    ["WEBHOOK_REQUEST_TIMEOUT_MS", "0"], ["WEBHOOK_POLL_INTERVAL_MS", "1"], ["WEBHOOK_MAX_ATTEMPTS", "1000"],
+    ["PAYMENT_LINK_RESERVATION_TIMEOUT_SECONDS", "-1"], ["SETTLEMENT_INTERNAL_REQUEST_TIMEOUT_MS", "5"],
   ] as const) {
     assert.throws(() => loadConfig({ ...base, [k]: v }), /loadConfig/, `${k}=${v} must be refused`);
   }

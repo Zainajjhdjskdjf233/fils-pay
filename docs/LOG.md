@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 08:22 PM (30 Oct 2026)
-Summary: Errors 156/177 fixed (+9 partly: E50, E92, E131, E163, E48, E67, E78, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 08:23 PM (30 Oct 2026)
+Summary: Errors 157/177 fixed (+9 partly: E50, E92, E131, E163, E48, E67, E78, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1246,7 +1246,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/config.ts:139-145 `Number.parseInt` + `Number.isFinite`.
 - Error: PORT=3000oops starts on 3000; a typo silently becomes a different setting (`node -e` → 3000).
 - Proof: the second review (items 32-45, pasted by Zainab at 4:23 PM); checked by me in the code (04:30 PM).
-- Severity: medium · Status: partly fixed (see section 5, E163; webhook and timeout ranges still open)
+- Severity: medium · Status: fixed (see section 5, E163)
 
 ### E164 — [found later] /healthz and /readyz on the public port return the web page, not the API's health
 - Where: ops/nginx/nginx.conf: only /v1/ is proxied to the API, so /healthz and /readyz fell through to `try_files … /index.html`.
@@ -2910,6 +2910,12 @@ ROLLBACK;
 - Changed: apps/api/src/config.ts parseRangedIntEnv(name, value, fallback, min, max) for 14 settings: SESSION_TTL_HOURS 1-168, PENDING_SESSION_TTL_MINUTES 1-60, OTP_TTL_MINUTES 1-60, OTP_CODE_LENGTH 4-10, OTP_MAX_ATTEMPTS 1-20, ARGON2_MEMORY_KIB 8192-1048576, ARGON2_TIME_COST 1-10, ARGON2_PARALLELISM 1-16, and the admin session/OTP/impersonation equivalents (ranges for Zainab to review). ACQUIRER_FAILURE_RATE was already checked (config.ts:312); a duplicate check I first added was removed.
 - Before: apps/api/src/config.e163b.test.ts — OTP_CODE_LENGTH=1, OTP_MAX_ATTEMPTS=0, ARGON2_TIME_COST=0, SESSION_TTL_HOURS=0 and others were accepted. After: refused at boot; normal values load. Config suites 6/6; app, admin and auth suites 64/64. No value in ops/ sets these (grep), so the live defaults are unchanged.
 - Still open: ranges for webhook timers and the settlement/payment-link timeouts (second review items 53-57).
+- check.sh (clean environment): OK. Needs a redeploy.
+
+### E163 — 08:23 PM — (rest) webhook timers and the settlement/payment-link timeouts are range-checked at boot
+- Changed: apps/api/src/config.ts parseRangedIntEnv for SETTLEMENT_INTERNAL_REQUEST_TIMEOUT_MS 1000-600000, PAYMENT_LINK_RESERVATION_TIMEOUT_SECONDS 0-3600, WEBHOOK_MAX_ATTEMPTS 0-50, WEBHOOK_BACKOFF_BASE_MS 100-3600000, WEBHOOK_BACKOFF_CAP_MS 1000-86400000, WEBHOOK_POLL_INTERVAL_MS 100-600000, WEBHOOK_REQUEST_TIMEOUT_MS 100-60000 (ranges for Zainab to review; 0 kept where tests use it on purpose).
+- Before: config.e163b.test.ts extended with five out-of-range values — accepted. After: refused. The seven test files that set these values pass on a fresh migrated DB (filspay_e163_202311_15359): 44/44.
+- With the earlier parts (05:11 PM and fb851fb) E163 is now fully fixed.
 - check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy
