@@ -1,4 +1,5 @@
 import type { Pool } from "pg";
+import { canonicalJson } from "../payments/idempotency.js";
 import type { Config } from "../config.js";
 import { decodeEncryptionKey, decryptSecret } from "./secretCrypto.js";
 import { signPayload } from "./sign.js";
@@ -59,7 +60,9 @@ export async function sendTestWebhookEvent(
   const response = await transport({
     url: row.url,
     headers: { [WEBHOOK_SIGNATURE_HEADER]: signature, "Content-Type": "application/json" },
-    body: JSON.stringify(testPayload),
+    // E32 (FP-240a): send exactly the bytes signPayload signed (canonicalJson);
+    // JSON.stringify used JSONB key order, so merchants' raw-body HMAC failed.
+    body: canonicalJson(testPayload),
     timeoutMs: config.webhookRequestTimeoutMs,
   });
 

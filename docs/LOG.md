@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 11:26 AM (30 Oct 2026)
-Summary: Errors 33/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
+Updated: 11:28 AM (30 Oct 2026)
+Summary: Errors 34/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -370,7 +370,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: medium
 - Proposed fix: serialize once, sign that string, send that string.
 - Expected result: merchant HMAC over the raw body matches.
-- Status: open
+- Status: fixed (see section 5)
 
 ### E33 — `Math.random` for OTP codes and payment link tokens
 - Where: apps/api/src/lib/random.ts:4, :12; auth/otp.ts:8; adminAuth/otp.ts:11; paymentLinks/create.ts:11-12
@@ -1199,6 +1199,14 @@ ROLLBACK;
 - Regression: full-db-test.sh = baseline (5 known failures).
 - Review: query only → no fix-reviewer.
 - Actual result: matches expected (multi-capture total = real captures).
+
+### E32 — 11:28 AM — webhooks send the exact bytes they sign (FP-240a)
+- Changed: apps/api/src/webhooks/dispatcher.ts and testSend.ts: `body: canonicalJson(payload)` (the string signPayload signs, sign.ts:36) instead of `JSON.stringify(payload)` (JSONB key order). FH's comment in testSend.ts "test-send signs exactly the bytes it sends" was false; now true.
+- Test: apps/api/src/webhooks/signRawBody.e32.test.ts — a merchant-side check `HMAC(secret, t + "." + rawBody) === v1` on a real delivery (dispatcher) and on "send test event". Before: `delivery body does not match its signature` (body began `{"id":…,"data":…`). After: PASS; sign/testSend/char_sign/F01c tests pass.
+- Regression: full-db-test.sh = baseline (5 known failures).
+- Note: H11 says the deleted branch `ya/sign-raw` was this fix; same idea, written fresh.
+- Review: two-line serialization change → no fix-reviewer.
+- Actual result: matches expected (merchant HMAC over the raw body matches).
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)

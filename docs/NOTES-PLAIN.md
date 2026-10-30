@@ -211,3 +211,9 @@ Where: apps/api/src/acquirer/callbacks.ts:50 · Commit: 8fd0c90
 When a payment was collected in two parts, the settlement summary counted the full payment once for each part, so 10 BD showed as 20 BD. We now add up the amount of each part instead. A test that collects 4 BD and then 6 BD now shows 10 BD.
 
 Where: apps/api/src/settlement/query.ts:408 · Commit: 0be550a
+
+## N36 — Webhooks now send exactly what they sign
+
+Shops reported that FilsPay's webhook signatures never matched. FilsPay computed the signature over the message with its fields sorted, but sent the message with the fields in a different order, so the shop's check always failed. Now the message is sent exactly as it was signed. A test that checks the signature the way a shop would now passes.
+
+Where: apps/api/src/webhooks/dispatcher.ts:176 · Commit: PENDING_N36

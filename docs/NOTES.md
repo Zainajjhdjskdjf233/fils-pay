@@ -1320,3 +1320,38 @@ Each capture event counts its own amount, once.
 The doubled rows are gone, but we did not measure speed: we have no production-size data here.
 
 Commit: 0be550a
+
+## N36 — Webhooks now send exactly what they sign
+
+### The idea
+Each webhook carries a signature, like a wax seal. The shop recomputes the seal from the message it received; if it matches, the message really came from FilsPay.
+
+### The problem
+FilsPay sealed one version of the message and sent another.
+- It signed the JSON with keys in sorted order.
+- It sent the JSON in the database's key order.
+- So every shop's check failed (FP-240a), even for the "send test event" button.
+
+### The fix
+- dispatcher.ts and testSend.ts: send the exact sorted string that was signed.
+
+### The code
+Before (apps/api/src/webhooks/dispatcher.ts:173):
+```ts
+body: JSON.stringify(row.payload),
+```
+After:
+```ts
+body: canonicalJson(row.payload),
+```
+The body is now byte-for-byte the string inside the signature.
+
+### The proof
+- Before: a shop-side HMAC over the raw body did not match the header.
+- After: it matches, for real deliveries and for the test button.
+
+### If the judges ask
+"Does sorting the keys change the meaning?"
+No. JSON objects have no order; only the bytes change, and now the bytes match the seal.
+
+Commit: PENDING_N36
