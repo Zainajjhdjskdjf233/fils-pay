@@ -771,4 +771,4 @@ parseBhdToFils reads up to 3 decimals and multiplies by 1000 with whole numbers 
 "What about money that was already imported wrong?"
 We do not edit old ledger rows. The read-only query lists each wrong row and the missing fils, so finance can post a new correcting adjustment.
 
-Commit: PENDING_N20
+Commit: 2f06eb4

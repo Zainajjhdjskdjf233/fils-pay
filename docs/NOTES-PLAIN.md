@@ -120,4 +120,4 @@ Where: apps/api/src/settlement/query.ts:363 · Commit: 9afd98d
 
 Finance can upload a file of manual balance changes, but the system read the amounts as if money had 2 decimals like dollars. Bahraini Dinars have 3, so 4.75 BD became 0.475 BD in the books, ten times too little. We switched to the correct BD reader that already existed in the code, and fixed old tests that had been checking for the wrong numbers. Now 4.75 BD is saved as 4.750 BD, and a read-only query can find old rows that were saved wrong so finance can correct them.
 
-Where: apps/api/src/admin/adjustmentCsvParsing.ts:8 · Commit: PENDING_N20
+Where: apps/api/src/admin/adjustmentCsvParsing.ts:8 · Commit: 2f06eb4
