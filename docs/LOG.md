@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 06:36 PM (30 Oct 2026)
-Summary: Errors 110/175 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 06:42 PM (30 Oct 2026)
+Summary: Errors 111/175 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1163,7 +1163,8 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/admin/balanceAdjustments.ts:35-37.
 - Error: A new merchant with no captures cannot be corrected by support (404 merchant_balance_not_found).
 - Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
-- Severity: low · Status: open
+- Severity: low · Status: skipped — Decision (Zainab to review)
+- Decision (Zainab to review), 06:50 PM: left as is. The 404 is a deliberate design choice recorded in the repo (`adminBalanceAdjustments.test.ts:183` "FH: Claude suggests auto-creating the row instead. no — MK") and three tests assert it (`adminBalanceAdjustments.test.ts:172-207`). It loses no money: a merchant with no balance row has nothing captured to correct. Alternative: create the balance row inside the adjustment transaction (`INSERT ... ON CONFLICT DO NOTHING` before the `FOR UPDATE`), and change the test at :184 to expect 201.
 
 ### E151 — [coverage] Defence in depth: validateRefundRequest trusts its caller's numbers
 - Where: apps/api/src/payments/refundValidation.ts:21-23, 38-48.
@@ -1262,7 +1263,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 ### E167 — [second review] Merchant OTP promotion keeps the pending session token (session fixation); the admin half is E47
 - Where: apps/api/src/auth/sessions.ts:57 promotes the row without a new token_hash.
 - Proof: the second review (items 65 (merchant half), notes received 5:30 PM / 6:15 PM); checked by me in the code (06:18 PM).
-- Severity: medium · Status: open
+- Severity: medium · Status: fixed (see section 5, E167)
 
 ### E168 — [second review] Webhook dispatch Step B still queues deliveries for disabled endpoints
 - Where: apps/api/src/webhooks/dispatcher.ts:228 (Step B WHERE has no `we.status = 'active'`; Step A at :98 has it).
@@ -2570,6 +2571,13 @@ ROLLBACK;
 - Before: failed on every run (`actual: 1084, expected: 1000`). After: dispatcher tests 9/9, three runs in a row.
 - Full regression after the change: 0 failures — api 491/491, money 44/44, events 4/4, reporting 18/18, web 13/13, scripts 10/10, Go 80 pass. The comparison baseline (which held only this test) is now empty (scratchpad baseline-failing-v4).
 - check.sh: OK.
+
+### E167 — 06:42 PM — merchant OTP verify now issues a new session token (session fixation) [second review]
+- Changed: apps/api/src/auth/sessions.ts:50-69 promoteSession writes a NEW token_hash in one atomic UPDATE ... WHERE id AND authenticated = false AND revoked_at IS NULL AND expires_at > now() RETURNING id; no row → null. apps/api/src/routes/auth.ts: null → 410 otp_expired (the transaction rolls back the OTP consume); the Set-Cookie carries the new token. Stale MK comment at auth.ts:205-206 corrected.
+- Before: testE167_verifyRotatesTheSessionToken failed — the cookie after verify was the same token as at login (`actual === expected` fp_sid=…). After: the login token gets 401 on /v1/auth/me; the new one gets 200.
+- Tests changed: app.test.ts signupLoginAndVerify, auth.e04.test.ts and the e34 double-click test now use the cookie from the verify response (they reused the login cookie). Auth suites 21/21. The web app needs no change: the cookie is httpOnly and the browser takes the new Set-Cookie (apps/web/src/api/dashboardAuth.ts).
+- Second review (Copilot): not run — copilot not found (LOG line 1567). fix-reviewer: APPROVE; root cause fixed; double verify safe (only one consume wins); live_sessions view (0058) reads token_hash so an in-place update works; flagged the same flaw on the admin side (adminAuth/sessions.ts:74) and the stale comment. Our answer: agree — admin side is E47 (still open); comment fixed in this commit.
+- check.sh: OK. Needs a redeploy.
 
 ## 6. Deploy
 

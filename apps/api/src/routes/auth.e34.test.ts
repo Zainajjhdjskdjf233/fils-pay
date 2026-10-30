@@ -101,7 +101,10 @@ test("testE34_doubleClickCorrectCodeStaysLoggedIn", async () => {
   const codes = [a.statusCode, b.statusCode].sort();
   assert.equal(codes[0], 200, `one verify succeeds: ${a.body} | ${b.body}`);
   assert.notEqual(codes[1], 429, "the second click must not count as out of attempts");
-  const me = await app.inject({ method: "GET", url: "/v1/auth/me", headers: { cookie } });
+  // E167: the winning verify carries the rotated token.
+  const won = a.statusCode === 200 ? a : b;
+  const session = ([] as string[]).concat(won.headers["set-cookie"] ?? []).find((h) => h.startsWith(`${config.cookieName}=`))!.split(";")[0]!;
+  const me = await app.inject({ method: "GET", url: "/v1/auth/me", headers: { cookie: session } });
   assert.equal(me.statusCode, 200, `session still valid after a double-click: ${me.body}`);
 });
 
@@ -114,4 +117,18 @@ test("testE102_verifyReissuesTheCookieForTheSessionTtl", async () => {
   const setCookie = ([] as string[]).concat(verify.headers["set-cookie"] ?? []).find((h) => h.startsWith(`${config.cookieName}=`));
   assert.ok(setCookie, "verify must send a Set-Cookie for the session");
   assert.match(setCookie!, new RegExp(`Max-Age=${config.sessionTtlHours * 3600}`), setCookie);
+});
+
+// E167 [second review]: OTP verify must issue a NEW session token (session
+// fixation). The token from the login step must not open the dashboard.
+test("testE167_verifyRotatesTheSessionToken", async () => {
+  const { cookie, code } = await pendingLogin();
+  const verify = await app.inject({ method: "POST", url: "/v1/auth/otp/verify", headers: { cookie }, payload: { code } });
+  assert.equal(verify.statusCode, 200, verify.body);
+  const fresh = ([] as string[]).concat(verify.headers["set-cookie"] ?? []).find((h) => h.startsWith(`${config.cookieName}=`))!.split(";")[0]!;
+  assert.notEqual(fresh, cookie, "verify must hand out a different token");
+  const oldMe = await app.inject({ method: "GET", url: "/v1/auth/me", headers: { cookie } });
+  assert.equal(oldMe.statusCode, 401, `the pre-login token must not authenticate: ${oldMe.body}`);
+  const newMe = await app.inject({ method: "GET", url: "/v1/auth/me", headers: { cookie: fresh } });
+  assert.equal(newMe.statusCode, 200, newMe.body);
 });

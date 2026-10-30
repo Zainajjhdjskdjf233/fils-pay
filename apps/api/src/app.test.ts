@@ -107,8 +107,10 @@ async function signupLoginAndVerify(emailPrefix: string) {
     payload: { code: loginBody.devOtpCode },
   });
   assert.equal(verifyRes.statusCode, 200, verifyRes.body);
+  // E167: verify issues a new session token; the login cookie stops working.
+  const sessionCookie = parseCookie(verifyRes.headers["set-cookie"]);
 
-  return { merchantId, email, password, cookie };
+  return { merchantId, email, password, cookie: sessionCookie };
 }
 
 function buildMultipart(

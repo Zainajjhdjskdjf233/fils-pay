@@ -47,18 +47,25 @@ export async function createPendingSession(
   return { id: row.id, rawToken, expiresAt };
 }
 
-/** Promotes a pending session to authenticated. */
+/** Promotes a pending session to authenticated.
+ *  E167: issues a NEW token at the same time (session fixation). The pending
+ *  token stops working, so a token seen before login is useless after it.
+ *  Only a still-pending, live session is promoted; otherwise returns null. */
 export async function promoteSession(
   client: PoolClient,
   sessionId: string,
   sessionTtlHours: number,
-): Promise<Date> {
+): Promise<{ expiresAt: Date; rawToken: string } | null> {
   const expiresAt = new Date(Date.now() + sessionTtlHours * 3_600_000);
-  await client.query(
-    `UPDATE sessions SET authenticated = true, authenticated_at = now(), expires_at = $2 WHERE id = $1`,
-    [sessionId, expiresAt],
+  const rawToken = randomToken(32);
+  const result = await client.query(
+    `UPDATE sessions SET authenticated = true, authenticated_at = now(), expires_at = $2, token_hash = $3
+      WHERE id = $1 AND authenticated = false AND revoked_at IS NULL AND expires_at > now()
+      RETURNING id`,
+    [sessionId, expiresAt, sha256Hex(rawToken)],
   );
-  return expiresAt;
+  if ((result.rowCount ?? 0) === 0) return null;
+  return { expiresAt, rawToken };
 }
 
 /** Takes a Pool or a PoolClient so logout can run outside a transaction. */

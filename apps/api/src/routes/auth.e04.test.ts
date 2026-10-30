@@ -76,8 +76,11 @@ test("testE04_sharedEmailLoginLandsOnOwnMerchant", async () => {
     payload: { code: (login.json() as { devOtpCode: string }).devOtpCode },
   });
   assert.equal(verify.statusCode, 200, verify.body);
+  // E167: the session token is rotated at verify.
+  const vraw = verify.headers["set-cookie"];
+  const session = (Array.isArray(vraw) ? vraw[0]! : vraw!).split(";")[0]!;
 
-  const me = await app.inject({ method: "GET", url: "/v1/auth/me", headers: { cookie } });
+  const me = await app.inject({ method: "GET", url: "/v1/auth/me", headers: { cookie: session } });
   assert.equal(me.statusCode, 200, me.body);
   assert.notEqual(me.json().merchant.id, victimId, "attacker's password must never open the victim's merchant");
   assert.equal(me.json().merchant.id, attackerId);

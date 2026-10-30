@@ -202,14 +202,18 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         if ((consumed.rowCount ?? 0) === 0) {
           throw new GoneError("otp_expired");
         }
-        // promoteSession bumps expires_at to 12h server-side; the cookie maxAge doesn't matter because
-        // MK: admin verify re-sets the cookie after this, merchant verify doesnt. related to the 10 min logouts?
-        await promoteSession(client, pending.sessionId, app.config.sessionTtlHours);
+        // promoteSession bumps expires_at to 12h and issues a new token (E167);
+        // the cookie is re-set below with that token (E102 fixed the 10-minute logouts).
+        const promoted = await promoteSession(client, pending.sessionId, app.config.sessionTtlHours);
+        if (!promoted) {
+          throw new GoneError("otp_expired");
+        }
         const result = await client.query<{ merchant_id: string; role: "owner" | "finance" | "support" }>(
           `SELECT merchant_id, role FROM merchant_users WHERE id = $1`,
           [pending.merchantUserId],
         );
-        return result.rows[0];
+        const row = result.rows[0];
+        return row ? { ...row, newToken: promoted.rawToken } : undefined;
       });
       if (!merchantUserResult) {
         throw new Error("otp/verify: merchant_users row disappeared mid-transaction");
@@ -218,7 +222,8 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       // E102: re-issue the cookie at the full session TTL, like the admin
       // verify does. The login cookie lives only pendingSessionTtlMinutes (10),
       // so the dashboard silently lost its session 10 minutes after login.
-      reply.setCookie(app.config.cookieName, rawToken, {
+      // E167: the cookie carries the NEW token from promoteSession.
+      reply.setCookie(app.config.cookieName, merchantUserResult.newToken, {
         httpOnly: true,
         path: "/",
         sameSite: "lax",

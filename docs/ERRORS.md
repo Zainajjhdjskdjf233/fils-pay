@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 110 of 175 fixed.
+Summary: 111 of 175 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -66,7 +66,7 @@ Summary: 110 of 175 fixed.
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-## Medium (37 of 60 fixed)
+## Medium (38 of 60 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -126,7 +126,7 @@ Summary: 110 of 175 fixed.
 | E148 | [coverage] No limit on KYC uploads per merchant: the shared disk can be filled | Open |
 | E163 | [second review] API config never refuses bad settings (prefixes, booleans, NODE_ENV typo turns off security defaults, no ranges) | Partly fixed |
 | E165 | [second review] Authorize and capture accept a zero or negative amount: 0 reaches the acquirer then the DB CHECK (500); negative makes toFils throw (500) | Fixed |
-| E167 | [second review] Merchant OTP promotion keeps the pending session token (session fixation); the admin half is E47 | Open |
+| E167 | [second review] Merchant OTP promotion keeps the pending session token (session fixation); the admin half is E47 | Fixed |
 | E168 | [second review] Webhook dispatch Step B still queues deliveries for disabled endpoints | Fixed |
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Open |
@@ -185,7 +185,7 @@ Summary: 110 of 175 fixed.
 | E132 | [deep review] Reconciliation reads its figures from different snapshots | Open |
 | E133 | [second review] Report filter JSON used without a shape check | Fixed |
 | E149 | [coverage] Credit effectiveDate "0000-01-01" passes validation; Postgres likely refuses it (500) | Fixed |
-| E150 | [coverage] Balance adjustment returns 404 for a merchant with no balance row yet | Open |
+| E150 | [coverage] Balance adjustment returns 404 for a merchant with no balance row yet | Skipped |
 | E151 | [coverage] Defence in depth: validateRefundRequest trusts its caller's numbers | Open |
 | E152 | [coverage] Go ApplyRateFils: int64 overflow wraps silently (TS throws) | Open |
 | E153 | [coverage] A fully refunded, partly captured row refunded again with no amount gives 422 instead of 409 | Fixed |
