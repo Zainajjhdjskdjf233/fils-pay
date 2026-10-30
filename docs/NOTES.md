@@ -844,3 +844,40 @@ Both amounts now come from one number, so they always agree.
 That is a separate question (the rounding residue, E16). This fix only makes the file match our own number, as ADR-0002 says.
 
 Commit: 01eee15
+
+## N23 — Split payouts now add up to the parent's total
+
+### The idea
+Some shops (like a marketplace) split their daily payout between child shops by fixed shares, like 50%, 30% and 20%. It is like cutting a cake into agreed pieces.
+
+### The problem
+Each child's piece was rounded on its own.
+- With a payout of 3 fils, the pieces were 2, 1 and 1: 4 fils paid out of 3.
+- With 1 fil, every piece was 0, so 1 fil vanished.
+
+### The fix
+- shares.go: largest remainder. Every child gets the rounded-down share, then the few fils left go one each to the children with the biggest leftovers.
+- allocate.go: the payout uses that one calculation for all children.
+
+### The code
+Before (apps/settlement/internal/splits/allocate.go:98):
+```go
+share := money.ApplyRateFils(money.Fils(netPayout), weightBps)
+```
+After (apps/settlement/internal/splits/allocate.go:110):
+```go
+for i, amount := range ChildShares(money.Fils(netPayout), weights) {
+    shares[i].AllocatedFils = amount
+}
+```
+All shares are cut from the same total, so they always add back up to it.
+
+### The proof
+- Before: net 3 with 50/30/20 paid 4 fils, and the shop's cached balance went to -1.
+- After: net 3 pays exactly 3. Many amounts and weights all add up exactly.
+
+### If the judges ask
+"Who gets the extra fil?"
+The child whose exact share was closest to the next fil. The same rule as the allocateRemainder helper in our money package.
+
+Commit: PENDING_N23

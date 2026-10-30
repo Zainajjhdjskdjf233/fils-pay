@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 10:54 AM (30 Oct 2026)
-Summary: Errors 19/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
+Updated: 11:02 AM (30 Oct 2026)
+Summary: Errors 20/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -227,7 +227,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: high (CASE-FILE Item 02 bullet 3)
 - Proposed fix: largest-remainder allocation; validate weights = 10000; post legs to child ids.
 - Expected result: sum of children = parent net for every input.
-- Status: open (note: "tens of fils per batch" not reproduced, see H27)
+- Status: fixed (see section 5; "tens of fils per batch" still not reproduced, see H27)
 
 ### E18 — FP-203: "Recalculate cached balances" button and CLI read different sources
 - Where: apps/settlement/internal/internalapi/server.go:268 → ledger/refresh.go:62 → db/migrations/0054_views.sql:3-8; CLI: ledger/rebuild.go:103
@@ -1071,6 +1071,15 @@ ROLLBACK;
 - Not changed: the 10-fils truncation and where the cut digit goes (residue account, E16).
 - Review: one line, follows the ADR → no fix-reviewer; Copilot CLI not installed.
 - Actual result: matches expected.
+
+### E17 — 11:02 AM — split payouts add up to the parent's net
+- Changed: apps/settlement/internal/splits/shares.go: `ChildShares` = largest-remainder allocation (floor of net × w / W with math/big, then the left-over fils one each to the largest remainders, ties to the earlier child — same rule as packages/money allocateRemainder, fils.ts:161-215). Whole file replaced (it was one 17-line function). apps/settlement/internal/splits/allocate.go:94-112: PayoutSplitBatch calls ChildShares once for all children (was `money.ApplyRateFils(net, weight)` per child, allocate.go:98); note added under the am: cache comment (:144).
+- Test: shares_e17_test.go. Before: `net 3 weights [5000 3000 2000]: shares [2 1 1] sum 4`; `net 1 … sum 0`; `net 123457 … sum 123456`; weights 3000/3000 `sum 600, want 1001`; DB `net 3 split 50/30/20: allocated 4, debited 4, cache -1`. After: 4/4 PASS + old TestChildShares_SumToNet.
+- Regression: full-db-test.sh = baseline (5 known failures); Go 65 pass.
+- Decision (for Zainab to review): weights that do not total 10000 are split in proportion to their own total, so exactly the net is paid — Why: before, 3 × 5000 paid 150% of net and 2 × 3000 paid 60%; the DB does not enforce the total (0045 comment) — Alternative: refuse the payout (an error would stop RunDailyBatch for every later merchant).
+- Decision (for Zainab to review): ledger payout lines stay on the parent's merchant_payable (LOG proposed child ids) — Why: the batch's money accrued on the parent's merchant_payable; booking the debit to a child would leave the parent's payable up and the child's negative — Alternative: post to children plus a parent→child transfer (bigger change, needs a design).
+- Review: fix-reviewer → APPROVE (remainder loop never exceeds the child count because weights > 0 by 0045:16 CHECK; ties stable; zero net safe; overflow safe). It could not run Go in its shell; the red/green proof above is mine. Copilot CLI not installed.
+- Actual result: matches expected (sum of children = parent net for every tested input).
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)
