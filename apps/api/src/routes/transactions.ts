@@ -75,6 +75,11 @@ export async function transactionRoutes(app: FastifyInstance): Promise<void> {
       if (amountFils === undefined || !card) {
         throw new BadRequestError("invalid_request", "amountFils and card are required");
       }
+      // E165: a positive whole number of fils (0 reached the acquirer, then the
+      // DB CHECK → 500; a negative value made toFils throw → 500).
+      if (typeof amountFils !== "number" || !Number.isSafeInteger(amountFils) || amountFils <= 0) {
+        throw new BadRequestError("invalid_amount", "amountFils must be a positive whole number of fils");
+      }
       const cleanCard = parseSimulatedCard(card);
       if (!cleanCard) {
         throw new BadRequestError("invalid_card", "card needs pan (12-19 digits), expiryMonth (1-12), expiryYear and cvv (3-4 digits)"); // E123
@@ -105,6 +110,9 @@ export async function transactionRoutes(app: FastifyInstance): Promise<void> {
     async (request, reply) => {
       const idempotencyKey = getIdempotencyKey(request);
       const { amountFils } = request.body ?? {};
+      if (amountFils !== undefined && (typeof amountFils !== "number" || !Number.isSafeInteger(amountFils) || amountFils <= 0)) {
+        throw new BadRequestError("invalid_amount", "amountFils must be a positive whole number of fils"); // E165
+      }
 
       const result = await captureTransaction(app.db, app.acquirer, {
         transactionId: request.params.id,

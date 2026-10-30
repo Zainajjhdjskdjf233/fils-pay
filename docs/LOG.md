@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 06:26 PM (30 Oct 2026)
-Summary: Errors 104/175 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 06:28 PM (30 Oct 2026)
+Summary: Errors 105/175 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1252,7 +1252,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 ### E165 — [second review] Authorize and capture accept a zero or negative amount: 0 reaches the acquirer then the DB CHECK (500); negative makes toFils throw (500)
 - Where: apps/api/src/routes/transactions.ts:85, :112 (`toFils(amountFils)`); payments/authorize.ts:93 calls the acquirer before the INSERT at :103 hits CHECK amount_fils > 0 (0004:13).
 - Proof: the second review (items 59, 61, notes received 5:30 PM / 6:15 PM); checked by me in the code (06:18 PM).
-- Severity: medium · Status: open
+- Severity: medium · Status: fixed (see section 5, E165)
 
 ### E166 — [second review] Payment-link create with amount 0 gives a DB error (500)
 - Where: apps/api/src/paymentLinks/create.ts:36-38 passes toFils(0); the INSERT hits CHECK amount_fils > 0 (0020:31).
@@ -2530,6 +2530,13 @@ ROLLBACK;
 - Changed: apps/api/src/webhooks/create.ts validateWebhookUrl (used by create and update): a URL with a username or password → 400 invalid_url (fetch refuses such URLs at send time; they would also sit in the DB in plain text).
 - Test: apps/api/src/webhooks/create.e175.test.ts. Before: fail (both accepted). After: PASS; webhook tests pass.
 - Found by: the second review (item 89).
+- check.sh: OK.
+
+### E165 — 06:28 PM — authorize and capture amounts must be positive whole numbers of fils
+- Changed: apps/api/src/routes/transactions.ts: authorize requires a positive safe-integer amountFils before authorizeTransaction (0 used to reach the acquirer, then the DB CHECK → 500; a negative made toFils throw → 500); capture requires the same when an amount is given (undefined still captures the remainder).
+- Test: apps/api/src/routes/amounts.e165.test.ts (0, -1, 1.5, null, "5000" on authorize; 0, -1 on capture). Before: `authorize 0: 500` after an acquirer call. After: PASS; transaction and payment tests 58/58.
+- fix-reviewer: APPROVE (payment links use the stored amount; a string amount never worked — was 500, now 400). Took its nit (null and "5000" pinned).
+- Found by: the second review (items 59, 61).
 - check.sh: OK.
 
 ## 6. Deploy
