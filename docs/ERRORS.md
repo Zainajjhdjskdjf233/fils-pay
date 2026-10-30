@@ -89,7 +89,7 @@ Summary: 166 of 178 fixed.
 | E44 | Reconciliation "pending" estimate uses float and the wrong rate | Fixed |
 | E50 | Fee at capture ignores the negotiated discount that settlement applies | Partly fixed |
 | E53 | One malformed outbox event stops the whole reporting consumer | Fixed |
-| E58 | Session vs impersonation order may mix identities (FP-198 comment) — not reproduced: a test with both cookies shows no mixing | Skipped |
+| E58 | Session vs impersonation order may mix identities (FP-198 comment) — closed: not a bug, testE58 (admin.test.ts) locks it | Skipped |
 | E60 | Reconciliation counts payouts of earlier days as an unexplained gap | Fixed |
 | E61 | Dashboard and admin console cannot reach the API from their own origin (no CORS, no proxy) | Fixed |
 | E62 | [found later] Two reporting passes at the same time count every event twice | Fixed |

@@ -1742,3 +1742,29 @@ test("testE82_adminRevokesButNeverReceivesAMerchantKey", async () => {
   assert.equal(keys.rows[0].n, 0, "no replacement key was created by staff");
   assert.equal((await auditRowsFor(finance.id, "api_key_revoke")).length, 1);
 });
+
+// E58 [found later], decided: closed as "not a bug", locked by this test. A
+// browser holding BOTH a merchant session and an old impersonation grant
+// cookie keeps the merchant's own identity (session first; FP-198 comment).
+test("testE58_sessionWinsOverAnOldImpersonationCookie", async () => {
+  const admin = await signedInAdmin("support", "e58");
+  const viewed = await createMerchant("e58-viewed");
+  const own = await createMerchant("e58-own");
+  const startRes = await app.inject({ method: "POST", url: `/v1/admin/merchants/${viewed.merchantId}/impersonate`, headers: { cookie: admin.cookie } });
+  assert.equal(startRes.statusCode, 201, startRes.body);
+  const impCookie = parseCookie(startRes.headers["set-cookie"], config.impersonationCookieName);
+  const rawToken = `e58-${randomUUID()}-${randomUUID()}`;
+  const { createHash } = await import("node:crypto");
+  await pool.query(
+    `INSERT INTO sessions (merchant_user_id, token_hash, authenticated, expires_at) VALUES ($1, $2, true, now() + interval '1 hour')`,
+    [own.ownerUserId, createHash("sha256").update(rawToken).digest("hex")],
+  );
+  const both = `${config.cookieName}=${rawToken}; ${impCookie}`;
+  const me = await app.inject({ method: "GET", url: "/v1/auth/me", headers: { cookie: both } });
+  assert.equal(me.statusCode, 200, me.body);
+  assert.equal((me.json() as { merchant: { id: string } }).merchant.id, own.merchantId, "/me shows the merchant's own shop");
+  const write = await app.inject({ method: "POST", url: "/v1/reporting/saved-filters", headers: { cookie: both }, payload: { name: "e58", filter: {} } });
+  assert.equal(write.statusCode, 201, `the request acts as the merchant session, not the read-only grant: ${write.body}`);
+  const row = await pool.query(`SELECT merchant_id FROM reporting_saved_filters WHERE name = 'e58' AND merchant_id = $1`, [own.merchantId]);
+  assert.equal(row.rowCount, 1, "data lands in the merchant's own shop, never the viewed one");
+});

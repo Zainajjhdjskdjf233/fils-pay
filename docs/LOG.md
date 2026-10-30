@@ -617,6 +617,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Proof: fix-reviewer on E05 (1:03 AM); to verify with a test that sends both cookies.
 - Severity: medium (suspected)
 - Status: not reproduced — guard test added (see section 5)
+- Decision (Claude, Zainab approved deciding without review): close E58 as not a bug and lock the safe behaviour with a test — Why: a test with both a merchant session cookie and an impersonation grant cookie shows the merchant's own identity wins for reads and writes (session first, requireMerchantAuth.ts:49-90); MK's FP-198 warning does not reproduce — Alternative: change the order so the grant wins (would make a merchant who once was impersonated act as read-only support)
 
 ### E59 — [found later] Acquirer callback `outcome` is never validated
 - Where: apps/api/src/routes/acquirerCallbacks.ts:72 (`body.outcome as AcquirerCallbackInput["outcome"]`); the comment at :10-12 says it is validated
@@ -3000,6 +3001,9 @@ ROLLBACK;
 - Tests changed: three admin.test.ts tests pinned the removed behaviour (rotation issues a new key); rewritten for revoke, keeping what they protected — an audit-write failure rolls the revoke back, a second revoke is 409, another merchant's key is 404. Admin and API key suites 123/123; api and admin tsc clean.
 - check.sh (clean environment): OK. Needs a redeploy.
 
+### E58 — closed as not a bug (09:18 PM)
+- Test added: testE58_sessionWinsOverAnOldImpersonationCookie (apps/api/src/routes/admin.test.ts): with a merchant session cookie AND an old grant cookie, /v1/auth/me shows the merchant's own shop and a saved-filter write lands in the merchant's own shop (201), not the viewed one. Passes on the current code; no source change. Status stays 'Skipped' in docs/ERRORS.md because nothing was broken.
+
 ## 6. Deploy
 
 ### Official submission rules (04:28 PM, from Zainab; they override older plans)
@@ -3301,3 +3305,4 @@ Zainab asked for speed without losing safety. Two read-only agents now plan ahea
 - Judge note (08:36 PM): a one-line nginx change of mine (a second proxy_read_timeout in the same location) crashed the local nginx into a restart loop. Because every nginx change is rebuilt and checked locally before a redeploy, the live site was never affected. Fixed by editing the existing line; nginx -t and both ports verified.
 - Judge note (08:40 PM): before committing a migration that changed a view's owner, I checked which database user runs migrations on the live server. It is a non-superuser that cannot give ownership away, so that migration would have failed at the redeploy and kept the API down. My superuser test databases could not show this. I switched to a plain view, which needs no special rights.
 - Judge note (09:16 PM): E82 — staff could quietly obtain a full-power merchant key; now they can only cut a key off, and the shop issues its own.
+- Judge note (09:17 PM): E58 — a comment claimed identities could mix; a test proves they do not, so nothing was changed and the test stays as a guard.
