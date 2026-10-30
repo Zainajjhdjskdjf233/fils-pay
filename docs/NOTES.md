@@ -2335,4 +2335,4 @@ The ticket is returned even when the connection fails. The buyer gets a 503 and 
 "Why not just use finally?"
 The connect line was before the try, so finally never ran. Moving the whole thing inside would also release a client we never got; a small try/catch around connect is clearer.
 
-Commit: PENDING_N63
+Commit: c06b7eb

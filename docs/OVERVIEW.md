@@ -23,7 +23,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:54 PM
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
 - Dilmune Cloud: not yet
 - Decisions waiting for Zainab: 21 (search "for Zainab to review" in LOG.md)
-- Fork: up to date
+- Fork: needs a push (VS Code: Git: Push to... → mine)
 
 ## 2. Stages
 - ✅ Understand
@@ -74,6 +74,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:54 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- c06b7eb fix(E122): link pay gives back its lock slot, frees the link and voids when pool.connect fails
 - c973988 fix(E119): CSV adjustment import capped at the two-person threshold (per row and total)
 - fb945fa fix(E118): a business day can only be closed after it has ended — early close stranded later captures
 - a3975a9 fix(E117): OTP guess limit per user across logins; older codes and pending sessions end at login
@@ -88,7 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:54 PM
 - 376bc49 fix(E19): MDR recalculation uses fee schedules and the tier bonus stored at close
 - ad4a77b fix(E60): reconciliation ledger figure excludes payout lines — next-day payouts looked like a gap
 - 976d166 fix(E44): reconciliation pending fee uses the settlement formula (schedule, tier, integer)
-- eebf7d4 fix(E42): reporting cursor on (txid, id) below the snapshot horizon — late commits were skipped
 
 ## 7. All errors
 ## High (34 of 39 fixed)
@@ -2569,5 +2569,5 @@ The ticket is returned even when the connection fails. The buyer gets a 503 and 
 "Why not just use finally?"
 The connect line was before the try, so finally never ran. Moving the whole thing inside would also release a client we never got; a small try/catch around connect is clearer.
 
-Commit: PENDING_N63
+Commit: c06b7eb
 
