@@ -25,3 +25,25 @@ test("testE51_noHardcodedFallbackKey", () => {
   const source = readFileSync(new URL("./config.ts", import.meta.url), "utf8");
   assert.doesNotMatch(source, /DEV_FALLBACK_WEBHOOK_KEY_B64/);
 });
+
+// E163 [second review, items 45, 47-51, 53-57]: config settings that are not
+// valid must stop the boot, not silently become another value.
+test("testE163_invalidSettingsAreRefusedAtBoot", () => {
+  const key = Buffer.alloc(32, 9).toString("base64");
+  const env = (extra: Record<string, string>) => ({ ...baseEnv, WEBHOOK_SECRET_ENCRYPTION_KEY: key, ...extra });
+  for (const [extra, why] of [
+    [{ PORT: "3000oops" }, "integer prefix"],
+    [{ PG_POOL_MAX: "99999999999999999" }, "unsafe integer"],
+    [{ ACQUIRER_FAILURE_RATE: "0.5oops" }, "float prefix"],
+    [{ ACQUIRER_FAILURE_RATE: "1.5" }, "probability above 1"],
+    [{ OTP_DEV_EXPOSE: "treu" }, "boolean typo"],
+    [{ NODE_ENV: "prod" }, "unknown NODE_ENV (became development: SSRF block and secure cookies off)"],
+    [{ PG_POOL_MAX: "0" }, "pool max 0"],
+    [{ PG_POOL_MIN: "6", PG_POOL_MAX: "5" }, "pool min above max"],
+    [{ WEBHOOK_MAX_ATTEMPTS: "0" }, "zero webhook attempts"],
+  ] as Array<[Record<string, string>, string]>) {
+    assert.throws(() => loadConfig(env(extra)), /loadConfig/, why);
+  }
+  // Valid values still load.
+  assert.equal(loadConfig(env({ PORT: "3000", OTP_DEV_EXPOSE: "false", ACQUIRER_FAILURE_RATE: "0.02" })).port, 3000);
+});

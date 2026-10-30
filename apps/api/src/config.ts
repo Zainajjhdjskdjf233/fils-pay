@@ -133,13 +133,18 @@ function parseNodeEnv(value: string | undefined): Config["nodeEnv"] {
   if (value === "production" || value === "test" || value === "development") {
     return value;
   }
-  return "development";
+  // E163: only an unset NODE_ENV defaults to development. A typo ("prod")
+  // used to become development too, silently turning off the webhook
+  // private-address block, secure cookies and the missing-secret checks.
+  if (value === undefined || value === "") return "development";
+  throw new Error(`loadConfig: NODE_ENV must be production, test or development, got "${value}"`);
 }
 
 function parseIntEnv(value: string | undefined, fallback: number): number {
   if (value === undefined || value === "") return fallback;
-  const parsed = Number.parseInt(value, 10);
-  if (!Number.isFinite(parsed)) {
+  // E163: the whole string must be an integer ("3000oops" was 3000).
+  const parsed = /^-?\d+$/.test(value) ? Number(value) : Number.NaN;
+  if (!Number.isSafeInteger(parsed)) {
     throw new Error(`loadConfig: expected an integer, got "${value}"`);
   }
   return parsed;
@@ -147,7 +152,8 @@ function parseIntEnv(value: string | undefined, fallback: number): number {
 
 function parseFloatEnv(value: string | undefined, fallback: number): number {
   if (value === undefined || value === "") return fallback;
-  const parsed = Number.parseFloat(value);
+  // E163: the whole string must be a number ("0.5oops" was 0.5).
+  const parsed = /^-?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(value) ? Number(value) : Number.NaN;
   if (!Number.isFinite(parsed)) {
     throw new Error(`loadConfig: expected a number, got "${value}"`);
   }
@@ -156,7 +162,10 @@ function parseFloatEnv(value: string | undefined, fallback: number): number {
 
 function parseBoolEnv(value: string | undefined, fallback: boolean): boolean {
   if (value === undefined || value === "") return fallback;
-  return value === "true" || value === "1";
+  // E163: anything but true/false/1/0 was silently false ("treu").
+  if (value === "true" || value === "1") return true;
+  if (value === "false" || value === "0") return false;
+  throw new Error(`loadConfig: expected true, false, 1 or 0, got "${value}"`);
 }
 
 const BASE64_RE = /^[A-Za-z0-9+/]+={0,2}$/;
@@ -201,7 +210,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     throw new Error("loadConfig: ACQUIRER_CALLBACK_SIGNING_SECRET is required when NODE_ENV=production");
   }
 
-  return {
+  const config: Config = {
     nodeEnv,
     port: parseIntEnv(env.PORT, 3000),
     databaseUrl,
@@ -271,4 +280,16 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     acquirerCallbackSigningSecret,
     acquirerCallbackRequireSignature: parseBoolEnv(env.ACQUIRER_CALLBACK_REQUIRE_SIGNATURE, true),
   };
+  // E163: ranges the parsers alone cannot check (bad values reached pg or
+  // the simulator at request time instead of failing the boot).
+  if (config.acquirerFailureRate < 0 || config.acquirerFailureRate > 1) {
+    throw new Error(`loadConfig: ACQUIRER_FAILURE_RATE must be between 0 and 1, got ${config.acquirerFailureRate}`);
+  }
+  if (config.pgPoolMax < 1 || config.pgPoolMin < 0 || config.pgPoolMin > config.pgPoolMax) {
+    throw new Error(`loadConfig: need PG_POOL_MAX >= 1 and 0 <= PG_POOL_MIN <= PG_POOL_MAX, got ${config.pgPoolMin}..${config.pgPoolMax}`);
+  }
+  if (config.webhookMaxAttempts < 1) {
+    throw new Error(`loadConfig: WEBHOOK_MAX_ATTEMPTS must be at least 1, got ${config.webhookMaxAttempts}`);
+  }
+  return config;
 }

@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 85 of 163 fixed.
+Summary: 86 of 163 fixed.
 
 ## High (45 of 46 fixed)
 
@@ -66,7 +66,7 @@ Summary: 85 of 163 fixed.
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-## Medium (27 of 55 fixed)
+## Medium (28 of 55 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -124,7 +124,7 @@ Summary: 85 of 163 fixed.
 | E146 | [coverage] Public signup and login have no rate limit; each call runs argon2 | Open |
 | E147 | [coverage] A broken image upload gives 500 and leaves an orphan file on disk | Open |
 | E148 | [coverage] No limit on KYC uploads per merchant: the shared disk can be filled | Open |
-| E163 | [second review] API config never refuses bad settings (prefixes, booleans, NODE_ENV typo turns off security defaults, no ranges) | Open |
+| E163 | [second review] API config never refuses bad settings (prefixes, booleans, NODE_ENV typo turns off security defaults, no ranges) | Fixed |
 
 ## Low (13 of 62 fixed)
 

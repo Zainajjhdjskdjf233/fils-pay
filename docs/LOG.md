@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 05:09 PM (30 Oct 2026)
-Summary: Errors 85/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 05:11 PM (30 Oct 2026)
+Summary: Errors 86/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1241,7 +1241,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/config.ts:139-145 `Number.parseInt` + `Number.isFinite`.
 - Error: PORT=3000oops starts on 3000; a typo silently becomes a different setting (`node -e` → 3000).
 - Proof: the second review (items 32-45, pasted by Zainab at 4:23 PM); checked by me in the code (04:30 PM).
-- Severity: medium · Status: open (re-rated from low, second review items 46-57)
+- Severity: medium · Status: fixed (see section 5, E163)
 
 ## 3. Hidden things
 
@@ -2310,6 +2310,13 @@ ROLLBACK;
 - Changed: apps/api/src/lib/crypto.ts:15-17: both inputs must be whole hex strings (pairs of 0-9a-f), else false. Callers (auth/otp.ts:24, webhooks/sign.ts:96) unchanged.
 - Test: apps/api/src/lib/crypto.e156.test.ts. Before: `true !== false` ("61" vs "61zz"). After: PASS; crypto, auth and signing tests 37/37 (with DATABASE_URL; my first run without it showed the DB tests as failures — not a regression).
 - check.sh: OK.
+
+### E163 — 05:11 PM — the API config refuses bad settings at boot
+- Changed: apps/api/src/config.ts: parseNodeEnv throws on an unknown value (only unset → development; "prod" used to become development and turn off the webhook private-address block, secure cookies and the missing-secret checks); parseIntEnv needs the whole string to be a safe integer ("3000oops"); parseFloatEnv the whole string to be a number ("0.5oops"); parseBoolEnv accepts only true/false/1/0 ("treu" was false); after parsing: ACQUIRER_FAILURE_RATE in [0, 1], PG_POOL_MAX >= 1 and 0 <= PG_POOL_MIN <= PG_POOL_MAX, WEBHOOK_MAX_ATTEMPTS >= 1.
+- Checked first: every value in ops/, apps/ tests and package.json is valid under the new rules (NODE_ENV test/development/production, OTP_DEV_EXPOSE true).
+- Not done (smaller impact, recorded): range checks for OTP TTL/attempts/length, argon2 costs, webhook timers, settlement and payment-link timeouts (second review items 53-57).
+- Test: apps/api/src/config.e51.test.ts testE163_invalidSettingsAreRefusedAtBoot (9 bad settings). Before: `Missing expected exception: integer prefix`. After: PASS.
+- Regression: api at baseline v3 (the known E54 test), reporting 18/18, web 13/13, scripts 10/10, Go 80.
 
 ## 6. Deploy
 
