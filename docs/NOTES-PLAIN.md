@@ -649,3 +649,45 @@ Where: apps/api/src/paymentLinks/create.ts · Commit: 1ff0962
 Messages kept going to a webhook address the shop had switched off. Now they wait. A test checks it.
 
 Where: apps/api/src/webhooks/dispatcher.ts · Commit: 4553c70
+
+## N109 — The public payment link hides API key data
+
+The public payment-link answer showed the shop's API key hash and prefix to anyone. Now it shows only what a buyer needs. A test checks both fields are gone.
+
+Where: apps/api/src/paymentLinks/read.ts · Commit: a04e53b
+
+## N110 — Webhook addresses cannot contain a password
+
+Webhook addresses with a password inside were accepted, could never work, and stored the password. Now they are refused. A test checks it.
+
+Where: apps/api/src/webhooks/create.ts · Commit: b1fc38d
+
+## N111 — A card payment needs a real amount
+
+A zero amount reached the bank before failing, and negative amounts crashed. Now the amount must be a positive whole number first. A test checks several bad amounts.
+
+Where: apps/api/src/routes/transactions.ts · Commit: 06131f5
+
+## N112 — Webhook archive dates must be real
+
+Admin resend and archive tools accepted impossible dates and times without a zone. Now dates are checked strictly. A test checks it.
+
+Where: apps/api/src/routes/adminMerchants.ts · Commit: b6bfae5
+
+## N113 — Admin batch and fee tools check their input
+
+Admin settlement tools passed impossible dates, backwards ranges and unknown shops through. Now each is refused clearly. A test checks all four cases.
+
+Where: apps/api/src/routes/admin.ts · Commit: c4445c3
+
+## N114 — A broken image upload leaves nothing behind
+
+A broken photo was saved and then crashed the upload. Now it is checked first and refused, and nothing is saved. A test checks it.
+
+Where: apps/api/src/onboarding/kyc.ts · Commit: af7cbc4
+
+## N115 — One document per upload
+
+Uploading two files kept only the last one without saying so. Now a second file is refused. A test checks it.
+
+Where: apps/api/src/routes/kyc.ts · Commit: PENDING_N115

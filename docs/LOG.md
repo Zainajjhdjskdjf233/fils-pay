@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 06:32 PM (30 Oct 2026)
-Summary: Errors 108/175 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 06:34 PM (30 Oct 2026)
+Summary: Errors 109/175 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1205,7 +1205,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/plugins/multipart.ts:13 (false comment), routes/kyc.ts:48-55.
 - Error: Files A then B → 201 for B only.
 - Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E157)
 
 ### E158 — [coverage] Adjustment import has no row cap; one long transaction can outlive the 60 s proxy timeout
 - Where: apps/api/src/admin/adjustmentCsvParsing.ts:26-57; admin/adjustmentImport.ts:97-109; nginx proxy_read_timeout 60 s.
@@ -2557,6 +2557,12 @@ ROLLBACK;
 - Decision (Zainab to review): refuse a broken image instead of storing it without a thumbnail — a reviewer cannot open it either. Risk noted by the planner: sharp may refuse slightly truncated phone JPEGs that viewers still open.
 - Still open (recorded): an orphan file remains if the DB insert fails after writeFile (comment at kyc.ts:75).
 - Test: apps/api/src/onboarding/kyc.e147.test.ts (FF D8 FF + 100 bytes). Before: raw sharp error, not 422. After: PASS, no file left; onboarding and app tests pass.
+- check.sh: OK.
+
+### E157 — 06:34 PM — a KYC upload with several files is refused
+- Changed: apps/api/src/routes/kyc.ts upload loop: a second file part → 400 too_many_files before it is read (a second file used to replace the first silently). The false MK comment at plugins/multipart.ts:13 ("one file per request is enforced in routes/kyc.ts") is marked.
+- Tried first: `limits.files: 1` in plugins/multipart.ts — the request stream then closed early (ERR_STREAM_PREMATURE_CLOSE → 500) instead of the plugin's FST_FILES_LIMIT, so I reverted it and used the check in the loop (the planner's Fix B).
+- Test: apps/api/src/routes/kyc.e157.test.ts (two PDFs). Before: 201 storing b.pdf. After: PASS (400 too_many_files, nothing stored); upload, onboarding and app tests 26/26.
 - check.sh: OK.
 
 ## 6. Deploy

@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 108 of 175 fixed.
+Summary: 109 of 175 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -131,7 +131,7 @@ Summary: 108 of 175 fixed.
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Open |
 
-## Low (25 of 69 fixed)
+## Low (26 of 69 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -192,7 +192,7 @@ Summary: 108 of 175 fixed.
 | E154 | [coverage] adjustMerchantBalanceJournaled is dead code | Open |
 | E155 | [coverage] Webhook PATCH with a bad status gives 500 | Fixed |
 | E156 | [coverage] timingSafeEqualHex accepts extra characters after a valid digest | Fixed |
-| E157 | [coverage] Several files in one KYC request: earlier ones are silently dropped; "one file enforced" comment is false | Open |
+| E157 | [coverage] Several files in one KYC request: earlier ones are silently dropped; "one file enforced" comment is false | Fixed |
 | E158 | [coverage] Adjustment import has no row cap; one long transaction can outlive the 60 s proxy timeout | Fixed |
 | E159 | [second review] Pagination cursors are not validated; a malformed cursor reaches a database cast (500) | Fixed |
 | E160 | [second review] The adjustment-import list pages on created_at text with no tie-breaker | Open |

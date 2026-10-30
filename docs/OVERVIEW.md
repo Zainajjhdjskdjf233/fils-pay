@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 6:25 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 6:34 PM
 
 ## Contents
 1. Status now
@@ -14,10 +14,10 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 6:25 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 103 of 175 fixed.
+- Errors: 109 of 175 fixed.
   - High: 46 of 46 fixed
-  - Medium: 35 of 60 fixed
-  - Low: 22 of 69 fixed
+  - Medium: 37 of 60 fixed
+  - Low: 26 of 69 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
@@ -27,7 +27,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 6:25 PM
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 103 of 175 fixed.
+- 🔄 Fix: 109 of 175 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -74,6 +74,11 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 6:25 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- af7cbc4 fix(E147): a broken image upload is refused with 422 before anything is written to disk
+- c4445c3 fix(E173): admin run-batch and MDR recalc refuse impossible dates, reversed ranges and unknown merchants
+- b6bfae5 fix(E172): webhook archive and replay date ranges must be real dates with a zone
+- 06131f5 fix(E165): authorize and capture require a positive whole-fils amount (no acquirer call for 0; 400 not 500)
+- b1fc38d fix(E175): webhook URLs with embedded credentials are refused
 - a04e53b fix(E38): the public payment-link answer no longer exposes the merchant's API key hash or prefix; N108 hash
 - 4553c70 fix(E168): webhook dispatch never sends to a disabled endpoint; notes N102-N108
 - 1ff0962 fix(E174): payment-link expiresAt must be a real date with a zone
@@ -84,11 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 6:25 PM
 - 364058f fix(E144): webhook archive create refuses more than 10,000 deliveries; N101 hash
 - 9397d53 fix(E128): a suspended or closed merchant's sessions and API keys stop working; notes N97-N101
 - 1b8659c fix(E13): leaked acquirer callback secret refused at boot (hash check) and replaced by gen-env.sh; history kept, value dead
-- 89d754e fix(E158): adjustment CSV refuses more than 1000 rows
-- 6debcca fix(E116): the merchant writer helper refuses an admin impersonation actor
-- b4797ab fix(E111): CSV export quotes cells that contain a carriage return
-- 95577a3 fix(E145): business-profile PATCH checks types, businessType and country; notes N91-N96
-- 7a8b0e6 fix(E145): signup checks field types, businessType, country and password length (partly: email, PATCH path open)
 
 ## 7. All errors
 ## High (46 of 46 fixed)
@@ -142,7 +142,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 6:25 PM
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-### Medium (35 of 60 fixed)
+### Medium (37 of 60 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -198,16 +198,16 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 6:25 PM
 | E144 | [coverage] Webhook archive create loads an endpoint's whole history into memory; "pages of 500" is false | Fixed |
 | E145 | [coverage] Signup: no password rule and no type checks; bad input gives 500 | Partly fixed |
 | E146 | [coverage] Public signup and login have no rate limit; each call runs argon2 | Open |
-| E147 | [coverage] A broken image upload gives 500 and leaves an orphan file on disk | Open |
+| E147 | [coverage] A broken image upload gives 500 and leaves an orphan file on disk | Fixed |
 | E148 | [coverage] No limit on KYC uploads per merchant: the shared disk can be filled | Open |
 | E163 | [second review] API config never refuses bad settings (prefixes, booleans, NODE_ENV typo turns off security defaults, no ranges) | Partly fixed |
-| E165 | [second review] Authorize and capture accept a zero or negative amount: 0 reaches the acquirer then the DB CHECK (500); negative makes toFils throw (500) | Open |
+| E165 | [second review] Authorize and capture accept a zero or negative amount: 0 reaches the acquirer then the DB CHECK (500); negative makes toFils throw (500) | Fixed |
 | E167 | [second review] Merchant OTP promotion keeps the pending session token (session fixation); the admin half is E47 | Open |
 | E168 | [second review] Webhook dispatch Step B still queues deliveries for disabled endpoints | Fixed |
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Open |
 
-### Low (22 of 69 fixed)
+### Low (26 of 69 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -268,7 +268,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 6:25 PM
 | E154 | [coverage] adjustMerchantBalanceJournaled is dead code | Open |
 | E155 | [coverage] Webhook PATCH with a bad status gives 500 | Fixed |
 | E156 | [coverage] timingSafeEqualHex accepts extra characters after a valid digest | Fixed |
-| E157 | [coverage] Several files in one KYC request: earlier ones are silently dropped; "one file enforced" comment is false | Open |
+| E157 | [coverage] Several files in one KYC request: earlier ones are silently dropped; "one file enforced" comment is false | Fixed |
 | E158 | [coverage] Adjustment import has no row cap; one long transaction can outlive the 60 s proxy timeout | Fixed |
 | E159 | [second review] Pagination cursors are not validated; a malformed cursor reaches a database cast (500) | Fixed |
 | E160 | [second review] The adjustment-import list pages on created_at text with no tie-breaker | Open |
@@ -276,13 +276,13 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 6:25 PM
 | E164 | [found later] /healthz and /readyz on the public port return the web page | Fixed |
 | E166 | [second review] Payment-link create with amount 0 gives a DB error (500) | Fixed |
 | E169 | [second review] Saved-filter POST accepts an array filter and a whitespace-only name | Fixed |
-| E172 | [second review] Webhook archive/replay date ranges take any `new Date` (rollover, zone-less, numbers) | Open |
-| E173 | [second review] Admin run-batch and MDR recalc: dates checked by regex only, a reversed range is a silent no-op, a missing merchant gives 500 | Open |
+| E172 | [second review] Webhook archive/replay date ranges take any `new Date` (rollover, zone-less, numbers) | Fixed |
+| E173 | [second review] Admin run-batch and MDR recalc: dates checked by regex only, a reversed range is a silent no-op, a missing merchant gives 500 | Fixed |
 | E174 | [second review] Payment-link expiresAt rolls over (2026-02-30) or is read zone-less | Fixed |
-| E175 | [second review] Webhook URLs with embedded credentials are accepted but never deliverable | Open |
+| E175 | [second review] Webhook URLs with embedded credentials are accepted but never deliverable | Fixed |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101 · N102 · N103 · N104 · N105 · N106 · N107 · N108
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101 · N102 · N103 · N104 · N105 · N106 · N107 · N108 · N109 · N110 · N111 · N112 · N113 · N114 · N115
 
 ### N01 — Database setup stopped halfway
 
@@ -4132,4 +4132,233 @@ Nothing goes to a switched-off address.
 No, they stay pending and go out if the shop switches the address back on.
 
 Commit: 4553c70
+
+### N109 — The public payment link hides API key data
+
+#### The idea
+Anyone with a payment link can see its page and amount, like a price tag in a window.
+
+#### The problem
+The public link answer also showed the shop's API key hash and prefix.
+- No login was needed to see them.
+
+#### The fix
+- read.ts: the public answer no longer reads or returns any API key data.
+
+#### The code
+Before (apps/api/src/paymentLinks/read.ts:43):
+```sql
+ak.key_prefix AS merchant_public_key,
+ak.key_hash AS integration_id
+```
+After: those lines and the api_keys join are gone.
+The public page shows only what a buyer needs.
+
+#### The proof
+- Before: the live site returned both fields.
+- After: both are gone; an old test that expected the prefix was corrected.
+
+#### If the judges ask
+"Was the key itself exposed?"
+No, only its hash and prefix; still, it helped an attacker and no page used it.
+
+Commit: a04e53b
+
+### N110 — Webhook addresses cannot contain a password
+
+#### The idea
+A shop gives us a web address for its notifications.
+
+#### The problem
+Addresses with a username and password inside were accepted.
+- They could never be delivered, and the password sat in our database.
+
+#### The fix
+- create.ts: such addresses are refused.
+
+#### The code
+Before (apps/api/src/webhooks/create.ts:24): only the protocol was checked.
+After:
+```ts
+if (parsed.username !== "" || parsed.password !== "") {
+  throw new BadRequestError("invalid_url", ...);
+}
+```
+Credentials in the address get 400.
+
+#### The proof
+- Before: accepted.
+- After: refused.
+
+#### If the judges ask
+"Why not allow it?"
+The sender refuses such addresses anyway, and storing a password in an address is unsafe.
+
+Commit: b1fc38d
+
+### N111 — A card payment needs a real amount
+
+#### The idea
+A shop asks us to charge a card a set amount.
+
+#### The problem
+An amount of 0 reached the bank before the database refused it (500).
+- A negative amount also crashed.
+
+#### The fix
+- transactions.ts: the amount must be a positive whole number of fils, checked first.
+
+#### The code
+Before (apps/api/src/routes/transactions.ts:85):
+```ts
+amountFils: toFils(amountFils),
+```
+After:
+```ts
+if (typeof amountFils !== "number" || !Number.isSafeInteger(amountFils) || amountFils <= 0) {
+  throw new BadRequestError("invalid_amount", ...);
+}
+```
+Bad amounts never reach the bank.
+
+#### The proof
+- Before: 0 → 500 after a bank call.
+- After: 400 with no bank call; 58 payment tests pass.
+
+#### If the judges ask
+"Did 0 ever charge a card?"
+No money moved, but the bank saw an authorization request that we then dropped.
+
+Commit: 06131f5
+
+### N112 — Webhook archive dates must be real
+
+#### The idea
+Admins can resend or archive webhooks for a date range.
+
+#### The problem
+Impossible dates rolled over and times without a zone used the server's zone.
+
+#### The fix
+- adminMerchants.ts: the shared strict date check is used.
+
+#### The code
+Before (apps/api/src/routes/adminMerchants.ts:229):
+```ts
+const fromDate = new Date(from);
+```
+After:
+```ts
+const fromDate = parseOptionalDate(from, "from")!;
+```
+Bad dates get 400.
+
+#### The proof
+- Before: 2026-02-30 accepted.
+- After: 400; the admin page still works.
+
+#### If the judges ask
+"Does the admin page send zones?"
+Yes; it converts with toISOString.
+
+Commit: b6bfae5
+
+### N113 — Admin batch and fee tools check their input
+
+#### The idea
+Admins can run a day's settlement or recalculate fees.
+
+#### The problem
+- "30 February" reached the settlement service and came back as 500.
+- A backwards fee range did nothing but said "done".
+- An unknown shop crashed the batch.
+
+#### The fix
+- admin.ts: real dates, from before to, and an existing shop.
+
+#### The code
+Before (apps/api/src/routes/admin.ts:118):
+```ts
+if (!date || !ISO_DATE_RE.test(date)) {
+```
+After:
+```ts
+if (!date || !isRealDate(date, true)) {
+```
+Bad input gets 400 or 404 before anything runs.
+
+#### The proof
+- Before: 2026-02-30 reached settlement.
+- After: 400; unknown shop 404; backwards range 400.
+
+#### If the judges ask
+"Why check the shop here?"
+So the request fails clearly before an audit row and a settlement call are made.
+
+Commit: c4445c3
+
+### N114 — A broken image upload leaves nothing behind
+
+#### The idea
+Shops upload ID documents; for photos we make a small preview.
+
+#### The problem
+A broken image was saved first, then the preview step crashed (500).
+- The broken file stayed on disk.
+
+#### The fix
+- kyc.ts: make the preview first; a broken image gets 422 and nothing is saved.
+
+#### The code
+Before (apps/api/src/onboarding/kyc.ts:75): the file was written before the preview.
+After:
+```ts
+try {
+  thumbnail = await generateKycThumbnail(input.buffer, detected);
+} catch {
+  throw new UnprocessableEntityError("invalid_image", "the image could not be read");
+}
+```
+Only readable images are stored.
+
+#### The proof
+- Before: 500 and an orphan file.
+- After: 422 and no file.
+
+#### If the judges ask
+"What about slightly damaged phone photos?"
+They might be refused too; that choice is marked for Zainab to review.
+
+Commit: af7cbc4
+
+### N115 — One document per upload
+
+#### The idea
+A KYC upload sends one document file.
+
+#### The problem
+Sending two files kept only the last one, silently.
+
+#### The fix
+- kyc.ts: a second file in the same upload gets 400.
+
+#### The code
+Before (apps/api/src/routes/kyc.ts:49): each file overwrote the last.
+After:
+```ts
+if (buffer !== undefined) {
+  throw new BadRequestError("too_many_files", "send one file per request");
+}
+```
+The shop is told to send one file.
+
+#### The proof
+- Before: 201, only b.pdf stored.
+- After: 400, nothing stored.
+
+#### If the judges ask
+"Why not use the upload library's limit?"
+We tried; it closed the stream early and gave 500, so we check in our loop.
+
+Commit: PENDING_N115
 

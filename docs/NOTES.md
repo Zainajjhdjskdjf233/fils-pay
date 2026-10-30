@@ -3850,3 +3850,232 @@ Nothing goes to a switched-off address.
 No, they stay pending and go out if the shop switches the address back on.
 
 Commit: 4553c70
+
+## N109 — The public payment link hides API key data
+
+### The idea
+Anyone with a payment link can see its page and amount, like a price tag in a window.
+
+### The problem
+The public link answer also showed the shop's API key hash and prefix.
+- No login was needed to see them.
+
+### The fix
+- read.ts: the public answer no longer reads or returns any API key data.
+
+### The code
+Before (apps/api/src/paymentLinks/read.ts:43):
+```sql
+ak.key_prefix AS merchant_public_key,
+ak.key_hash AS integration_id
+```
+After: those lines and the api_keys join are gone.
+The public page shows only what a buyer needs.
+
+### The proof
+- Before: the live site returned both fields.
+- After: both are gone; an old test that expected the prefix was corrected.
+
+### If the judges ask
+"Was the key itself exposed?"
+No, only its hash and prefix; still, it helped an attacker and no page used it.
+
+Commit: a04e53b
+
+## N110 — Webhook addresses cannot contain a password
+
+### The idea
+A shop gives us a web address for its notifications.
+
+### The problem
+Addresses with a username and password inside were accepted.
+- They could never be delivered, and the password sat in our database.
+
+### The fix
+- create.ts: such addresses are refused.
+
+### The code
+Before (apps/api/src/webhooks/create.ts:24): only the protocol was checked.
+After:
+```ts
+if (parsed.username !== "" || parsed.password !== "") {
+  throw new BadRequestError("invalid_url", ...);
+}
+```
+Credentials in the address get 400.
+
+### The proof
+- Before: accepted.
+- After: refused.
+
+### If the judges ask
+"Why not allow it?"
+The sender refuses such addresses anyway, and storing a password in an address is unsafe.
+
+Commit: b1fc38d
+
+## N111 — A card payment needs a real amount
+
+### The idea
+A shop asks us to charge a card a set amount.
+
+### The problem
+An amount of 0 reached the bank before the database refused it (500).
+- A negative amount also crashed.
+
+### The fix
+- transactions.ts: the amount must be a positive whole number of fils, checked first.
+
+### The code
+Before (apps/api/src/routes/transactions.ts:85):
+```ts
+amountFils: toFils(amountFils),
+```
+After:
+```ts
+if (typeof amountFils !== "number" || !Number.isSafeInteger(amountFils) || amountFils <= 0) {
+  throw new BadRequestError("invalid_amount", ...);
+}
+```
+Bad amounts never reach the bank.
+
+### The proof
+- Before: 0 → 500 after a bank call.
+- After: 400 with no bank call; 58 payment tests pass.
+
+### If the judges ask
+"Did 0 ever charge a card?"
+No money moved, but the bank saw an authorization request that we then dropped.
+
+Commit: 06131f5
+
+## N112 — Webhook archive dates must be real
+
+### The idea
+Admins can resend or archive webhooks for a date range.
+
+### The problem
+Impossible dates rolled over and times without a zone used the server's zone.
+
+### The fix
+- adminMerchants.ts: the shared strict date check is used.
+
+### The code
+Before (apps/api/src/routes/adminMerchants.ts:229):
+```ts
+const fromDate = new Date(from);
+```
+After:
+```ts
+const fromDate = parseOptionalDate(from, "from")!;
+```
+Bad dates get 400.
+
+### The proof
+- Before: 2026-02-30 accepted.
+- After: 400; the admin page still works.
+
+### If the judges ask
+"Does the admin page send zones?"
+Yes; it converts with toISOString.
+
+Commit: b6bfae5
+
+## N113 — Admin batch and fee tools check their input
+
+### The idea
+Admins can run a day's settlement or recalculate fees.
+
+### The problem
+- "30 February" reached the settlement service and came back as 500.
+- A backwards fee range did nothing but said "done".
+- An unknown shop crashed the batch.
+
+### The fix
+- admin.ts: real dates, from before to, and an existing shop.
+
+### The code
+Before (apps/api/src/routes/admin.ts:118):
+```ts
+if (!date || !ISO_DATE_RE.test(date)) {
+```
+After:
+```ts
+if (!date || !isRealDate(date, true)) {
+```
+Bad input gets 400 or 404 before anything runs.
+
+### The proof
+- Before: 2026-02-30 reached settlement.
+- After: 400; unknown shop 404; backwards range 400.
+
+### If the judges ask
+"Why check the shop here?"
+So the request fails clearly before an audit row and a settlement call are made.
+
+Commit: c4445c3
+
+## N114 — A broken image upload leaves nothing behind
+
+### The idea
+Shops upload ID documents; for photos we make a small preview.
+
+### The problem
+A broken image was saved first, then the preview step crashed (500).
+- The broken file stayed on disk.
+
+### The fix
+- kyc.ts: make the preview first; a broken image gets 422 and nothing is saved.
+
+### The code
+Before (apps/api/src/onboarding/kyc.ts:75): the file was written before the preview.
+After:
+```ts
+try {
+  thumbnail = await generateKycThumbnail(input.buffer, detected);
+} catch {
+  throw new UnprocessableEntityError("invalid_image", "the image could not be read");
+}
+```
+Only readable images are stored.
+
+### The proof
+- Before: 500 and an orphan file.
+- After: 422 and no file.
+
+### If the judges ask
+"What about slightly damaged phone photos?"
+They might be refused too; that choice is marked for Zainab to review.
+
+Commit: af7cbc4
+
+## N115 — One document per upload
+
+### The idea
+A KYC upload sends one document file.
+
+### The problem
+Sending two files kept only the last one, silently.
+
+### The fix
+- kyc.ts: a second file in the same upload gets 400.
+
+### The code
+Before (apps/api/src/routes/kyc.ts:49): each file overwrote the last.
+After:
+```ts
+if (buffer !== undefined) {
+  throw new BadRequestError("too_many_files", "send one file per request");
+}
+```
+The shop is told to send one file.
+
+### The proof
+- Before: 201, only b.pdf stored.
+- After: 400, nothing stored.
+
+### If the judges ask
+"Why not use the upload library's limit?"
+We tried; it closed the stream early and gave 500, so we check in our loop.
+
+Commit: PENDING_N115
