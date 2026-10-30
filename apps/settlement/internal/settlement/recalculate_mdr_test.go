@@ -59,9 +59,9 @@ func TestRecalculateMDR_RecomputesAtCurrentRate(t *testing.T) {
 	// The expected fee is ComputeSettlementFee per event at the NEW rate,
 	// summed — the same per-event-then-sum discipline CloseBatch step 8
 	// uses.
-	wantFee := ComputeSettlementFee(4750, newMdrBps, 0) +
-		ComputeSettlementFee(1333, newMdrBps, 0) +
-		ComputeSettlementFee(999, newMdrBps, 0)
+	wantFee := mustFee(t, 4750, newMdrBps, 0) +
+		mustFee(t, 1333, newMdrBps, 0) +
+		mustFee(t, 999, newMdrBps, 0)
 
 	adj := result.Adjusted[0]
 	if adj.BatchID != closed.BatchID {

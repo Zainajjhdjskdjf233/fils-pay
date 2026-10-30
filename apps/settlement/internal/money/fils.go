@@ -4,7 +4,10 @@
 // intermediates here.
 package money
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+)
 
 // Fils is a validated integer number of fils. 1 BD = 1000 fils.
 type Fils int64
@@ -12,8 +15,27 @@ type Fils int64
 // ApplyRateFils applies a rate expressed in basis points to an amount, e.g.
 // ApplyRateFils(10000, 250) applies a 2.50% MDR to 10.000 BD and returns
 // 250. Uses BankersRoundDiv for deterministic half-to-even rounding.
+//
+// E152: panics on int64 overflow instead of wrapping to a wrong fee. Money
+// paths that run inside the daemon use ApplyRateFilsChecked, which returns
+// an error instead (a panic there would crash-loop the daemon).
 func ApplyRateFils(amount Fils, rateBasisPoints int64) Fils {
-	return Fils(BankersRoundDiv(int64(amount)*rateBasisPoints, 10_000))
+	fee, err := ApplyRateFilsChecked(amount, rateBasisPoints)
+	if err != nil {
+		panic(err.Error())
+	}
+	return fee
+}
+
+// ApplyRateFilsChecked is ApplyRateFils that returns an error when
+// amount*rateBasisPoints overflows int64 (E152; packages/money throws).
+func ApplyRateFilsChecked(amount Fils, rateBasisPoints int64) (Fils, error) {
+	a := int64(amount)
+	product := a * rateBasisPoints
+	if a != 0 && (product/a != rateBasisPoints || (a == -1 && rateBasisPoints == math.MinInt64)) {
+		return 0, fmt.Errorf("ApplyRateFils: %d * %d overflows int64", a, rateBasisPoints)
+	}
+	return Fils(BankersRoundDiv(product, 10_000)), nil
 }
 
 // BankersRoundDiv performs round-half-to-even integer division of

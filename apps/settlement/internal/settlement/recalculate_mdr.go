@@ -183,7 +183,11 @@ func recomputeBatchFee(ctx context.Context, tx pgx.Tx, batchID uuid.UUID, schedu
 		if rate < 0 {
 			rate = 0
 		}
-		fee += ComputeSettlementFee(money.Fils(amountFils), rate, discountBps)
+		eventFee, err := ComputeSettlementFee(money.Fils(amountFils), rate, discountBps)
+		if err != nil {
+			return 0, fmt.Errorf("settlement: RecalculateMDR: fee for batch %s: %w", batchID, err)
+		}
+		fee += eventFee
 	}
 	if err := rows.Err(); err != nil {
 		return 0, fmt.Errorf("settlement: RecalculateMDR: iterate batch events for %s: %w", batchID, err)

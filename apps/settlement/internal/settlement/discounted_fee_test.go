@@ -66,7 +66,7 @@ func TestComputeSettlementFee(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := ComputeSettlementFee(tc.amount, tc.mdrBps, tc.discountBps)
+			got := mustFee(t, tc.amount, tc.mdrBps, tc.discountBps)
 			if got != tc.want {
 				t.Fatalf("ComputeSettlementFee(%d, %d, %d) = %d, want %d",
 					tc.amount, tc.mdrBps, tc.discountBps, got, tc.want)
@@ -83,12 +83,33 @@ func TestComputeSettlementFeeZeroDiscountMatchesApplyRateFils(t *testing.T) {
 	rates := []int64{0, 180, 250, 275, 320, 10_000}
 	for _, amount := range []money.Fils{0, 1, 3, 602, 4750, 9973, 123_457, 5_000_000} {
 		for _, mdrBps := range rates {
-			got := ComputeSettlementFee(amount, mdrBps, 0)
+			got := mustFee(t, amount, mdrBps, 0)
 			want := money.ApplyRateFils(amount, mdrBps)
 			if got != want {
 				t.Fatalf("ComputeSettlementFee(%d, %d, 0) = %d, want ApplyRateFils = %d",
 					amount, mdrBps, got, want)
 			}
 		}
+	}
+}
+
+// mustFee is ComputeSettlementFee for inputs that cannot overflow (E152).
+func mustFee(t *testing.T, amount money.Fils, mdrBps, discountBps int64) money.Fils {
+	t.Helper()
+	fee, err := ComputeSettlementFee(amount, mdrBps, discountBps)
+	if err != nil {
+		t.Fatalf("ComputeSettlementFee(%d, %d, %d): %v", amount, mdrBps, discountBps, err)
+	}
+	return fee
+}
+
+// E152 [coverage]: an overflowing fee is an error, not a wrong number and not
+// a panic (a panic inside the daemon would crash-loop it on the same row).
+func TestE152_ComputeSettlementFeeReturnsAnErrorOnOverflow(t *testing.T) {
+	if _, err := ComputeSettlementFee(money.Fils(1_000_000_000_000_000), 10_000, 0); err == nil {
+		t.Fatal("expected an overflow error")
+	}
+	if got := mustFee(t, 10_000, 250, 0); got != 250 {
+		t.Fatalf("fee = %d, want 250", got)
 	}
 }

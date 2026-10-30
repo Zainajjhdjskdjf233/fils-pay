@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 07:27 PM (30 Oct 2026)
-Summary: Errors 132/176 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 07:29 PM (30 Oct 2026)
+Summary: Errors 133/176 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1176,7 +1176,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/settlement/internal/money/fils.go:16, :28, :51-56.
 - Error: ApplyRateFils(1e15, 10000) wraps to a wrong negative fee. Not reachable with real amounts and normal bps (not run).
 - Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E152)
 
 ### E153 — [coverage] A fully refunded, partly captured row refunded again with no amount gives 422 instead of 409
 - Where: apps/api/src/payments/refundValidation.ts:39-42.
@@ -2718,6 +2718,13 @@ ROLLBACK;
 - Changed: apps/api/src/onboarding/kyc.ts:70 uses detected !== 'pdf' (magic bytes, already computed) instead of fileName.endsWith('.pdf'). FH's comment above it proposed exactly this; MK's reply ('detectFileType already rejects non-pdf bytes for these doc types. fixed in FP-231') is false — detectFileType accepts JPEG and PNG for every type.
 - Before: apps/api/src/onboarding/kyc.e46.test.ts — a real JPEG named cr.pdf was accepted as a commercial registration. After: 422 document_must_be_pdf; a real PDF named 'bank letter (scan)' is accepted.
 - Test changed (proof above): app.test.ts 'KYC upload rejects a commercial_registration submitted as a non-PDF filename' sent a real PDF named registration.docx and expected 422 — it pinned the name check. Now it sends JPEG bytes named registration.pdf and expects 422. KYC suites + app.test.ts 20/20.
+- check.sh (clean environment): OK. Needs a redeploy.
+
+### E152 — 07:29 PM — Go fee math refuses int64 overflow: an error in the settlement paths, a panic only for direct callers
+- Changed: apps/settlement/internal/money/fils.go: new ApplyRateFilsChecked (returns an error when amount*bps overflows; -1*MinInt64 included); ApplyRateFils calls it and panics on error. internal/settlement/discounted_fee.go ComputeSettlementFee returns (Fils, error) via the checked version; batch.go CloseBatch and recalculate_mdr.go recomputeBatchFee pass the error up. Tests use a mustFee helper.
+- Before: apps/settlement/internal/money/overflow_e152_test.go — ApplyRateFils(1e15, 10000) and (MaxInt64, 2) returned wrapped values, no error. After: refused; TestE152_ComputeSettlementFeeReturnsAnErrorOnOverflow passes; all Go packages pass on the DB.
+- Second review (Copilot): not run — copilot not found (LOG line 1567). fix-reviewer (on the first, panic-only version): APPROVE; overflow check correct for every sign; but a panic in the daemon loop (scheduler/daemon.go:53, no recover) would crash-loop on the same row and block every merchant; DB has no upper bound on amount_fils or mdr_bps (0048_fee_schedules.sql:16). Our answer: agree — changed to an error return before committing.
+- Still true: RunDailyBatch stops at the first merchant error (batch.go:509, pre-existing), so a bad row still blocks later merchants that night, now with a logged error instead of a crash.
 - check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy

@@ -217,7 +217,11 @@ func CloseBatch(ctx context.Context, db *pgxpool.Pool, merchantID uuid.UUID, bus
 			if effectiveMdrBps -= tierBonusBps; effectiveMdrBps < 0 {
 				effectiveMdrBps = 0
 			}
-			feeForTxn += ComputeSettlementFee(e.amountFils, effectiveMdrBps, discountBps)
+			fee, err := ComputeSettlementFee(e.amountFils, effectiveMdrBps, discountBps)
+			if err != nil {
+				return BatchResult{}, fmt.Errorf("settlement: CloseBatch: fee for event %d: %w", e.id, err)
+			}
+			feeForTxn += fee
 			eventIDs = append(eventIDs, e.id)
 		}
 		lines = append(lines, txnLine{txnID, grossForTxn, feeForTxn})
