@@ -13,9 +13,9 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 54 of 116 fixed.
+Summary: 55 of 117 fixed.
 
-## High (30 of 31 fixed)
+## High (31 of 32 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -50,6 +50,7 @@ Summary: 54 of 116 fixed.
 | E99 | [found later] Dashboard capture makes a new Idempotency-Key on every click (double capture on retry) | Fixed |
 | E102 | [found later] Merchant dashboard logs out after 10 minutes and does not notice | Fixed |
 | E104 | [found later] Bulk Approve KYC approves hidden merchants; server checks no status | Fixed |
+| E117 | [deep review] OTP guess limit was per code, not per user (brute-forceable) | Fixed |
 
 ## Medium (22 of 39 fixed)
 

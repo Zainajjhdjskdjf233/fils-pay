@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { verifyPassword } from "../adminAuth/passwords.js";
-import { issueAdminChallenge, verifyOtpCode } from "../adminAuth/otp.js";
+import { issueAdminChallenge, prepareAdminUserForNewChallenge, verifyOtpCode } from "../adminAuth/otp.js";
 import { sendAdminOtpCode } from "../adminAuth/notifier.js";
 import { requireAdminSession } from "../adminAuth/middleware.js";
 import {
@@ -72,6 +72,13 @@ export async function adminAuthRoutes(app: FastifyInstance): Promise<void> {
     }
 
     const { code, expiresAt, rawToken } = await withTransaction(app.db, async (client) => {
+      // E117: per-user guess limit across logins; older codes/pending sessions end.
+      const allowed = await prepareAdminUserForNewChallenge(client, {
+        adminUserId: user.id,
+        maxAttemptsPerWindow: app.config.otpUserMaxAttemptsPerWindow,
+        windowMinutes: app.config.otpUserWindowMinutes,
+      });
+      if (!allowed) throw new TooManyRequestsError("too_many_attempts");
       const challenge = await issueAdminChallenge(client, {
         adminUserId: user.id,
         ttlMinutes: app.config.adminOtpTtlMinutes,

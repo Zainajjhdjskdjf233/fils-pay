@@ -56,3 +56,37 @@ export async function issueChallenge(
   }
   return { id: row.id, code, expiresAt };
 }
+
+/**
+ * E117 [deep review]: the OTP guess limit per USER, not per code. Call inside
+ * the login transaction BEFORE issuing a new challenge:
+ * - locks the user row, so parallel logins for one user run one at a time;
+ * - refuses (returns false) when the user already spent `maxAttemptsPerWindow`
+ *   guesses across all their codes in the last `windowMinutes`;
+ * - otherwise ends the user's older live codes and older pending sessions,
+ *   so only the new code works.
+ * Before this, every login handed out a fresh 5-guess budget and older codes
+ * stayed valid, so a 6-digit code could be brute-forced with the password.
+ */
+export async function prepareMerchantUserForNewChallenge(
+  client: PoolClient,
+  params: { merchantUserId: string; maxAttemptsPerWindow: number; windowMinutes: number },
+): Promise<boolean> {
+  await client.query(`SELECT 1 FROM merchant_users WHERE id = $1 FOR UPDATE`, [params.merchantUserId]);
+  const used = await client.query<{ n: string }>(
+    `SELECT COALESCE(SUM(attempt_count), 0) AS n FROM otp_challenges
+      WHERE merchant_user_id = $1 AND created_at > now() - ($2 || ' minutes')::interval`,
+    [params.merchantUserId, String(params.windowMinutes)],
+  );
+  if (Number(used.rows[0]?.n ?? 0) >= params.maxAttemptsPerWindow) return false;
+  await client.query(
+    `UPDATE otp_challenges SET consumed_at = now() WHERE merchant_user_id = $1 AND consumed_at IS NULL`,
+    [params.merchantUserId],
+  );
+  await client.query(
+    `UPDATE sessions SET revoked_at = now()
+      WHERE merchant_user_id = $1 AND authenticated = false AND revoked_at IS NULL`,
+    [params.merchantUserId],
+  );
+  return true;
+}

@@ -43,3 +43,31 @@ export async function issueAdminChallenge(
   }
   return { id: row.id, code, expiresAt };
 }
+
+/**
+ * E117 [deep review]: admin mirror of prepareMerchantUserForNewChallenge
+ * (separate tables on purpose, see adminAuth/sessions.ts): per-user guess
+ * limit across logins; older live codes and pending sessions end.
+ */
+export async function prepareAdminUserForNewChallenge(
+  client: PoolClient,
+  params: { adminUserId: string; maxAttemptsPerWindow: number; windowMinutes: number },
+): Promise<boolean> {
+  await client.query(`SELECT 1 FROM admin_users WHERE id = $1 FOR UPDATE`, [params.adminUserId]);
+  const used = await client.query<{ n: string }>(
+    `SELECT COALESCE(SUM(attempt_count), 0) AS n FROM admin_otp_challenges
+      WHERE admin_user_id = $1 AND created_at > now() - ($2 || ' minutes')::interval`,
+    [params.adminUserId, String(params.windowMinutes)],
+  );
+  if (Number(used.rows[0]?.n ?? 0) >= params.maxAttemptsPerWindow) return false;
+  await client.query(
+    `UPDATE admin_otp_challenges SET consumed_at = now() WHERE admin_user_id = $1 AND consumed_at IS NULL`,
+    [params.adminUserId],
+  );
+  await client.query(
+    `UPDATE admin_sessions SET revoked_at = now()
+      WHERE admin_user_id = $1 AND authenticated = false AND revoked_at IS NULL`,
+    [params.adminUserId],
+  );
+  return true;
+}

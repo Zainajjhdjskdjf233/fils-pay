@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 2:37 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 2:44 PM
 
 ## Contents
 1. Status now
@@ -14,20 +14,20 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:37 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 54 of 116 fixed.
-  - High: 30 of 31 fixed
+- Errors: 55 of 117 fixed.
+  - High: 31 of 32 fixed
   - Medium: 22 of 39 fixed
   - Low: 2 of 46 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
 - Dilmune Cloud: not yet
-- Decisions waiting for Zainab: 19 (search "for Zainab to review" in LOG.md)
+- Decisions waiting for Zainab: 20 (search "for Zainab to review" in LOG.md)
 - Fork: needs a push (VS Code: Git: Push to... → mine)
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 54 of 116 fixed.
+- 🔄 Fix: 55 of 117 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ⬜ UI and UX, before/after screenshots
@@ -91,7 +91,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:37 PM
 - 3918ae8 fix(E39): CSV export neutralizes formula cells and caps rows at 50,000
 
 ## 7. All errors
-## High (30 of 31 fixed)
+## High (31 of 32 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -126,6 +126,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:37 PM
 | E99 | [found later] Dashboard capture makes a new Idempotency-Key on every click (double capture on retry) | Fixed |
 | E102 | [found later] Merchant dashboard logs out after 10 minutes and does not notice | Fixed |
 | E104 | [found later] Bulk Approve KYC approves hidden merchants; server checks no status | Fixed |
+| E117 | [deep review] OTP guess limit was per code, not per user (brute-forceable) | Fixed |
 
 ### Medium (22 of 39 fixed)
 
@@ -223,7 +224,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:37 PM
 | E116 | [found by teammate] Writer actor does not reject impersonation (defence in depth) | Open |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60
 
 ### N01 — Database setup stopped halfway
 
@@ -2412,4 +2413,41 @@ Excess requests are turned away in microseconds, so the ones being served stay f
 The API used only 15 % of one CPU. The database was at its limit, so we moved CPU to the database inside the same 1-CPU budget.
 
 Commit: a8fdcb1
+
+### N60 — Logging in again no longer gives an attacker fresh guesses
+
+#### The idea
+After the password, a 6-digit code is the second lock. Only a few wrong guesses are allowed.
+
+#### The problem
+The limit counted per code, not per person.
+- Every new login made a new code with 5 new guesses.
+- Older codes from earlier logins kept working too.
+- So someone with the password could keep logging in and guessing until the code was found.
+
+#### The fix
+- otp.ts (merchant and admin): at login, lock the user, count their guesses in the last 15 minutes across all codes, and refuse at 10. Old codes and old half-finished logins are ended, so only the newest code works.
+
+#### The code
+Before (apps/api/src/routes/auth.ts, login): a new code was inserted, nothing else.
+After:
+```ts
+const allowed = await prepareMerchantUserForNewChallenge(client, {
+  merchantUserId: recipient.id,
+  maxAttemptsPerWindow: app.config.otpUserMaxAttemptsPerWindow,
+  windowMinutes: app.config.otpUserWindowMinutes,
+});
+if (!allowed) throw new TooManyRequestsError("too_many_attempts");
+```
+The guess budget belongs to the person, not to each code.
+
+#### The proof
+- Before: the first login's code still worked after a second login; guesses across logins went past 10.
+- After: the old code stops working; after 10 guesses in 15 minutes, login is refused.
+
+#### If the judges ask
+"How was this found?"
+By the "deep review lens" we learned from our teammate's review: asking what happens across many requests, not just one.
+
+Commit: PENDING_N60
 

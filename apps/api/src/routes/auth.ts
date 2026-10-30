@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { verifyPassword } from "../auth/passwords.js";
-import { issueChallenge, verifyOtpCode } from "../auth/otp.js";
+import { issueChallenge, prepareMerchantUserForNewChallenge, verifyOtpCode } from "../auth/otp.js";
 import { requireSession } from "../auth/middleware.js";
 import { sendOtpCode } from "../auth/notifier.js";
 import {
@@ -79,6 +79,13 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     const recipient = user;
 
     const { code, expiresAt, rawToken } = await withTransaction(app.db, async (client) => {
+      // E117: per-user guess limit across logins; older codes/pending sessions end.
+      const allowed = await prepareMerchantUserForNewChallenge(client, {
+        merchantUserId: recipient.id,
+        maxAttemptsPerWindow: app.config.otpUserMaxAttemptsPerWindow,
+        windowMinutes: app.config.otpUserWindowMinutes,
+      });
+      if (!allowed) throw new TooManyRequestsError("too_many_attempts");
       const challenge = await issueChallenge(client, {
         merchantUserId: recipient.id,
         ttlMinutes: app.config.otpTtlMinutes,

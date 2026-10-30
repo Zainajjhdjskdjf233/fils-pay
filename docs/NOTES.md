@@ -2189,3 +2189,40 @@ Excess requests are turned away in microseconds, so the ones being served stay f
 The API used only 15 % of one CPU. The database was at its limit, so we moved CPU to the database inside the same 1-CPU budget.
 
 Commit: a8fdcb1
+
+## N60 — Logging in again no longer gives an attacker fresh guesses
+
+### The idea
+After the password, a 6-digit code is the second lock. Only a few wrong guesses are allowed.
+
+### The problem
+The limit counted per code, not per person.
+- Every new login made a new code with 5 new guesses.
+- Older codes from earlier logins kept working too.
+- So someone with the password could keep logging in and guessing until the code was found.
+
+### The fix
+- otp.ts (merchant and admin): at login, lock the user, count their guesses in the last 15 minutes across all codes, and refuse at 10. Old codes and old half-finished logins are ended, so only the newest code works.
+
+### The code
+Before (apps/api/src/routes/auth.ts, login): a new code was inserted, nothing else.
+After:
+```ts
+const allowed = await prepareMerchantUserForNewChallenge(client, {
+  merchantUserId: recipient.id,
+  maxAttemptsPerWindow: app.config.otpUserMaxAttemptsPerWindow,
+  windowMinutes: app.config.otpUserWindowMinutes,
+});
+if (!allowed) throw new TooManyRequestsError("too_many_attempts");
+```
+The guess budget belongs to the person, not to each code.
+
+### The proof
+- Before: the first login's code still worked after a second login; guesses across logins went past 10.
+- After: the old code stops working; after 10 guesses in 15 minutes, login is refused.
+
+### If the judges ask
+"How was this found?"
+By the "deep review lens" we learned from our teammate's review: asking what happens across many requests, not just one.
+
+Commit: PENDING_N60

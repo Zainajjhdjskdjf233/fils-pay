@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 02:37 PM (30 Oct 2026)
-Summary: Errors 54/116 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 02:44 PM (30 Oct 2026)
+Summary: Errors 55/117 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -963,6 +963,12 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Proof: Lulwa's review with another AI tool (pasted by Zainab, 2:30 PM); checked by me in the code.
 - Severity: low · Status: open
 
+### E117 — [deep review] The OTP guess limit was per code, not per user (brute-forceable second factor)
+- Where: apps/api/src/routes/auth.ts:81-96 and routes/adminAuth.ts:74-89 (each login inserted a new challenge via issueChallenge/issueAdminChallenge, auth/otp.ts:38-58, adminAuth/otp.ts:25-45); nothing ended older live codes or pending sessions, and nothing counted guesses per user.
+- Error: anyone with the password got 5 fresh guesses per login, forever, and older pending cookies kept working — the 6-digit OTP (and the admin second factor) could be brute-forced. Lens rules 2 and 3.
+- Proof: deep-review agent (auth, 2:41 PM); confirmed by me in the code; red test below.
+- Severity: high · Status: fixed (see section 5)
+
 ## 3. Hidden things
 
 ### H01 — "The Order of the Prompt" and its Five Rules
@@ -1789,6 +1795,13 @@ ROLLBACK;
 - Decision (for Zainab to review): no per-IP or per-merchant rate limit — the judges' fixed checkout scenario likely comes from few IPs against one shop, so a rate limit would turn away legitimate test traffic; overload shedding protects the server without that.
 - Test: apps/api/src/plugins/loadShedding.test.ts (no DB). Before: `the third request queued behind the slow ones instead of being turned away` (2 s timeout; first run without a timeout simply hung). After: 2/2 PASS (503 + Retry-After for the 3rd of 3 with cap 2, health 200 while saturated, capacity given back; pool timeout → 503).
 - Live proof: k6 runs in section 6 (shed fast, no restarts, correct money).
+
+### E117 — 02:44 PM — the OTP guess limit holds per user across logins
+- Changed: apps/api/src/auth/otp.ts `prepareMerchantUserForNewChallenge` and apps/api/src/adminAuth/otp.ts `prepareAdminUserForNewChallenge` (separate tables, separate code, like the rest of admin auth), called inside the login transaction before a new code is issued: lock the user row (parallel logins run one at a time); if the user's guesses across all codes in the last OTP_USER_WINDOW_MINUTES (15) reach OTP_USER_MAX_ATTEMPTS_PER_WINDOW (10) → 429 too_many_attempts; otherwise end the user's older live codes and revoke older pending sessions. Config in apps/api/src/config.ts.
+- Test: apps/api/src/routes/auth.e117.test.ts. Before: `the first login's code must stop working after a new login: {"authenticated":true,…}`; guesses across 4 logins exceeded 10. After: 2/2 PASS (+ the E34 tests).
+- Decision (for Zainab to review): 10 guesses per user per 15 minutes, then login refused until the window passes — Why: a real user rarely mistypes 10 codes; an attacker now needs years, not hours — Alternative: email/notify on lockout, or progressive delay.
+- Regression: full-db-test.sh = baseline v3 (admin and merchant suites log in many times; nothing hit the limit).
+- Actual result: one live code per user; a fixed per-user guess budget.
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04) — not yet. Local Docker stack done (01:48 PM, see section 5 E02).
