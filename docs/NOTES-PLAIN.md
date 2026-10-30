@@ -277,3 +277,9 @@ Where: apps/reporting/src/consumer/runConsumerPass.ts:54 · Commit: eebf7d4
 The money check guessed the fee on payments not yet paid out using the shop's default rate and rough decimals, while payments were really charged a scheduled rate. So the check almost never balanced. Now it uses the exact same rule and rounding as the real settlement. A test that used to show a 66-fils gap now shows zero.
 
 Where: apps/api/src/settlement/query.ts:374 · Commit: 976d166
+
+## N47 — A payout on the next day is no longer a mystery gap
+
+Each day's batch is paid out the next day, and the money check counted that payout as if it were the next day's own activity. So the day after every payout looked like money was missing. Now the check leaves payout lines out and compares only real activity with the batches. A test over three different date ranges now always balances.
+
+Where: apps/api/src/settlement/query.ts:314 · Commit: PENDING_N47

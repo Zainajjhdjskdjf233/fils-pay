@@ -1727,3 +1727,38 @@ Same inputs and same rounding as the real settlement.
 Yes, for shops with a negotiated discount (E50): the payment-time fee and the settlement fee really differ, and reconciliation now shows that honestly.
 
 Commit: 976d166
+
+## N47 — A payout on the next day is no longer a mystery gap
+
+### The idea
+Reconciliation compares the ledger for a period with the batches of that period. Paying a batch out is the settling of that batch, not new activity.
+
+### The problem
+Batches are paid out the day after they close.
+- The payout line landed in the next day's ledger.
+- So the next day showed a gap of minus the whole payout (−9.750 BD in our test), even on a quiet day.
+
+### The fix
+- query.ts: leave payout lines out of the ledger figure. Both payout paths name them "settlement payout: …".
+
+### The code
+Before (apps/api/src/settlement/query.ts:307):
+```sql
+WHERE merchant_id = $1 AND account_id = 'merchant_payable'
+  AND occurred_at >= $2 AND occurred_at < $3
+```
+After:
+```sql
+  AND description NOT LIKE 'settlement payout:%'
+```
+Only real activity (sales, fees, refunds, corrections) is compared with the batches.
+
+### The proof
+- Before: the day after a payout showed a −9750 gap.
+- After: today, tomorrow and both days together all show 0.
+
+### If the judges ask
+"Why not exclude every line with a batch id?"
+Fee recalculation lines also have a batch id, and they really change what the shop is owed, so they must count.
+
+Commit: PENDING_N47

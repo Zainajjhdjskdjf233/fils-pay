@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 11:53 AM (30 Oct 2026)
-Summary: Errors 42/60 fixed (+3 partly: E13, E19, E31; same count as docs/ERRORS.md) · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
+Updated: 11:54 AM (30 Oct 2026)
+Summary: Errors 43/60 fixed (+3 partly: E13, E19, E31; same count as docs/ERRORS.md) · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -579,7 +579,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: medium
 - Proposed fix: add `AND settlement_batch_id IS NULL` to the ledger query (payout lines are the only merchant_payable lines with a batch id).
 - Expected result: a report for day 2 after day 1's payout shows gapFils 0.
-- Status: open
+- Status: fixed (see section 5)
 
 ## 3. Hidden things
 
@@ -1292,6 +1292,13 @@ ROLLBACK;
 - Note: for a merchant with a negotiated discount, the capture-time fee and the settlement fee still differ (E50), so their reconciliation shows that real difference as a gap.
 - Regression: full-db-test.sh = baseline v3.
 - Review: no fix-reviewer (reuses existing fee helpers; covered by tests).
+- Actual result: matches expected.
+
+### E60 — 11:54 AM — reconciliation ignores payout lines in the ledger figure
+- Changed: apps/api/src/settlement/query.ts (ledger figure): `AND description NOT LIKE 'settlement payout:%'`.
+- Decision (for Zainab to review): filter on the payout description, not on `settlement_batch_id IS NULL` as LOG first proposed — Why: MDR recalculation adjustment lines (recalculate_mdr.go postMdrAdjustment) also carry a batch id and are real changes to what the shop is owed; excluding them would create a new gap. Both payout writers use the 'settlement payout:' prefix (batch.go:365, splits/allocate.go:124) — Alternative: a dedicated column/kind for payout lines (schema change).
+- Test: apps/api/src/routes/reconciliation.e60.test.ts (today's batch paid tomorrow at noon; three windows: today, tomorrow, both). Before: `2026-10-31..2026-11-01 … ledgerMerchantPayableNetFils -9750 … gapFils -9750`. After: all three gap 0; existing reconciliation tests pass.
+- Regression: full-db-test.sh = baseline v3.
 - Actual result: matches expected.
 
 ## 6. Deploy

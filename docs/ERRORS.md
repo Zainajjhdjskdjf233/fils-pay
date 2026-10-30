@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 42 of 60 fixed.
+Summary: 43 of 60 fixed.
 
 ## High (24 of 27 fixed)
 
@@ -47,7 +47,7 @@ Summary: 42 of 60 fixed.
 | E51 | API and seed cannot start: built-in dev key is 34 bytes, check needs 32 | Fixed |
 | E52 | Every refund fails: code inserts reason = NULL, migration 0070 forbids NULL | Fixed |
 
-## Medium (17 of 21 fixed)
+## Medium (18 of 21 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -71,7 +71,7 @@ Summary: 42 of 60 fixed.
 | E50 | Fee at capture ignores the negotiated discount that settlement applies | Skipped |
 | E53 | One malformed outbox event stops the whole reporting consumer | Fixed |
 | E58 | Session vs impersonation order may mix identities (FP-198 comment) | Open |
-| E60 | Reconciliation counts payouts of earlier days as an unexplained gap | Open |
+| E60 | Reconciliation counts payouts of earlier days as an unexplained gap | Fixed |
 
 ## Low (1 of 12 fixed)
 

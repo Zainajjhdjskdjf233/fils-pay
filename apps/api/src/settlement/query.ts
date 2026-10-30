@@ -306,7 +306,12 @@ export async function getReconciliationReport(
       `SELECT COALESCE(SUM(CASE WHEN direction = 'credit' THEN amount_fils ELSE -amount_fils END), 0) AS net
          FROM ledger_entries
         WHERE merchant_id = $1 AND account_id = 'merchant_payable'
-          AND occurred_at >= $2 AND occurred_at < $3`,
+          AND occurred_at >= $2 AND occurred_at < $3
+          -- E60: payout lines settle a batch (often the day after); they are
+          -- not activity of this window. Both payout paths (batch.go,
+          -- splits/allocate.go) write descriptions starting 'settlement payout:'.
+          -- MDR recalculation lines also carry a batch id and DO count.
+          AND description NOT LIKE 'settlement payout:%'`,
       [input.merchantId, windowStart, windowEnd],
     ),
     pool.query<{ total: string }>(
