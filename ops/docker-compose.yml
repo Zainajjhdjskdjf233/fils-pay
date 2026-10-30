@@ -87,6 +87,7 @@ services:
       CHECKOUT_BASE_URL: ${CHECKOUT_BASE_URL:-http://localhost:8080}
       KYC_UPLOAD_DIR: /data/kyc
       COOKIE_SECURE: ${COOKIE_SECURE:-false}       # true once served over https
+      OTP_DEV_EXPOSE: ${OTP_DEV_EXPOSE:-false}     # demo only: shows the OTP code in the login answer (E37); off by default
     volumes:
       - kyc:/data/kyc
     depends_on:
@@ -145,8 +146,8 @@ services:
     image: filspay-web:local
     restart: unless-stopped
     ports:
-      - "8080:8080"   # dashboard + checkout
-      - "8081:8081"   # admin console
+      - "${HTTP_PORT:-8080}:8080"   # dashboard + checkout + public API (80 on the live server)
+      - "${ADMIN_PORT:-8081}:8081"  # admin console
     depends_on:
       api: { condition: service_healthy }
     networks: [edge]
