@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 46 of 61 fixed.
+Summary: 46 of 72 fixed.
 
 ## High (25 of 27 fixed)
 
@@ -47,7 +47,7 @@ Summary: 46 of 61 fixed.
 | E51 | API and seed cannot start: built-in dev key is 34 bytes, check needs 32 | Fixed |
 | E52 | Every refund fails: code inserts reason = NULL, migration 0070 forbids NULL | Fixed |
 
-## Medium (20 of 22 fixed)
+## Medium (20 of 26 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -73,8 +73,12 @@ Summary: 46 of 61 fixed.
 | E58 | Session vs impersonation order may mix identities (FP-198 comment) — not reproduced: a test with both cookies shows no mixing | Skipped |
 | E60 | Reconciliation counts payouts of earlier days as an unexplained gap | Fixed |
 | E61 | Dashboard and admin console cannot reach the API from their own origin (no CORS, no proxy) | Fixed |
+| E62 | [found later] Two reporting passes at the same time count every event twice | Open |
+| E63 | [found later] Admin reporting rebuild double-counts events the worker has not reached | Open |
+| E64 | [found later] Payout trends never show "paid" (settlement.paid not consumed) | Open |
+| E65 | [found later] The seed wipes real tables (incl. admin audit log) with no environment check | Open |
 
-## Low (1 of 12 fixed)
+## Low (1 of 19 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -90,3 +94,10 @@ Summary: 46 of 61 fixed.
 | E56 | Go DB tests are flaky when packages run in parallel | Open |
 | E57 | Bad input gives 500 instead of 400 (invalid JSON body, malformed UUID) | Open |
 | E59 | Acquirer callback outcome is never validated | Open |
+| E66 | [found later] expire_holds can delete holds released between its SELECT and DELETE | Open |
+| E67 | [found later] refund_merchant_summary counts captured once per refund; never refreshed (my F01e bug) | Open |
+| E68 | [found later] Seed adds the lifetime payout estimate in float32 | Open |
+| E69 | [found later] Seeded fees ignore the seeded fee schedules (suspected) | Open |
+| E70 | [found later] Seeded outbox events do not match the seeded history | Open |
+| E71 | [found later] Re-seeding leaves old dead letters with reused outbox ids | Open |
+| E72 | [found later] reconcile_march uses authorization time and running-total residue (suspected) | Open |

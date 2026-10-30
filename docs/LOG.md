@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 12:36 PM (30 Oct 2026)
-Summary: Errors 46/61 fixed (+2 partly: E13, E50; same count as docs/ERRORS.md) · Hidden 35 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: not started · CHECKPOINT reached
+Updated: 12:41 PM (30 Oct 2026)
+Summary: Errors 46/72 fixed (+2 partly: E13, E50; same count as docs/ERRORS.md) · Hidden 36 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -641,6 +641,64 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: medium (both UIs unusable as shipped; hosting must serve them same-origin)
 - Status: fixed (see section 5)
 
+### E62 — [found later] Two reporting passes at the same time count every event twice
+- Where: apps/reporting/src/consumer/cursor.ts:27-41 (readCursor: `INSERT … ON CONFLICT DO NOTHING` then a plain SELECT, no lock); false comment runConsumerPass.ts:15-17 ("Two processes using the same name serialize on that row").
+- Error: the worker and `reporting catch-up`/`rebuild` read the same cursor, apply the same events (`captured_count + 1`, applyEvent.ts:27-30), and set an absolute cursor — every event counted twice. am's own comment (cursor.ts:26) asks this; catchUp.ts: "rollup looked high after" on 2026-09-14.
+- Proof: code read (second bug hunt, bug-hunter agent (12:55 PM); checked by me in the code); ON CONFLICT DO NOTHING takes no row lock. Test to write: two pools, Promise.all of two passes → captured_count 2.
+- Severity: medium · Status: open
+
+### E63 — [found later] Admin "reporting rebuild" double-counts events the worker has not reached
+- Where: apps/api/src/admin/reportingRebuild.ts:11-55 (truncate + rebuild from transaction_events/refunds; never moves reporting_outbox_cursor); route comment admin.ts:233-240 "replays the outbox" is false.
+- Error: a committed capture the worker has not consumed yet is counted by the rebuild and again by the worker.
+- Proof: code read (second bug hunt, bug-hunter agent (12:55 PM); checked by me in the code).
+- Severity: medium · Status: open
+
+### E64 — [found later] Payout trends never show "paid"
+- Where: apps/reporting/src/consumer/runConsumerPass.ts REPORTING_EVENT_TYPES (no `settlement.paid`); applyEvent.ts:93-118 copies status/paid_at only at batch_closed time (always closed/NULL).
+- Error: /v1/analytics payout trends show every batch closed and unpaid forever; rebuild.test.ts hides it by inserting the batch as 'paid' first.
+- Proof: `grep -rn "settlement.paid" apps/reporting/src` → nothing (second bug hunt, bug-hunter agent (12:55 PM); checked by me in the code).
+- Severity: medium · Status: open
+
+### E65 — [found later] The seed wipes real tables (incl. admin audit log) with no environment check
+- Where: db/seed/generate.ts:212 `TRUNCATE TABLE … RESTART IDENTITY CASCADE`; comment :209-210 "safe to run against a shared/staging database" is false; no NODE_ENV/database-name guard (grep finds none); selfVerify.ts:100 runs generate() twice.
+- Error: CASCADE from merchants/transactions/admin_users empties refunds, payment_links, credit_requests, webhooks, sessions, api_keys, admin_sessions, admin_audit_log.
+- Proof: code read (second bug hunt, bug-hunter agent (12:55 PM); checked by me in the code). Matters for /deploy: the seed must never run on the hosted box.
+- Severity: medium · Status: open
+
+### E66 — [found later] expire_holds can delete holds released between its SELECT and DELETE
+- Where: scripts/expire_holds.ts:43-45 (SELECT ids, then DELETE by id with no status re-check, no transaction). FH's comment :42 names the race; "claude: negligible window, fine."
+- Error: a capture/void that releases a hold in between still has its hold deleted; hard delete although status 'expired' exists (0005).
+- Proof: code read (second bug hunt, bug-hunter agent (12:55 PM); checked by me in the code).
+- Severity: low · Status: open
+
+### E67 — [found later] refund_merchant_summary counts the captured amount once per refund; nothing refreshes it (my own F01e bug)
+- Where: db/migrations/0074_refund_reporting.sql:21 `SUM(t.captured_fils)` over refunds JOIN transactions; no `REFRESH MATERIALIZED VIEW` outside a test (grep).
+- Error: two refunds of one transaction on one day → original_captured_fils doubled; the view stays empty in real use. I wrote 0074 today (9afd98d) and tested only one refund.
+- Proof: code read (second bug hunt, bug-hunter agent (12:55 PM); checked by me in the code).
+- Severity: low · Status: open
+
+### E68 — [found later] The seed still adds the lifetime payout estimate in float32
+- Where: db/seed/generate.ts:634-641 `Math.fround(...)` (0077 made the column BIGINT, E24).
+- Severity: low · Status: open
+
+### E69 — [found later] Seeded fees ignore the seeded fee schedules (suspected)
+- Where: db/seed/generate.ts:817-829 uses fixture mdrBps 250 while alpha-retail has schedules 245/225 (fixtures/transactions.ts:451).
+- Proof: suspected — needs a seeded DB to confirm.
+- Severity: low · Status: open
+
+### E70 — [found later] Seeded outbox events do not match the seeded history
+- Where: db/seed/generate.ts:651-690 (outbox created_at = now(), so August captures roll up on the seed day; 60 high-volume batches get no batch_closed event).
+- Severity: low · Status: open
+
+### E71 — [found later] Re-seeding leaves old dead letters with reused outbox ids
+- Where: db/seed/generate.ts:98-148 TABLES_TO_RESET lacks reporting_dead_letters (0078); outbox ids restart, so ON CONFLICT DO NOTHING hides a new bad event with a reused id.
+- Severity: low · Status: open
+
+### E72 — [found later] reconcile_march picks transactions by authorization time and residue on running totals (suspected)
+- Where: scripts/reconcile_march.ts:48-53 (filter on transactions.occurred_at), :34-36 (`captured_fils % 10` on the running total, but scheme lines are cut per batch slice, batch.go:273).
+- Proof: suspected — a transaction captured in two batches (1005 + 1005) would sweep 0 while the scheme lines lost 10.
+- Severity: low · Status: open
+
 ## 3. Hidden things
 
 ### H01 — "The Order of the Prompt" and its Five Rules
@@ -809,6 +867,11 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - What: FH: "4.75 -> 475 here. matches the README money section (1250 fils = 12.50 BD)"; MK: "BD has 3 decimals?? 4.75 BD is 4750 fils"; AM: "the import format is 2dp by agreement with finance. fine".
 - Check: no file in the repo contains "12.50 BD" except this comment (`grep -rln "12.50 BD" .`); CASE-FILE.md:47 shows finance complaining ("Uploaded 4.75 BD, ledger shows 0.475 — ten times less"), so there was no such agreement. MK saw the bug and it stayed (see E21 blame: 43073e5, 6f462e1).
 - Meaning: false justification; CASE-FILE wins. Fixed in E21.
+
+### H36 — db/seed/fixtures/production_seed.sql cannot be loaded and nothing uses it
+- What: 12,000 of 12,000 ledger groups have one leg (the 0007 deferred balance trigger would reject them); unknown accounts (platform_fee, settlement_holding); transaction_events.event_type 'refund.succeeded' breaks the 0044 CHECK; 'paid' batches without paid_at; merchant rates differ from fixtures/merchants.ts. No code references it.
+- Proof: bug-hunter's script scratchpad/ps.py → "groups 12000 unbalanced 12000".
+- Meaning: misleading dead file; label or remove (removal needs Zainab).
 
 ## 4. Features (from the brief)
 
