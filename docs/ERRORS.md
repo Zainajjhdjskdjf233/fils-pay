@@ -105,7 +105,7 @@ Summary: 142 of 176 fixed.
 | E92 | [found later] Ledger immutability claim false; audit log unprotected | Partly fixed |
 | E93 | [found later] sqlFilter builds DELETE with no WHERE for null/undefined filters | Fixed |
 | E100 | [found later] Checkout tells a charged buyer to try again (reservation_lost) | Fixed |
-| E101 | [found later] Expired link with stale reservation: Pay form forever, cannot cancel | Open |
+| E101 | [found later] Expired link with stale reservation: Pay form forever, cannot cancel | Partly fixed |
 | E103 | [found later] View as merchant cannot work end to end | Open |
 | E105 | [found later] Refund drawer keeps its key after a definite 4xx (my F01f bug) | Fixed |
 | E106 | [found later] Reconciliation and batch pages leave out refund parts | Fixed |

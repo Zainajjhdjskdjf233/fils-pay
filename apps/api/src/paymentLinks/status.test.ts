@@ -57,3 +57,12 @@ test("derivePublicStatus: stored 'reserved' with reservedAt exactly at the timeo
     "active",
   );
 });
+
+// E101 [found later]: a stale reservation (timed out) on an EXPIRED link must
+// read as 'expired', not 'active' — the checkout showed a Pay form forever.
+test("testE101_staleReservationOnExpiredLinkIsExpired", () => {
+  const longAgo = new Date(Date.now() - 10 * 60_000);
+  assert.equal(derivePublicStatus({ status: "reserved", expiresAt: PAST, reservedAt: longAgo }, TIMEOUT_SECONDS), "expired");
+  assert.equal(derivePublicStatus({ status: "reserved", expiresAt: FUTURE, reservedAt: longAgo }, TIMEOUT_SECONDS), "active");
+  assert.equal(derivePublicStatus({ status: "reserved", expiresAt: PAST, reservedAt: new Date() }, TIMEOUT_SECONDS), "processing");
+});

@@ -37,5 +37,8 @@ export function derivePublicStatus(
   // row.status === 'reserved'
   const reservedAtMs = row.reservedAt?.getTime() ?? 0;
   const stillReserved = reservedAtMs > Date.now() - reservationTimeoutSeconds * 1000;
-  return stillReserved ? "processing" : "active";
+  if (stillReserved) return "processing";
+  // E101: a timed-out reservation is claimable again only if the link has
+  // not expired; otherwise the checkout showed a Pay form forever.
+  return row.expiresAt.getTime() <= Date.now() ? "expired" : "active";
 }

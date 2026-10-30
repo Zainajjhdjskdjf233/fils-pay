@@ -380,3 +380,18 @@ test("testE107_expiredLinksAreShownAsExpired", async () => {
   assert.deepEqual((await list("?status=active")).map((l) => l.id), [live.id]);
   assert.deepEqual((await list("?status=expired")).map((l) => l.id), [old.id]);
 });
+
+// E101 [found later]: paying an expired link that still carries a stale
+// reservation must give 410 expired, not 409 "processing, try again" forever.
+test("testE101_payOnExpiredStaleReservedLinkIs410", async () => {
+  const { rawKey, merchantId } = await createApprovedMerchantWithApiKey("e101");
+  const link = await createLink(rawKey, merchantId, { reference: "e101" });
+  await pool.query(
+    `UPDATE payment_links SET status = 'reserved', reserved_at = now() - interval '10 minutes', expires_at = now() - interval '1 minute' WHERE id = $1`,
+    [link.id],
+  );
+  const read = await getPublicLink(link.token);
+  assert.equal((read.json() as { status: string }).status, "expired");
+  const res = await pay(link.token, APPROVED_CARD);
+  assert.equal(res.statusCode, 410, res.body);
+});

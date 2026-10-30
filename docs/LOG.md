@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 07:46 PM (30 Oct 2026)
-Summary: Errors 142/176 fixed (+9 partly: E50, E92, E131, E145, E163, E47, E86, E94, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 07:47 PM (30 Oct 2026)
+Summary: Errors 142/176 fixed (+10 partly: E50, E92, E101, E131, E145, E163, E47, E86, E94, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -876,7 +876,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/paymentLinks/status.ts:37-40 (reserved branch ignores expiry); pay.ts classifyClaimFailure (reserved → 409 processing, not 410); cancel.ts:16 (only status='active')
 - Error: buyer sees "try again shortly" forever; merchant has no Cancel.
 - Proof: code read (web/admin bug-hunt agent (1:10 PM); checked by me).
-- Severity: medium · Status: open
+- Severity: medium · Status: partly fixed (see section 5, E101; merchant cancel open)
 
 ### E102 — [found later] Merchant dashboard logs out after 10 minutes and does not notice
 - Where: apps/api/src/routes/auth.ts:100-106 (cookie set only at login, maxAge = pendingSessionTtlMinutes × 60 = 10 min); otp/verify promotes the session to 12 h in the DB but never re-sets the cookie (MK's comment there asks exactly this); apps/web/src/api/client.ts:47-52 (401 never resets DashboardAuthContext)
@@ -2788,6 +2788,12 @@ ROLLBACK;
 - Changed: apps/web/src/pages/checkout/CheckoutPage.tsx: a 409 with error payment_link_reservation_lost (pay.ts:247 returns it with the transactionId after a successful capture lost the link to another payment) is now a terminal message: the card was charged, do not pay again, contact the merchant with the reference. Other 409s keep the 'try again shortly' message. The server already logs the case as 'refund needed' (pay.ts:245).
 - Proof: UI-only, no browser test setup; web tsc clean, web tests 13/13. The server side of this path is covered by paymentLinks.e29.test.ts (the losing buyer gets 409 reservation_lost).
 - E82 (same commit, docs only): options recorded, marked for Zainab to review.
+- check.sh (clean environment): OK. Needs a redeploy.
+
+### E101 — 07:47 PM — an expired link with a stale reservation reads 'expired' and pay gives 410 (merchant cancel still open)
+- Changed: apps/api/src/paymentLinks/status.ts: a timed-out reservation is 'active' only if the link has not expired, else 'expired'. apps/api/src/paymentLinks/pay.ts classifyClaimFailure: 'reserved' + expired → 410 payment_link_expired (was 409 processing, 'try again' forever).
+- Before: testE101_staleReservationOnExpiredLinkIsExpired (status.test.ts) → 'active'; testE101_payOnExpiredStaleReservedLinkIs410 (paymentLinks.test.ts) → 409. After: 'expired' and 410; a still-fresh reservation stays 'processing'. Payment-link suites 32/32.
+- Still open: cancel.ts:16 cancels only status='active', so a merchant cannot cancel such a link (it is harmless now: nobody can pay it).
 - check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy
