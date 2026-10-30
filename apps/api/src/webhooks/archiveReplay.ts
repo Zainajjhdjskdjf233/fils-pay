@@ -117,12 +117,21 @@ export async function replayWebhookDeliveryArchive(
   input: { merchantId: string; archiveId: string; targetEndpointId: string; adminUserId: string },
 ): Promise<{ replayedCount: number }> {
   return withTransaction(pool, async (client) => {
+    // E136: an archive is replayed once. Claim it atomically; a second call
+    // (or two at the same moment) matches no row.
     const archiveResult = await client.query<{ archive_payload: string }>(
-      `SELECT archive_payload FROM webhook_delivery_archives WHERE id = $1 AND merchant_id = $2`,
+      `UPDATE webhook_delivery_archives SET replayed_at = now()
+        WHERE id = $1 AND merchant_id = $2 AND replayed_at IS NULL
+        RETURNING archive_payload`,
       [input.archiveId, input.merchantId],
     );
     const archiveRow = archiveResult.rows[0];
     if (!archiveRow) {
+      const exists = await client.query(
+        `SELECT 1 FROM webhook_delivery_archives WHERE id = $1 AND merchant_id = $2`,
+        [input.archiveId, input.merchantId],
+      );
+      if ((exists.rowCount ?? 0) > 0) throw new ConflictError("webhook_delivery_archive_already_replayed");
       throw new NotFoundError("webhook_delivery_archive_not_found");
     }
 

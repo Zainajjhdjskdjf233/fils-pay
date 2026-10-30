@@ -942,7 +942,8 @@ async function createFailedDeliveries(
 }
 
 test("webhook batch replay replays every matching failed delivery in range, once each, with one audit row", async () => {
-  const admin = await signedInAdmin("support", "replay");
+  // E136: replay is finance/super_admin only (this test used a support admin).
+  const admin = await signedInAdmin("finance", "replay");
   const { merchantId } = await createMerchant("replay");
   const endpoint = await createWebhookEndpoint(pool, config, {
     merchantId,

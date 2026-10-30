@@ -34,7 +34,8 @@ export function AdminLayout() {
           <NavLink to="/credits">Credits</NavLink>
           <NavLink to="/settlement">Settlement ops</NavLink>
           <NavLink to="/adjustment-imports">Import adjustments</NavLink>
-          <NavLink to="/webhooks">Webhook replay</NavLink>
+          {/* E136: replay is finance/super_admin only */}
+          {admin && admin.role !== "support" ? <NavLink to="/webhooks">Webhook replay</NavLink> : null}
         </nav>
         <div className="admin-identity">
           {admin ? (

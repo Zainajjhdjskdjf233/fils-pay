@@ -445,3 +445,9 @@ Where: scripts/reconcile_march.ts:97 · Commit: 235fb29
 An admin could approve a shop even if it had never sent any documents, and two admins could decide at the same moment. Now approval only works for a shop that is waiting for review, and the check and the change happen in one step. A test shows a shop with no documents is refused, and a second decision is refused too.
 
 Where: apps/api/src/onboarding/review.ts: · Commit: ce6d4f0
+
+## N75 — Only finance can resend old webhooks, and an archive only once
+
+Any admin, even the lowest support role, could resend all of a shop's old payment and payout messages as many times as they wanted, and the shop could not tell the copies apart. Now only finance and super admins can resend, and a saved archive can be resent just once. A test shows support is refused and a second resend is refused.
+
+Where: apps/api/src/webhooks/archiveReplay.ts: · Commit: PENDING_N75

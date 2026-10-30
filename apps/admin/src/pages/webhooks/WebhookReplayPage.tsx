@@ -33,9 +33,9 @@ function defaultRange(): { from: string; to: string } {
 }
 
 /**
- * Replay every delivery for one endpoint inside a date range. Any
- * admin role: it is routine, reversible, and deduped receiver-side by the
- * delivery id, so no money moves as a direct result.
+ * Replay every delivery for one endpoint inside a date range.
+ * E136: finance and super_admin only (the API refuses other roles with 403);
+ * a replay gets a new delivery id, so a shop cannot drop the duplicate.
  */
 export function WebhookReplayPage() {
   const { merchantId } = useParams<{ merchantId?: string }>();

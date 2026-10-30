@@ -2750,3 +2750,38 @@ If no row matches, nothing is written and the admin gets 409.
 They approved a shop with no documents and expected success, so they protected the bug. A real upload moves the shop to "under review" first.
 
 Commit: ce6d4f0
+
+## N75 — Only finance can resend old webhooks, and an archive only once
+
+### The idea
+A webhook is a message we send a shop ("payment captured", "you were paid"). Admins can resend old ones, like reprinting receipts.
+
+### The problem
+Any admin, even support, could resend all of a shop's old messages, again and again.
+- The shop received the same payment and payout messages many times.
+- Each copy had a new id, so the shop could not tell it was a copy.
+
+### The fix
+- adminMerchants.ts: the three resend routes now need the finance or super_admin role.
+- archiveReplay.ts and migration 0084: an archive is marked "replayed" in one step, so it can be resent only once.
+
+### The code
+Before (apps/api/src/routes/adminMerchants.ts:212):
+```ts
+{ preHandler: [requireAdminSession] },
+```
+After:
+```ts
+{ preHandler: [requireAdminSession, requireAdminRole("finance", "super_admin")] },
+```
+Support admins now get 403 on resend.
+
+### The proof
+- Before: a support admin resent a delivery (200).
+- After: support 403 on all three routes; a second resend of the same archive 409.
+
+### If the judges ask
+"Why not just trust admins?"
+Support is the lowest role and the duplicates looked real to shops. A duplicate payout message was a real incident before (E30).
+
+Commit: PENDING_N75

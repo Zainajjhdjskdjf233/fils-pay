@@ -204,14 +204,16 @@ export async function adminMerchantRoutes(app: FastifyInstance): Promise<void> {
   );
 
   /**
-   * Webhook batch replay. `requireAdminSession` only (any role): it is
-   * routine, reversible, and deduped receiver-side by construction, and no
-   * money moves directly, so it is not gated to finance.
+   * Webhook batch replay. E136: finance/super_admin only. The old note here
+   * ("routine, reversible, deduped receiver-side") was false: a replay gets a
+   * new delivery id (E143), so a shop cannot drop the duplicate.
    */
   app.post<{ Params: EndpointParams; Body: ReplayBatchBody }>(
     // YA: deduped receiver-side by the stable Webhook-Delivery-Id. replay keeps the original id. correct
+    // E136/E143: false — a replay gets a new delivery id (webhooks/replay.ts:48).
     "/:id/webhook-endpoints/:endpointId/replay-batch",
-    { preHandler: [requireAdminSession] },
+    // E136: finance/super_admin only (any role, support too, could resend every past event).
+    { preHandler: [requireAdminSession, requireAdminRole("finance", "super_admin")] },
     async (request, reply) => {
       const adminAuth = request.adminAuth;
       if (!adminAuth) throw new UnauthorizedError("unauthenticated");
@@ -251,12 +253,13 @@ export async function adminMerchantRoutes(app: FastifyInstance): Promise<void> {
   /**
    * Capture a retained archive of one endpoint's delivery history
    * over a date range, ahead of a URL rotation or the endpoint being
-   * disabled. Same preHandler policy as replay-batch above: reading and
-   * snapshotting delivery history moves no money.
+   * disabled. E136: finance/super_admin only, like replay-batch (an archive
+   * can be replayed into duplicate payment events).
    */
   app.post<{ Params: EndpointParams; Body: ArchiveCreateBody }>(
     "/:id/webhook-endpoints/:endpointId/archive",
-    { preHandler: [requireAdminSession] },
+    // E136: finance/super_admin only (any role, support too, could resend every past event).
+    { preHandler: [requireAdminSession, requireAdminRole("finance", "super_admin")] },
     async (request, reply) => {
       const adminAuth = request.adminAuth;
       if (!adminAuth) throw new UnauthorizedError("unauthenticated");
@@ -297,7 +300,8 @@ export async function adminMerchantRoutes(app: FastifyInstance): Promise<void> {
    */
   app.post<{ Params: ArchiveReplayParams; Body: ArchiveReplayBody }>(
     "/:id/webhook-endpoints/:endpointId/archive/:archiveId/replay",
-    { preHandler: [requireAdminSession] },
+    // E136: finance/super_admin only (any role, support too, could resend every past event).
+    { preHandler: [requireAdminSession, requireAdminRole("finance", "super_admin")] },
     async (request, reply) => {
       const adminAuth = request.adminAuth;
       if (!adminAuth) throw new UnauthorizedError("unauthenticated");

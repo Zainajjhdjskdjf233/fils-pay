@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 04:25 PM (30 Oct 2026)
-Summary: Errors 68/158 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 04:28 PM (30 Oct 2026)
+Summary: Errors 69/158 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1078,7 +1078,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/routes/adminMerchants.ts:210, :256, :297 use `requireAdminSession` only; webhooks/archiveReplay.ts:144-153 has no "already replayed" check.
 - Error: A support admin replays `succeeded` deliveries or one archive N times → the shop receives duplicate payment and payout events (each with a new delivery id, E143). E30 (duplicate settlement.paid) was a High incident.
 - Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
-- Severity: high · Status: open
+- Severity: high · Status: fixed (see section 5)
 
 ### E137 — [coverage] KYC thumbnail: a 1 MB PNG decompression bomb can push the API past its 512 MB limit
 - Where: apps/api/src/onboarding/kycThumbnail.ts:32 `sharp(buffer)` with no `limitInputPixels` (sharp default 268 MP; FH's comment at :31 warned).
@@ -2178,6 +2178,15 @@ ROLLBACK;
 - fix-reviewer: APPROVE. The race between two admins is closed (READ COMMITTED re-checks the WHERE after the row lock, so the second gets 409); seed/tests/bulkKyc unaffected; the test change is justified (docs/ADMIN.md, audit export rows all have previousStatus 'under_review'). Our answer: agree. Its optional suggestion (a parallel double-approve test) is not added; noted.
 - Regression: same as baseline v3 (api 447/448, the known E54 test; Go 80 pass).
 - Actual result: no merchant can be approved without being under review.
+
+### E136 — 04:28 PM — webhook replay is finance-only; an archive replays once
+- Changed: apps/api/src/routes/adminMerchants.ts: `requireAdminRole("finance", "super_admin")` on replay-batch, archive create and archive replay; apps/api/src/webhooks/archiveReplay.ts:: the replay claims the archive with `UPDATE … SET replayed_at = now() WHERE … AND replayed_at IS NULL RETURNING archive_payload` (no row → 409 if it exists, else 404); db/migrations/0084_webhook_archive_replayed_at.sql adds the nullable column. Admin console: the "Webhook replay" link is hidden from support (AdminLayout.tsx); stale "any admin role / deduped receiver-side" comments corrected (adminMerchants.ts, WebhookReplayPage.tsx).
+- Test: apps/api/src/routes/adminWebhookReplay.e136.test.ts. Before (old files via `git show HEAD:…`): `support on …/replay-batch: 200 {"matchedCount":1,…}`. After: PASS (support 403 on all three; second archive replay 409; the archived delivery queued again once).
+- Old test that locked the design: routes/admin.test.ts batch-replay test used a support admin; now finance.
+- My test mistake (caught by its own 500): the archive entry must reference a real delivery (FK replay_of_delivery_id); fixed the test, then re-proved red on the old code.
+- fix-reviewer: APPROVE (race closed; a failed replay rolls back so the archive is not used up; nullable ADD COLUMN is metadata-only). Gap noted: archives replayed before 0084 can be replayed one more time (optional backfill from admin_audit_log action 'webhook_delivery_archive_replay').
+- Regression: same as baseline v3 (api 448/449, the known E54 test; Go 80 pass).
+- Actual result: only finance can resend old events, and an archive cannot be resent twice.
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04) — not yet. Local Docker stack done (01:48 PM, see section 5 E02).
