@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 08:21 PM (30 Oct 2026)
-Summary: Errors 156/177 fixed (+10 partly: E50, E92, E131, E145, E163, E48, E67, E78, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 08:22 PM (30 Oct 2026)
+Summary: Errors 156/177 fixed (+9 partly: E50, E92, E131, E163, E48, E67, E78, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1246,7 +1246,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/config.ts:139-145 `Number.parseInt` + `Number.isFinite`.
 - Error: PORT=3000oops starts on 3000; a typo silently becomes a different setting (`node -e` → 3000).
 - Proof: the second review (items 32-45, pasted by Zainab at 4:23 PM); checked by me in the code (04:30 PM).
-- Severity: medium · Status: partly fixed (see section 5, E163; OTP/argon2/timer ranges still open)
+- Severity: medium · Status: partly fixed (see section 5, E163; webhook and timeout ranges still open)
 
 ### E164 — [found later] /healthz and /readyz on the public port return the web page, not the API's health
 - Where: ops/nginx/nginx.conf: only /v1/ is proxied to the API, so /healthz and /readyz fell through to `try_files … /index.html`.
@@ -2904,6 +2904,12 @@ ROLLBACK;
 - Before: testE145_ownerEmailIsCheckedAndCaseInsensitive (signup.e145.test.ts) failed — 'not-an-email' was accepted, and a lower-case login for an owner who signed up as Owner-…@Example.TEST was refused. After: all bad shapes (including CR LF and NUL) 400; lower-case login 200. Signup, auth and app suites 22/22.
 - Second review (Copilot): not run — copilot not found (LOG line 1567). fix-reviewer: APPROVE; E04 still holds (the same row gets the password check, OTP and session, auth.ts:80-104); two old rows differing only by case can at worst make a login fail, never cross over; suggested a fixed tiebreak and blocking all control characters — both taken; findOtpRecipient (auth/users.ts:19) is unused leftover code; admin emails are matched case-sensitively — recorded as new entry E177.
 - With the earlier part (E145 at 05:23 PM) E145 is now fully fixed.
+- check.sh (clean environment): OK. Needs a redeploy.
+
+### E163 — 08:22 PM — (more) security-relevant API settings are range-checked at boot — webhook and timeout ranges still open
+- Changed: apps/api/src/config.ts parseRangedIntEnv(name, value, fallback, min, max) for 14 settings: SESSION_TTL_HOURS 1-168, PENDING_SESSION_TTL_MINUTES 1-60, OTP_TTL_MINUTES 1-60, OTP_CODE_LENGTH 4-10, OTP_MAX_ATTEMPTS 1-20, ARGON2_MEMORY_KIB 8192-1048576, ARGON2_TIME_COST 1-10, ARGON2_PARALLELISM 1-16, and the admin session/OTP/impersonation equivalents (ranges for Zainab to review). ACQUIRER_FAILURE_RATE was already checked (config.ts:312); a duplicate check I first added was removed.
+- Before: apps/api/src/config.e163b.test.ts — OTP_CODE_LENGTH=1, OTP_MAX_ATTEMPTS=0, ARGON2_TIME_COST=0, SESSION_TTL_HOURS=0 and others were accepted. After: refused at boot; normal values load. Config suites 6/6; app, admin and auth suites 64/64. No value in ops/ sets these (grep), so the live defaults are unchanged.
+- Still open: ranges for webhook timers and the settlement/payment-link timeouts (second review items 53-57).
 - check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy

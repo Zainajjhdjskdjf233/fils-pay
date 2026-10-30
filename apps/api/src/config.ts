@@ -156,6 +156,15 @@ function parseIntEnv(value: string | undefined, fallback: number): number {
   return parsed;
 }
 
+/** E163 (rest): an integer setting that must also fall inside [min, max]. */
+function parseRangedIntEnv(name: string, value: string | undefined, fallback: number, min: number, max: number): number {
+  const parsed = parseIntEnv(value, fallback);
+  if (parsed < min || parsed > max) {
+    throw new Error(`loadConfig: ${name} must be between ${min} and ${max}, got ${parsed}`);
+  }
+  return parsed;
+}
+
 function parseFloatEnv(value: string | undefined, fallback: number): number {
   if (value === undefined || value === "") return fallback;
   // E163: the whole string must be a number ("0.5oops" was 0.5).
@@ -238,25 +247,25 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     pgPoolIdleTimeoutMs: parseIntEnv(env.PG_POOL_IDLE_TIMEOUT_MS, 30_000),
     pgPoolConnectionTimeoutMs: parseIntEnv(env.PG_POOL_CONNECTION_TIMEOUT_MS, 5_000),
 
-    sessionTtlHours: parseIntEnv(env.SESSION_TTL_HOURS, 12),
-    pendingSessionTtlMinutes: parseIntEnv(env.PENDING_SESSION_TTL_MINUTES, 10),
-    otpTtlMinutes: parseIntEnv(env.OTP_TTL_MINUTES, 5),
-    otpCodeLength: parseIntEnv(env.OTP_CODE_LENGTH, 6),
-    otpMaxAttempts: parseIntEnv(env.OTP_MAX_ATTEMPTS, 5),
+    sessionTtlHours: parseRangedIntEnv("SESSION_TTL_HOURS", env.SESSION_TTL_HOURS, 12, 1, 168),
+    pendingSessionTtlMinutes: parseRangedIntEnv("PENDING_SESSION_TTL_MINUTES", env.PENDING_SESSION_TTL_MINUTES, 10, 1, 60),
+    otpTtlMinutes: parseRangedIntEnv("OTP_TTL_MINUTES", env.OTP_TTL_MINUTES, 5, 1, 60),
+    otpCodeLength: parseRangedIntEnv("OTP_CODE_LENGTH", env.OTP_CODE_LENGTH, 6, 4, 10),
+    otpMaxAttempts: parseRangedIntEnv("OTP_MAX_ATTEMPTS", env.OTP_MAX_ATTEMPTS, 5, 1, 20),
     // E37: opt-in only. The default was "on unless production", and NODE_ENV
     // defaults to development, so a hosted box handed codes to anyone.
     otpDevExpose: parseBoolEnv(env.OTP_DEV_EXPOSE, false),
 
-    argon2MemoryKib: parseIntEnv(env.ARGON2_MEMORY_KIB, 19_456),
-    argon2TimeCost: parseIntEnv(env.ARGON2_TIME_COST, 2),
-    argon2Parallelism: parseIntEnv(env.ARGON2_PARALLELISM, 1),
+    argon2MemoryKib: parseRangedIntEnv("ARGON2_MEMORY_KIB", env.ARGON2_MEMORY_KIB, 19_456, 8192, 1048576),
+    argon2TimeCost: parseRangedIntEnv("ARGON2_TIME_COST", env.ARGON2_TIME_COST, 2, 1, 10),
+    argon2Parallelism: parseRangedIntEnv("ARGON2_PARALLELISM", env.ARGON2_PARALLELISM, 1, 1, 16),
 
     kycUploadDir: env.KYC_UPLOAD_DIR ?? "./data/kyc",
     kycMaxFileSizeBytes: parseIntEnv(env.KYC_MAX_FILE_SIZE_BYTES, 8_388_608),
 
     acquirerLatencyMinMs: parseIntEnv(env.ACQUIRER_LATENCY_MIN_MS, 100),
     acquirerLatencyMaxMs: parseIntEnv(env.ACQUIRER_LATENCY_MAX_MS, 400),
-    acquirerFailureRate: parseFloatEnv(env.ACQUIRER_FAILURE_RATE, 0.02),
+    acquirerFailureRate: parseFloatEnv(env.ACQUIRER_FAILURE_RATE, 0.02), // range checked below (config.ts, after the object)
     acquirerRngSeed:
       env.ACQUIRER_RNG_SEED !== undefined && env.ACQUIRER_RNG_SEED !== ""
         ? parseIntEnv(env.ACQUIRER_RNG_SEED, 0)
@@ -266,14 +275,14 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     cookieSecure: parseBoolEnv(env.COOKIE_SECURE, nodeEnv === "production"),
 
     adminCookieName: env.ADMIN_COOKIE_NAME ?? "fp_admin_sid",
-    adminSessionTtlHours: parseIntEnv(env.ADMIN_SESSION_TTL_HOURS, 8),
-    adminPendingSessionTtlMinutes: parseIntEnv(env.ADMIN_PENDING_SESSION_TTL_MINUTES, 10),
-    adminOtpTtlMinutes: parseIntEnv(env.ADMIN_OTP_TTL_MINUTES, 5),
-    adminOtpCodeLength: parseIntEnv(env.ADMIN_OTP_CODE_LENGTH, 6),
-    adminOtpMaxAttempts: parseIntEnv(env.ADMIN_OTP_MAX_ATTEMPTS, 5),
+    adminSessionTtlHours: parseRangedIntEnv("ADMIN_SESSION_TTL_HOURS", env.ADMIN_SESSION_TTL_HOURS, 8, 1, 24),
+    adminPendingSessionTtlMinutes: parseRangedIntEnv("ADMIN_PENDING_SESSION_TTL_MINUTES", env.ADMIN_PENDING_SESSION_TTL_MINUTES, 10, 1, 60),
+    adminOtpTtlMinutes: parseRangedIntEnv("ADMIN_OTP_TTL_MINUTES", env.ADMIN_OTP_TTL_MINUTES, 5, 1, 60),
+    adminOtpCodeLength: parseRangedIntEnv("ADMIN_OTP_CODE_LENGTH", env.ADMIN_OTP_CODE_LENGTH, 6, 4, 10),
+    adminOtpMaxAttempts: parseRangedIntEnv("ADMIN_OTP_MAX_ATTEMPTS", env.ADMIN_OTP_MAX_ATTEMPTS, 5, 1, 20),
 
     impersonationCookieName: env.IMPERSONATION_COOKIE_NAME ?? "fp_impersonation",
-    impersonationTtlMinutes: parseIntEnv(env.IMPERSONATION_TTL_MINUTES, 15),
+    impersonationTtlMinutes: parseRangedIntEnv("IMPERSONATION_TTL_MINUTES", env.IMPERSONATION_TTL_MINUTES, 15, 1, 120),
 
     settlementInternalUrl: env.SETTLEMENT_INTERNAL_URL ?? "http://settlement:8091",
     settlementInternalToken,
