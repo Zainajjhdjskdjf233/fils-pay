@@ -218,6 +218,18 @@ func CloseBatch(ctx context.Context, db *pgxpool.Pool, merchantID uuid.UUID, bus
 	}
 	netPayout := NetPayableFils(batchGross, batchFee)
 
+	// Step 9 (F01d): refunds lower the payout. processRefund already debited
+	// merchant_payable by (amount - fee reversed), so the payout shrinks by
+	// exactly that. Take the merchant's unbatched succeeded refunds oldest
+	// first (any day up to this window's end, so carried-over ones are
+	// included), and stop at the first one that would push net below zero:
+	// it and later ones wait for the next batch. Integer fils only.
+	refundIDs, batchRefund, batchFeeReversed, err := takeRefunds(ctx, tx, merchantID, end, netPayout)
+	if err != nil {
+		return BatchResult{}, err
+	}
+	netPayout = netPayout - batchRefund + batchFeeReversed
+
 	// Record this batch's contribution to the platform-wide lifetime
 	// processed-volume counter, in the same transaction that freezes this
 	// batch's own totals — so the counter and the batch it describes
@@ -229,11 +241,21 @@ func CloseBatch(ctx context.Context, db *pgxpool.Pool, merchantID uuid.UUID, bus
 	// Step 10: freeze the batch totals.
 	_, err = tx.Exec(ctx, `
 		UPDATE settlement_batches
-		   SET status = 'closed', gross_fils = $2, fee_fils = $3, net_payout_fils = $4, closed_at = now()
+		   SET status = 'closed', gross_fils = $2, fee_fils = $3, net_payout_fils = $4,
+		       refund_fils = $5, fee_reversed_fils = $6, closed_at = now()
 		 WHERE id = $1
-	`, batchID, int64(batchGross), int64(batchFee), int64(netPayout))
+	`, batchID, int64(batchGross), int64(batchFee), int64(netPayout), int64(batchRefund), int64(batchFeeReversed))
 	if err != nil {
 		return BatchResult{}, fmt.Errorf("settlement: CloseBatch: freeze batch totals: %w", err)
+	}
+
+	if len(refundIDs) > 0 {
+		_, err = tx.Exec(ctx, `
+			UPDATE refunds SET settlement_batch_id = $2 WHERE id = ANY($1)
+		`, refundIDs, batchID)
+		if err != nil {
+			return BatchResult{}, fmt.Errorf("settlement: CloseBatch: mark refunds batched: %w", err)
+		}
 	}
 
 	// Step 11: mark every included event as batched — permanently

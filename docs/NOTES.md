@@ -658,3 +658,42 @@ The old rule `.env` matches only a file named exactly .env. The new line names t
 No. It is still in old commits since 669af52, so a human must rotate it. Untracking only stops new copies.
 
 Commit: 3145f24
+
+## N18 — Refunds now lower the shop's payout
+
+### The idea
+Every day, FilsPay adds up a shop's sales, takes its fee, and pays the rest. This is the batch. It is like a cashier counting the till at closing time.
+
+### The problem
+The daily count only looked at sales, never at refunds.
+- A shop that refunded 1.250 BD was still paid as if the sale stood.
+- After a fee change, the recalculation also rebuilt the payout as sales minus fee, so it would bring the refund back.
+
+### The fix
+- New migration 0073: each batch stores its refund total and the fee given back.
+- refund_batch.go (new): picks the shop's refunds not yet counted, oldest first, while the payout stays at 0 or more. The rest wait for the next day.
+- batch.go: subtracts those refunds and marks each refund with the batch id, so it counts once.
+- recalculate_mdr.go: moves the payout only by the fee change.
+
+### The code
+Before (apps/settlement/internal/settlement/batch.go:219):
+```go
+netPayout := NetPayableFils(batchGross, batchFee)
+```
+After:
+```go
+netPayout := NetPayableFils(batchGross, batchFee)
+refundIDs, batchRefund, batchFeeReversed, err := takeRefunds(ctx, tx, merchantID, end, netPayout)
+netPayout = netPayout - batchRefund + batchFeeReversed
+```
+The payout now drops by the refund, minus the fee we gave back. All in whole fils.
+
+### The proof
+- Before: Go test → NetPayoutFils = 9750, want 8531.
+- After: 4 Go tests pass. A real refund through the API, then the real batch: payout 8531, and the shop's balance in the ledger ends at exactly 0 fils.
+
+### If the judges ask
+"What if refunds are bigger than the day's sales?"
+We never pay a negative amount. The refund that does not fit waits, and the next day's batch takes it. No fils are lost.
+
+Commit: PENDING_N18

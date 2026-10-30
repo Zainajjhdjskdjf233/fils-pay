@@ -100,7 +100,9 @@ func RecalculateMDR(ctx context.Context, db *pgxpool.Pool, merchantID uuid.UUID,
 		if diff == 0 {
 			continue
 		}
-		newNetPayout := b.grossFils - newFee
+		// F01d: move the stored net by the fee change only. Rebuilding it as
+		// gross - fee would drop the batch's refund adjustment (0073).
+		newNetPayout := b.netPayoutFils - diff
 		// am: posts against the OLD batch id so it never lands in a new payout?? fixed in FP-244 i think
 		if err := postMdrAdjustment(ctx, tx, merchantID, b.id, diff); err != nil {
 			return RecalcResult{}, err

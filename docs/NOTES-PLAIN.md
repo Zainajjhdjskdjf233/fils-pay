@@ -103,3 +103,9 @@ Where: apps/api/src/webhooks/dispatcher.ts:31 · Commit: 079aeea
 A settings file with a real secret (the key that proves a message came from the card acquirer) was saved in git, even though a comment in it said it was not. A developer had trusted an AI tool that said the `.env` rule also covers `.env.docker`; it does not. We told git to stop tracking the file and to ignore it, and we added an example file with only the names. Git now shows the file as ignored. The secret is still in old history, so a person must change it.
 
 Where: .gitignore:11 · Commit: 3145f24
+
+## N18 — Refunds now lower the shop's payout
+
+Each day the system pays a shop its sales minus the fee, but it forgot about refunds. So a shop that gave money back to a customer still got paid for that sale, and FilsPay lost the money. Now the daily count takes away the refunds, marks each one so it is only counted once, and moves any refund that is too big to the next day. A second reviewer also found that a fee recalculation would undo this, and we fixed that too. A real test from refund to payout leaves the shop's balance at exactly zero.
+
+Where: apps/settlement/internal/settlement/batch.go:227 · Commit: PENDING_N18

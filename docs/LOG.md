@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 9:50 AM (30 Oct 2026)
-Summary: Errors 15/59 fixed · Hidden 33 found · Features 0/2 done (F01 API part done) · Deploy: not started · CHECKPOINT reached
+Updated: 9:59 AM (30 Oct 2026)
+Summary: Errors 15/59 fixed · Hidden 34 found · Features 0/2 done (F01 API + settlement done) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -729,6 +729,11 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: docs/exports/admin-audit-2026-09.csv (added in d4ecdc7, a commit dated June that holds September data, H09).
 - Meaning: key clue for /investigate (MK = "High Prompter", AM = "Keeper of Logs", H01).
 
+### H34 — Comments promise net = gross - fee; refunds now make that false
+- Where: apps/web/src/types.ts:218 ("Always exactly grossFils - feeFils"); apps/api/src/settlement/query.ts:52 ("netPayoutFils === grossFils - feeFils for every batch").
+- What: after F01d a batch with refunds has net = gross - fee - refund_fils + fee_reversed_fils (0073). Comments only, no runtime check. Also: apps/api/src/admin/settlementClient.ts:282-295 `notifySettlementRefundAdjustment` divides the amount by 10 and calls a Go route that does not exist; nothing calls it (grep finds only its definition).
+- Meaning: fix the comments and show refund_fils in the batch API with F01 reports/reconciliation.
+
 ## 4. Features (from the brief)
 
 ### F01 — Finish refunds end to end (FP-212)
@@ -742,7 +747,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
   - Reconciliation: settlement/query.ts:250-253 claims refund legs are included (unverified).
   - UI: RefundDrawer.tsx:1-8 parked; web router.tsx:21 removed `/refunds`.
 - Plan (draft, for /fix): 1) fix E52 (NULL reason) and E28 inside processRefund; 2) mount `POST /v1/merchants/:merchantId/refunds` with a client Idempotency-Key and role check; 3) add `refund.succeeded` envelope + eligibility; 4) settlement side: `/internal/refund-adjustment` or batch close reads unbatched refunds; 5) reporting subscribe + fix 0072 join; 6) timeline + web drawer; 7) update the 501 test.
-- Progress: core logic F01a (68fd1bf), route F01b (f84083a, 8f05f9e), webhook F01c (079aeea) done and tested through the API; timeline shows refunds. OPEN: settlement payouts (Go has no `/internal/refund-adjustment`, server.go:121-124; no Go code reads `refunds`), reports (E43: 0072 join, consumer subscription, rollup columns), reconciliation, web refund page (RefundDrawer parked, router.tsx:21). These need Zainab's design OK (many files, Go side).
+- Progress: core logic F01a (68fd1bf), route F01b (f84083a, 8f05f9e), webhook F01c (079aeea) done and tested through the API; timeline shows refunds. Settlement payouts F01d done (see section 5; Go batch reads refunds, `/internal/refund-adjustment` not built by design). OPEN: reports (E43: 0072 join, consumer subscription, rollup columns), reconciliation, web refund page (RefundDrawer parked, router.tsx:21). These need Zainab's design OK (many files, Go side).
 - Expected result: partial refund of 1.250 BD on a 10.000 BD capture → ledger merchant_payable −1250 fils plus MDR reversal from `calculateRefundFee`; one `refund.succeeded` webhook; timeline row −1.250; next batch net reduced by the same fils; second parallel request rejected.
 - Status: in progress (API part done: F01a-F01c; settlement, reports, UI open)
 
@@ -956,6 +961,22 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Review: git index and config only, no code → no fix-reviewer; Copilot CLI not installed.
 - Decision: keep the local file and add an example — Why: compose users still need the values; the example documents the names without a secret — Alternative: delete the file (breaks local runs, and history still holds the value).
 
+### F01d — 9:59 AM — refunds lower the shop's payout (Go settlement)
+- Design (Zainab, 9:52 AM): CloseBatch reads refunds; refunds bigger than the day carry over. Alternative rejected: a new Go `/internal/refund-adjustment` route called by the API (network call inside the refund; which batch?; the existing client divides by 10, settlementClient.ts:292).
+- Changed:
+  - db/migrations/0073_settlement_batches_refunds.sql: `refund_fils`, `fee_reversed_fils` on settlement_batches (default 0, CHECK >= 0).
+  - apps/settlement/internal/settlement/refund_batch.go (new): `takeRefunds` locks the merchant's unbatched succeeded refunds before the window end, oldest first, `FOR UPDATE`, takes them while net stays >= 0, stops at the first that does not fit (it and later ones carry over).
+  - apps/settlement/internal/settlement/batch.go: Step 9 `net = NetPayableFils(gross, fee) - refund + fee_reversed` (integer fils); freezes the two new columns; stamps `refunds.settlement_batch_id` in the same transaction.
+  - apps/settlement/internal/settlement/recalculate_mdr.go:103: `newNetPayout := b.netPayoutFils - diff` (was `b.grossFils - newFee`, which dropped the refund adjustment; found by fix-reviewer).
+- Why the payout must drop by (refund - fee reversed): processRefund.ts:225 debits merchant_payable by the refund and :235 credits back the fee reversed; PayoutBatch (batch.go:334-342) debits merchant_payable by net.
+- Test: refund_batch_f01d_test.go (4 tests). Before: `NetPayoutFils = 9750, want 8531`; `column "refund_fils" does not exist`; day1 `4875, want 1950`; after the reviewer's finding `net_payout_fils = 9700, want 8481`. After: 4/4 PASS.
+- End to end (scratchpad/f01d-e2e-mjs-*.mts + `settlement run-batch --date=2026-10-30 --merchant=419900cd-...`): API refund 1250 (fee back 31) on a 10000 capture → batch `paid|10000|250|1250|31|8531`; refund stamped; merchant_payable credits - debits = 0; balance cache 0. Before the fix the payout would be 9750 (red test), i.e. 1219 fils overpaid.
+- Regression: full-db-test.sh = baseline (5 known failures E53/E54); Go 57 pass, 0 fail.
+- Mistake caught: my first e2e run crashed (top-level await in a .ts scratch file) so the merchant id was empty and `run-batch` ran for every merchant of the throwaway test DB only; re-ran with a .mts copy and an empty-id guard.
+- Review: fix-reviewer → CHANGES: RecalculateMDR rebuilt net as gross - fee (recalculate_mdr.go:103) and would pay refunds back to the shop. Agreed (red test above), fixed, re-tested. Non-blocking: comments net === gross - fee (H34); batch API/outbox do not show refund_fils (with F01 reports). Copilot CLI not installed.
+- Not changed on purpose: NetPayableFils float32 (E15, its own entry); RecalculateMDR touching paid batches (E19).
+- Actual result: matches expected ("next batch net reduced by the same fils").
+
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)
 - Status: not started
@@ -1050,4 +1071,9 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - What happened: Zainab chose the order: F01 settlement (design choice asked first), then F01 reports and reconciliation, then E21, E23, E14, E17; the web refund page last. Credits rule (H32): support stays blocked, because the code wins over docs/ADMIN.md. E04 findOtpRecipient and E06 expiryReferenceTime stay as dead code (not deleted). E13: untrack ops/.env.docker (done). Docker waits for the hosting talk. Her CLAUDE.md change committed (e34d70c).
 - Why it matters: deletions, money design and installs are the human's call, not the AI's.
 - Proof: this LOG entry; e34d70c; E13 part 2 in section 5.
+
+### J19 — 9:59 AM — the second reviewer caught a money bug my tests missed
+- What happened: all F01d tests and the e2e passed, but fix-reviewer found that RecalculateMDR (recalculate_mdr.go:103) rebuilt net as gross - fee, so after any fee recalculation a batch with refunds would pay the refund back to the shop. I proved it with a red test (9700 vs 8481), fixed it with one line, and kept the test.
+- Why it matters: a change in one place (batch close) broke an assumption in another (recalculation). Review across files is worth it for money code.
+- Proof: refund_batch_f01d_test.go TestF01d_RecalculateMDRKeepsRefundAdjustment; section 5 F01d.
 
