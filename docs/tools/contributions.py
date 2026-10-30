@@ -72,13 +72,19 @@ def main() -> None:
     w("## 1. The AI setup\n")
     files = run("git ls-files .claude CLAUDE.md").splitlines()
     w(f"Files: {len(files)} ({code('git ls-files .claude CLAUDE.md | wc -l')})\n")
-    w("| File | What it does | Committed by (first commit) |")
-    w("|---|---|---|")
+    w("| File | What it does | Current version written by | Inherited version |")
+    w("|---|---|---|---|")
+    first_own_date = run(f"git log -1 --format=%ct {FIRST_OWN_COMMIT}")
     for f in files:
-        who = run(f"git log --diff-filter=A --format='%an %ad' --date=format:'%d %b %Y' -- '{f}' | tail -1")
-        w(f"| {f} | {PURPOSE.get(f, '')} | {who} |")
-    per_file = code("git log --diff-filter=A --format='%an %ad' -- <file>")
-    w(f"\nCommand per file: {per_file}\n")
+        latest = run(f"git log -1 --format='%h %an %ad' --date=format:'%Y-%m-%d' -- '{f}'")
+        first = run(f"git log --reverse --format='%h|%an|%ad|%ct' --date=format:'%Y-%m-%d' -- '{f}' | head -1").split("|")
+        inherited = ""
+        if len(first) == 4 and int(first[3]) < int(first_own_date):
+            inherited = f"{first[1]} {first[2]} ({first[0]}); replaced in {FIRST_OWN_COMMIT}"
+        w(f"| {f} | {PURPOSE.get(f, '')} | {latest} | {inherited or '—'} |")
+    cmd_latest = code("git log -1 --format='%h %an %ad' -- <file>")
+    cmd_first = code("git log --reverse --format='%h %an %ad' -- <file> | head -1")
+    w(f"\nCurrent version: {cmd_latest}. Inherited version (only when the file's first commit is older than {FIRST_OWN_COMMIT}): {cmd_first}.\n")
 
     # 2. Commits
     w("## 2. Commits after the inherited history\n")
@@ -108,6 +114,8 @@ def main() -> None:
     base, bc = cmd_count("grep -E '^\\| E[0-9]+ \\|' docs/ERRORS.md | grep -vcE '\\[(found later|deep review|coverage|second review)\\]'")
     basef, _ = cmd_count("grep -E '^\\| E[0-9]+ \\|' docs/ERRORS.md | grep -vE '\\[(found later|deep review|coverage|second review)\\]' | grep -c '| Fixed |'")
     w(f"| base (first audit, no tag) | {base} | {basef} | {code(bc, table=True)} |\n")
+    w("Note: the [second review] tag is on 17 rows: the 16 entries that review found (section 4) plus E45, which the AI setup recorded "
+      "first (during /understand) and whose real cause the second review found. Every count of \"new from the second review\" in this repo uses 16.\n")
 
     # 4. Second review
     w("## 4. The second review (docs/COMPARE.md)\n")

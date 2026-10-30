@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 4:42 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 4:45 PM
 
 ## Contents
 1. Status now
@@ -14,9 +14,9 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:42 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 74 of 163 fixed.
+- Errors: 75 of 163 fixed.
   - High: 45 of 46 fixed
-  - Medium: 25 of 54 fixed
+  - Medium: 26 of 54 fixed
   - Low: 4 of 63 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
@@ -27,7 +27,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:42 PM
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 74 of 163 fixed.
+- 🔄 Fix: 75 of 163 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -74,6 +74,8 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:42 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- 5a998e4 fix(E106): dashboard batch, list and reconciliation pages show the refund parts; refund demo check recorded
+- e7b8b1b fix(E138): one CSV export at a time per process (503 + Retry-After), 6 columns instead of SELECT *; notes N76-N79
 - f078974 fix(E134): credit effectiveDate must be today (Bahrain) or up to 90 days back; also closes E149
 - 757eab0 fix(E162): adjustment CSV refuses rows with more than 3 columns and any other header
 - b2ebc90 fix(E137): KYC thumbnail limits input pixels and decodes one at a time; oversized images get no thumbnail
@@ -87,8 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:42 PM
 - d97de16 fix(E121): credits and balance adjustments are paid through the daily batch (negative ones carry like refunds)
 - cc6d252 fix(E120): MDR recalculation skips and reports a batch instead of storing a negative payout
 - 1d456a8 fix(E124): one discount adjustment per capture event, sized from its own fee
-- 93d09b2 fix(E123): card shape checked in both payment routes before the link is claimed (400, not 500)
-- c06b7eb fix(E122): link pay gives back its lock slot, frees the link and voids when pool.connect fails
 
 ## 7. All errors
 ## High (45 of 46 fixed)
@@ -142,7 +142,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:42 PM
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-### Medium (25 of 54 fixed)
+### Medium (26 of 54 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -184,7 +184,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:42 PM
 | E101 | [found later] Expired link with stale reservation: Pay form forever, cannot cancel | Open |
 | E103 | [found later] View as merchant cannot work end to end | Open |
 | E105 | [found later] Refund drawer keeps its key after a definite 4xx (my F01f bug) | Fixed |
-| E106 | [found later] Reconciliation and batch pages leave out refund parts | Open |
+| E106 | [found later] Reconciliation and batch pages leave out refund parts | Fixed |
 | E125 | [second review] Filters without a time zone read in the server's local zone | Open |
 | E128 | [deep review] Suspended merchant keeps sessions and API keys | Open |
 | E129 | [deep review] Capture idempotency hash ignores the transaction id | Open |
@@ -3191,5 +3191,5 @@ The second export waits its turn instead of crashing the server.
 "Isn't one at a time slow?"
 An export takes about a second; a crash takes the whole API down. Streaming would be the long-term fix.
 
-Commit: PENDING_N79
+Commit: e7b8b1b
 
