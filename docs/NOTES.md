@@ -807,4 +807,4 @@ The clock reading is turned into a Bahrain date before the day is chosen.
 "Why not fix BusinessDayWindow itself?"
 Every other caller gives it a plain date, and that works. Only the timer gave it a clock time, so we fixed the timer and kept the shared function's promise.
 
-Commit: PENDING_N21
+Commit: 7af14ce
