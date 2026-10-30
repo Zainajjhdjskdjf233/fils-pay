@@ -2453,4 +2453,4 @@ A batch that would owe a negative payout is not changed; it is reported instead.
 "Why not move the extra fee to the next batch?"
 That is the full answer, but it touches the batch close too. Skipping is safe today and marked for Zainab to review.
 
-Commit: PENDING_N66
+Commit: cc6d252

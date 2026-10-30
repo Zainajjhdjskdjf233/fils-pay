@@ -74,6 +74,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:02 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- cc6d252 fix(E120): MDR recalculation skips and reports a batch instead of storing a negative payout
 - 1d456a8 fix(E124): one discount adjustment per capture event, sized from its own fee
 - 93d09b2 fix(E123): card shape checked in both payment routes before the link is claimed (400, not 500)
 - c06b7eb fix(E122): link pay gives back its lock slot, frees the link and voids when pool.connect fails
@@ -88,7 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:02 PM
 - 184c0b2 fix(E73): CloseBatch journals the scheme rounding residue (ADR-0002); record E74-E90, H37-H39
 - e5eb890 feat(F01f): dashboard refund page; fix(E61): same-origin API calls for web and admin
 - 107618c fix(E50): payment-link checkout applies the negotiated discount like the card API
-- 376bc49 fix(E19): MDR recalculation uses fee schedules and the tier bonus stored at close
 
 ## 7. All errors
 ## High (37 of 39 fixed)
@@ -2687,5 +2687,5 @@ A batch that would owe a negative payout is not changed; it is reported instead.
 "Why not move the extra fee to the next batch?"
 That is the full answer, but it touches the batch close too. Skipping is safe today and marked for Zainab to review.
 
-Commit: PENDING_N66
+Commit: cc6d252
 

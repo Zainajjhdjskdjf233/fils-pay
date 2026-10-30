@@ -396,4 +396,4 @@ Where: apps/api/src/payments/discountAdjustment.ts:70 · Commit: 1d456a8
 
 Admins can recalculate fees on batches that are closed but not yet paid. The code took the extra fee straight off the payout, even when refunds had already used almost all of it, so a payout could become negative. Now such a batch is left as it is and shown to the admin as "skipped" for a human decision. A test shows a 50-fils payout no longer turns into minus 1,700 fils.
 
-Where: apps/settlement/internal/settlement/recalculate_mdr.go:118 · Commit: PENDING_N66
+Where: apps/settlement/internal/settlement/recalculate_mdr.go:118 · Commit: cc6d252
