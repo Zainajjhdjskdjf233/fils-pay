@@ -880,4 +880,4 @@ All shares are cut from the same total, so they always add back up to it.
 "Who gets the extra fil?"
 The child whose exact share was closest to the next fil. The same rule as the allocateRemainder helper in our money package.
 
-Commit: PENDING_N23
+Commit: 2327ed9

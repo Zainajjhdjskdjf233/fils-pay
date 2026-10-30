@@ -138,4 +138,4 @@ Where: apps/settlement/internal/settlement/batch.go:279 · Commit: 01eee15
 
 When a marketplace's payout is split between its child shops, each child's part was rounded separately, so the parts could add up to more or less than the total. In one test, 3 fils were split and 4 were paid out. We now cut all parts from the same total and give any left-over fils to the children whose share was closest to the next fil. Tests show the parts always add up exactly to the total.
 
-Where: apps/settlement/internal/splits/allocate.go:110 · Commit: PENDING_N23
+Where: apps/settlement/internal/splits/allocate.go:110 · Commit: 2327ed9
