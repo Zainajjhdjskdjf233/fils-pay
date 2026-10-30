@@ -1,6 +1,6 @@
 # LOG
 Mode: Competition
-Updated: 09:53 PM (30 Oct 2026)
+Updated: 09:57 PM (30 Oct 2026)
 Summary: Errors 173/178 fixed (+1 partly: E79; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
@@ -708,7 +708,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 ### E72 — [found later] reconcile_march picks transactions by authorization time and residue on running totals (suspected)
 - Where: scripts/reconcile_march.ts:48-53 (filter on transactions.occurred_at), :34-36 (`captured_fils % 10` on the running total, but scheme lines are cut per batch slice, batch.go:273).
 - Proof: suspected — a transaction captured in two batches (1005 + 1005) would sweep 0 while the scheme lines lost 10.
-- Severity: low · Status: open — for Zainab to review (08:37 PM)
+- Severity: low · Status: fixed (see section 5, E72)
 - Analysis: confirmed in the code. computeResidueFils (scripts/reconcile_march.ts:34) takes captured_fils % 10 on each transaction's running total, but the scheme file truncates per batch slice (settlement/batch.go:273), so a transaction captured as 1005 + 1005 in two batches sweeps 0 while the scheme lines lost 10. A correct sweep must sum, per scheme line, the slice amount minus its truncated amount (scheme_export_lines with the matching capture events), not the transaction total. Not changed tonight: it is a money script and needs its own tests; the live server never runs scripts (LOG §6 rules).
 - Read-only query for the correct March residue per merchant (per scheme line: the capture slice in that batch minus its truncated scheme amount). Run it to see the right figure before any sweep; it changes nothing:
   ```sql
@@ -723,6 +723,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
   ```
   Checked on the test database (09:34 PM): runs, 109 merchant rows.
 - Decision (Claude, Zainab approved deciding without review): docs only: do not change reconcile_march.ts tonight; the correct residue is documented as a read-only query (per scheme line, slice minus truncated amount) in this entry — Why: the script posts ledger entries, so a code change would touch money data; the live server never runs scripts, and the read-only query gives the right figure without writing anything — Alternative: rewrite the sweep per scheme line with tests and run it once on a copy
+- Update (09:59 PM): the 'docs only' decision above is superseded — Zainab asked for the code fix, tested on fresh local databases only; the script was not run on any real data.
 
 ### E73 — [found later] CloseBatch never journals the scheme rounding residue (ADR-0002 not implemented)
 - Where: apps/settlement/internal/settlement/batch.go:272-284 (scheme line loop); only scripts/reconcile_march.ts wrote scheme_rounding_residue (grep)
@@ -3070,6 +3071,13 @@ ROLLBACK;
 - Deleted (git rm, approved by Zainab at 9:38 PM): apps/api/src/fees/estimate.ts (estimateFeeFils, float rates), apps/api/src/v1/fees/calculateFee.ts and apps/api/src/v1/routes/transactions.ts (the unregistered v1 tree; they imported only each other).
 - Proof: grep for each path and for estimateFeeFils / calculateMdrFeeV1 outside the deleted files → 0 importers (only the comment at app.ts:66, now annotated); api tsc clean; check.sh OK.
 - With the earlier part (14362c4) E79 is now fully fixed.
+
+### E72 — 09:57 PM — the March sweep takes the residue per scheme line and by the batch's business date (code fixed; never run on real data)
+- Changed: scripts/reconcile_march.ts fetchResidueRows: per scheme line, residue = that transaction's captured/partially_captured events in that settlement batch − the line's truncated amount_fils; the month is chosen by settlement_batches.batch_date (Bahrain business day of the events, event time), not transactions.occurred_at (authorization time); batches that already have a scheme_rounding_residue row for their settlement_batch_id (journaled at close since E73) are skipped. groupByMerchant sums the per-line residues; the per-merchant idempotency guard and the ADR-0002 legs are unchanged.
+- Before: scripts/reconcile_march.e72.test.ts on a fresh local DB (filspay_e72_215451_10534) failed against the old code (a February-authorized transaction captured as 1005 + 1005 in two March batches swept 0, and an E73-journaled batch was not skipped). After: residue 10 over 2 lines; the journaled batch skipped. e16/e75 tests now build batches, capture events and scheme lines (new helper scripts/reconcileTestData.ts); all script tests 12/12 on the fresh DB.
+- Second review (Copilot): not run — copilot not found (LOG line 1567). fix-reviewer: APPROVE; the slice matches CloseBatch exactly (batch.go:157-166 tags only capture events in the business-day window; :303-310 one line per transaction); refunds and voids cannot enter; NULL transaction_id lines are dropped. Recorded as it asked: (1) the Alpha Retail March seed fixture (db/seed/generate.ts:715-757) has no batches or scheme lines, so a fresh seed now sweeps 0 for it — correct under the new model (nothing was lost to the scheme); (2) a merchant already swept with the old, wrong figure is not corrected by a re-run (description guard).
+- Never run on the live server or any real data (LOG §6 rules); tested only on fresh local databases.
+- check.sh (clean environment): OK.
 
 ## 6. Deploy
 

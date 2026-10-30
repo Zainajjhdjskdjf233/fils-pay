@@ -25,7 +25,8 @@ export function monthBounds(year: number, month: number): { start: Date; end: Da
 
 export interface ResidueRow {
   merchantId: string;
-  capturedFils: number;
+  /** Residue of ONE scheme line: its capture slice minus the truncated scheme amount. */
+  residueFils: number;
 }
 
 /** The fils truncated away when a captured amount is quantized down to the
@@ -42,34 +43,50 @@ interface MerchantResidue {
   posted?: boolean;
 }
 
+/**
+ * E72: the residue is per scheme line, not per transaction. The scheme file
+ * truncates each capture SLICE of a batch (settlement batch.go), so a
+ * transaction captured as 1005 + 1005 in two batches loses 10 fils, while
+ * captured_fils % 10 on its 2010 total said 0. Each line's residue is the
+ * capture events of that transaction in that batch minus the line's
+ * truncated amount. The month is chosen by batch_date, the Bahrain business
+ * day of the events (event time), not by the authorization time
+ * (transactions.occurred_at). Batches whose residue settlement already
+ * journaled at close (E73, a scheme_rounding_residue row carrying the batch
+ * id) are skipped, so nothing is posted twice.
+ */
 async function fetchResidueRows(client: Client, year: number, month: number): Promise<ResidueRow[]> {
-  const { start, end } = monthBounds(year, month);
-  const result = await client.query<{ merchant_id: string; captured_fils: string }>(
-    `SELECT merchant_id, captured_fils
-       FROM transactions
-      WHERE captured_fils > 0
-        AND captured_fils % 10 <> 0
-        AND occurred_at >= $1 AND occurred_at < $2
-      ORDER BY merchant_id, occurred_at`,
-    [start.toISOString(), end.toISOString()],
+  const first = `${year}-${String(month).padStart(2, "0")}-01`;
+  const next = month === 12 ? `${year + 1}-01-01` : `${year}-${String(month + 1).padStart(2, "0")}-01`;
+  const result = await client.query<{ merchant_id: string; residue_fils: string }>(
+    `SELECT sb.merchant_id, (ev.slice - sel.amount_fils)::text AS residue_fils
+       FROM scheme_export_lines sel
+       JOIN settlement_batches sb ON sb.id = sel.settlement_batch_id
+       JOIN LATERAL (SELECT COALESCE(SUM(te.amount_fils), 0) AS slice
+                       FROM transaction_events te
+                      WHERE te.transaction_id = sel.transaction_id
+                        AND te.settlement_batch_id = sel.settlement_batch_id
+                        AND te.event_type IN ('captured', 'partially_captured')) ev ON true
+      WHERE sb.batch_date >= $1::date AND sb.batch_date < $2::date
+        AND ev.slice - sel.amount_fils > 0
+        AND NOT EXISTS (SELECT 1 FROM ledger_entries l
+                         WHERE l.settlement_batch_id = sb.id AND l.account_id = 'scheme_rounding_residue')
+      ORDER BY sb.merchant_id, sb.batch_date, sel.line_sequence`,
+    [first, next],
   );
-  return result.rows.map((r) => ({ merchantId: r.merchant_id, capturedFils: Number(r.captured_fils) }));
+  return result.rows.map((r) => ({ merchantId: r.merchant_id, residueFils: Number(r.residue_fils) }));
 }
 
-/**
- * One correction group per merchant. lineCount is the number of transactions
- * with a non-zero residue, not the number of scheme lines.
- */
+/** One correction group per merchant; lineCount is the number of scheme lines with a residue. */
 function groupByMerchant(rows: ResidueRow[]): MerchantResidue[] {
   const byMerchant = new Map<string, MerchantResidue>();
   for (const row of rows) {
-    const residue = computeResidueFils(row.capturedFils);
     const existing = byMerchant.get(row.merchantId);
     if (existing) {
       existing.lineCount += 1;
-      existing.residueFils += residue;
+      existing.residueFils += row.residueFils;
     } else {
-      byMerchant.set(row.merchantId, { merchantId: row.merchantId, lineCount: 1, residueFils: residue });
+      byMerchant.set(row.merchantId, { merchantId: row.merchantId, lineCount: 1, residueFils: row.residueFils });
     }
   }
   return [...byMerchant.values()];

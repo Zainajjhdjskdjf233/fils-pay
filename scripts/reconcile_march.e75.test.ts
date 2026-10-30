@@ -8,6 +8,7 @@ import { randomUUID } from "node:crypto";
 import { test } from "node:test";
 import { Client } from "pg";
 import { runSweep } from "./reconcile_march.js";
+import { insertCaptureSlice } from "./reconcileTestData.js";
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
@@ -23,14 +24,18 @@ test("testE75_sweepPostsAdr0002Legs", async () => {
       [`E75 ${randomUUID()}`],
     );
     const merchantId = m.rows[0]!.id;
-    const tx = (fils: number, at: string) =>
-      client.query(
+    // E72: the sweep reads batches, capture events and scheme lines; one
+    // capture slice per payment, in the batch of its Bahrain business day.
+    const tx = async (fils: number, batchDate: string) => {
+      const t = await client.query<{ id: string }>(
         `INSERT INTO transactions (merchant_id, status, amount_fils, captured_fils, acquirer_reference, occurred_at)
-         VALUES ($1, 'captured', $2, $2, $3, $4)`,
-        [merchantId, fils, `acq-${randomUUID()}`, at],
+         VALUES ($1, 'captured', $2, $2, $3, $4::date) RETURNING id`,
+        [merchantId, fils, `acq-${randomUUID()}`, batchDate],
       );
-    await tx(4759, "2026-05-10T10:00:00Z"); // residue 9
-    await tx(1003, "2026-05-15T10:00:00Z"); // residue 3
+      await insertCaptureSlice(client, { merchantId, transactionId: t.rows[0]!.id, batchDate, sliceFils: fils, lineSequence: 1 });
+    };
+    await tx(4759, "2026-05-10"); // residue 9
+    await tx(1003, "2026-05-15"); // residue 3
 
     // May, not March: the E16 test sweeps March on the same DB (a shared-month race failed it once).
     await runSweep(client, 2026, 5, new Date());

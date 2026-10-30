@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 173 of 178 fixed.
+Summary: 174 of 178 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -131,7 +131,7 @@ Summary: 173 of 178 fixed.
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-## Low (68 of 72 fixed)
+## Low (69 of 72 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -152,7 +152,7 @@ Summary: 173 of 178 fixed.
 | E69 | [found later] Seeded fees ignore the seeded fee schedules (suspected) | Skipped |
 | E70 | [found later] Seeded outbox events do not match the seeded history | Skipped |
 | E71 | [found later] Re-seeding leaves old dead letters with reused outbox ids | Fixed |
-| E72 | [found later] reconcile_march uses authorization time and running-total residue (suspected) | Skipped |
+| E72 | [found later] reconcile_march uses authorization time and running-total residue (suspected) | Fixed |
 | E77 | [found later] Float and toFixed on money in the batch detail page | Fixed |
 | E78 | [found later] Balance rebuild may hit the 30 s timeout; no row lock (suspected) | Fixed |
 | E79 | [found later] Dead helpers with float or wrong-scale money math | Fixed |
