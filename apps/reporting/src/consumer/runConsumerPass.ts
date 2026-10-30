@@ -72,7 +72,7 @@ export async function runConsumerPass(
       } catch (err) {
         if (!isDataError(err)) throw err;
         await client.query("ROLLBACK TO SAVEPOINT apply_event");
-        const message = err instanceof Error ? err.message : String(err);
+        const message = describeParkError(err); // E98: codes and names, not values
         await client.query(
           `INSERT INTO reporting_dead_letters (outbox_event_id, consumer_name, event_type, error)
            VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING`,
@@ -92,6 +92,22 @@ export async function runConsumerPass(
 }
 
 /** E53: bad data, not a broken database. */
+/**
+ * E98: what to store and log for a parked event. A Postgres message can echo
+ * the input value (22P02 'invalid input syntax …: "<value>"'), so for a
+ * Postgres error keep only the SQLSTATE and the names Postgres reports.
+ * Our own PoisonEventError messages name the field, never its value.
+ */
+export function describeParkError(err: unknown): string {
+  if (err instanceof PoisonEventError) return err.message.slice(0, 1000);
+  const e = (err ?? {}) as { code?: unknown; table?: unknown; column?: unknown; constraint?: unknown };
+  const parts = [`SQLSTATE ${typeof e.code === "string" ? e.code : "unknown"}`];
+  for (const k of ["table", "column", "constraint"] as const) {
+    if (typeof e[k] === "string" && e[k]) parts.push(`${k}=${e[k] as string}`);
+  }
+  return parts.join(" ");
+}
+
 function isDataError(err: unknown): boolean {
   if (err instanceof PoisonEventError) return true;
   const code = (err as { code?: unknown } | null)?.code;

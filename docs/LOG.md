@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 07:15 PM (30 Oct 2026)
-Summary: Errors 125/176 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 07:16 PM (30 Oct 2026)
+Summary: Errors 126/176 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -855,7 +855,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/reporting/src/consumer/runConsumerPass.ts (E53 park: err.message up to 1000 chars)
 - Error: SQLSTATE 22/23 messages echo input values (PII risk if payloads ever carry it). My own E53 code.
 - Proof: code read (backend security-review agent (1:03 PM); checked by me).
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E98)
 
 ### E99 — [found later] Dashboard capture makes a new Idempotency-Key on every click
 - Where: apps/web/src/pages/transactions/TransactionDetailPage.tsx:76-79 (`captureTransaction(id, input, crypto.randomUUID())`); capture.ts:135-150 allows another partial capture
@@ -2676,6 +2676,12 @@ ROLLBACK;
 ### E97 — 07:15 PM — reporting settings must be whole numbers in a range; a typo stops the worker at boot
 - Changed: apps/reporting/src/config.ts parseIntEnv(name, value, fallback, min, max): only digits; PG_POOL_MAX 1-100, REPORTING_POLL_INTERVAL_MS 100-3,600,000, REPORTING_CONSUMER_BATCH_LIMIT 1-10,000 (ranges for Zainab to review). False comment ('Number.parseInt rejects trailing characters, so 15s fails loudly') corrected: parseInt('15s') is 15.
 - Before: apps/reporting/src/config.e97.test.ts failed ('REPORTING_POLL_INTERVAL_MS=15s must fail at boot'). After: 15s, 0, 1.5, -1 and a 0 pool all refused; normal values load. Compose values (PG_POOL_MAX 3 for reporting, ops/docker-compose.yml:138) are inside the ranges.
+- check.sh (clean environment): OK. Needs a redeploy.
+
+### E98 — 07:16 PM — a parked reporting event stores the SQLSTATE and column/table/constraint names, not the raw Postgres message (my E53 code)
+- Changed: apps/reporting/src/consumer/runConsumerPass.ts describeParkError(): PoisonEventError → its own message (names the field, never the value: applyEvent.ts:190, :226, :231); a Postgres error → 'SQLSTATE <code> table=… column=… constraint=…'. Used for the dead-letter row and the console warning.
+- Before: the park stored err.message (up to 1000 chars), e.g. 22P02 'invalid input syntax for type bigint: "<value>"'. The new test apps/reporting/src/consumer/describeParkError.e98.test.ts first failed because the helper did not exist (the old code had no function to test; the behaviour is the err.message line it replaces). After: the value is gone, SQLSTATE 22P02 and the column are kept. Reporting consumer suites 18/18 on the DB.
+- Trade-off: less detail for debugging; the outbox_event_id in the row still points to the full event.
 - check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy
