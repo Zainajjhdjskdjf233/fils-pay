@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 11:35 AM (30 Oct 2026)
-Summary: Errors 37/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
+Updated: 11:39 AM (30 Oct 2026)
+Summary: Errors 38/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -403,7 +403,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Proof: transport.ts:38 comment "create.ts blocks private IPs": false.
 - Severity: medium (suspected, not exercised)
 - Proposed fix: block private ranges; `redirect: "manual"`.
-- Status: open
+- Status: fixed (see section 5)
 
 ### E37 — OTP code logged and returned in the response when NODE_ENV is not "production"
 - Where: apps/api/src/auth/notifier.ts:22-28; adminAuth/notifier.ts:17-23; config.ts:127, :212; routes/auth.ts:112; adminAuth.ts:105
@@ -1230,6 +1230,19 @@ ROLLBACK;
 - Not done: POST /v1/reporting/saved-filters role gate (minor, LOG E35 note).
 - Regression: full-db-test.sh = baseline (5 known failures).
 - Review: role middleware already used elsewhere → no fix-reviewer.
+- Actual result: matches expected.
+
+### E36 — 11:39 AM — webhook URLs cannot reach internal addresses (SSRF)
+- Changed:
+  - apps/api/src/webhooks/ssrfGuard.ts (new): `isPrivateAddress` (IPv4 0/8, 10/8, 100.64/10, 127/8, 169.254/16, 172.16/12, 192.168/16, 224+; IPv6 ::, ::1, fc00::/7, fe80::/10, ff00::/8; IPv4-mapped/compatible/NAT64 in dotted AND hex form) and `isBlockedHostname` (localhost, *.localhost, *.local, *.internal, trailing dot, IP literals).
+  - apps/api/src/webhooks/create.ts: in production, `validateWebhookUrl` refuses blocked hostnames (MK: "https-only in prod is our SSRF protection" — it was not).
+  - apps/api/src/webhooks/transport.ts: `createFetchTransport({ blockPrivateAddresses })` resolves the host (`dns.lookup all`) and refuses private results before sending; `redirect: "manual"`; response read capped at 64 KB. YA's comment "create.ts blocks private IPs" was false; FH's redirect note was right.
+  - apps/api/src/index.ts, app.ts: `blockPrivateAddresses: nodeEnv === "production"`.
+- Decision (for Zainab to review): dev/test still allow localhost (local test receivers; webhooks.test.ts uses them) — Alternative: an explicit allow-list setting.
+- Test: apps/api/src/webhooks/ssrf.e36.test.ts (no DB). Before: `Missing expected exception: https://127.0.0.1/hook`; redirect test `the redirect target must not be called`; blocking transport reached localhost. After fix-reviewer: `Missing expected exception: https://[::ffff:127.0.0.1]/hook` (the URL parser rewrites it to `[::ffff:7f00:1]`, my first regex only matched dotted form). After: 3/3 PASS incl. ::ffff: hex, ::/96, 64:ff9b::/96 and `localhost.`.
+- Known limit: a gap between our DNS lookup and fetch's own lookup (TOCTOU) remains; closing it needs pinning the resolved IP in the HTTP client.
+- Regression: full-db-test.sh = baseline (5 known failures). A 3xx now counts as a failed delivery and is retried (dispatcher.ts:186 counts only 2xx).
+- Review: fix-reviewer → CHANGES (IPv4-mapped hex bypass, confirmed by running it; trailing dot); both fixed. Copilot CLI not installed.
 - Actual result: matches expected.
 
 ## 6. Deploy

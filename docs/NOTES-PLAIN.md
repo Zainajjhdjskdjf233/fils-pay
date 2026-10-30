@@ -235,3 +235,9 @@ Where: apps/api/src/routes/auth.ts: · Commit: 31b2741
 Any shop user, even a support assistant, could take the money for a payment or cancel it, because those two actions had no role check. We now allow them only for the owner and finance roles. A test shows a support user is refused and a finance user still works.
 
 Where: apps/api/src/routes/transactions.ts:98 · Commit: 2b3c0c7
+
+## N40 — Webhook addresses can no longer point inside our network
+
+A shop could give an internal address as its webhook URL, and our server would send requests there and even show part of the answer, which could leak secrets from inside our network. We now refuse private and local addresses in production, check where a name really points just before sending, never follow redirects, and read only a small part of the answer. The reviewer found one tricky address form I had missed; it is now blocked too.
+
+Where: apps/api/src/webhooks/ssrfGuard.ts:9 · Commit: PENDING_N40

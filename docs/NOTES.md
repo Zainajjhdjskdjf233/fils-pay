@@ -1465,3 +1465,43 @@ The request must be logged in and have one of the two roles.
 Since E10 every impersonation counts as the support role, so they get 403 too.
 
 Commit: 2b3c0c7
+
+## N40 — Webhook addresses can no longer point inside our network
+
+### The idea
+A shop gives us a URL, and our server sends webhooks to it. If the URL points at our own internal machines, our server becomes the attacker's messenger. This is called SSRF (server-side request forgery).
+
+### The problem
+Only "http or https" was checked.
+- A URL like https://169.254.169.254/ (the cloud's secret metadata address) or https://127.0.0.1/ was accepted.
+- Redirects were followed, so even a good-looking URL could bounce inside.
+- The test-send button shows the first 2 KB of the answer, so internal data could leak back.
+
+### The fix
+- ssrfGuard.ts (new): a list of private and local addresses, in every way they can be written.
+- create.ts: in production, such URLs are refused when the endpoint is created.
+- transport.ts: in production, the name is looked up just before sending and refused if it points inside; redirects are not followed; at most 64 KB of the answer is read.
+
+### The code
+Before (apps/api/src/webhooks/transport.ts:40):
+```ts
+const response = await fetch(req.url, { method: "POST", headers: req.headers, body: req.body, signal: controller.signal });
+```
+After:
+```ts
+if (isBlockedHostname(host) || addresses.some((a) => isPrivateAddress(a.address))) {
+  return { statusCode: null, body: "", errorMessage: "blocked: webhook URL resolves to a private address" };
+}
+const response = await fetch(req.url, { ..., redirect: "manual" });
+```
+We check where the name really points, refuse inside addresses, and never follow a redirect.
+
+### The proof
+- Before: 127.0.0.1 accepted; a redirect to /internal was followed.
+- After: all private forms refused (also tricky ones like [::ffff:127.0.0.1]); the redirect is not followed.
+
+### If the judges ask
+"Did the reviewer find anything?"
+Yes: [::ffff:127.0.0.1] is rewritten by the URL parser into hex, and my first check missed it. It is fixed and in the test.
+
+Commit: PENDING_N40

@@ -3,6 +3,7 @@ import type { Config } from "../config.js";
 import { randomToken } from "../lib/crypto.js";
 import { BadRequestError } from "../lib/errors.js";
 import { decodeEncryptionKey, encryptSecret } from "./secretCrypto.js";
+import { isBlockedHostname } from "./ssrfGuard.js";
 
 /**
  * Validates a webhook endpoint URL: must parse as an absolute URL with
@@ -23,6 +24,13 @@ export function validateWebhookUrl(rawUrl: string, config: Pick<Config, "nodeEnv
     throw new BadRequestError("invalid_url");
   }
   if (config.nodeEnv === "production" && parsed.protocol !== "https:") {
+    throw new BadRequestError("invalid_url");
+  }
+  // E36: https alone is not SSRF protection (MK's comment above). In
+  // production refuse local names and private/loopback/link-local IPs.
+  // Dev keeps allowing them for local test receivers. The transport checks
+  // again after DNS at send time.
+  if (config.nodeEnv === "production" && isBlockedHostname(parsed.hostname)) {
     throw new BadRequestError("invalid_url");
   }
   return parsed;
