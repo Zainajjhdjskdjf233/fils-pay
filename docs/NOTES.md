@@ -1140,3 +1140,40 @@ The second process waits for the first to finish, then sees its rows and skips t
 It would fail to create on a database that already has the duplicates from the incident. Cleaning those up means deleting rows, which needs a human. The choice is marked for Zainab.
 
 Commit: 8d56ba7
+
+## N31 — The dashboard shows the fee that is really charged
+
+### The idea
+Each shop has a fee rate history (fee schedules). Each row says "from this date, the rate is X". Like a price list with start dates.
+
+### The problem
+The dashboard and the payment code picked different rows.
+- Payments use the newest row that has already started (225 bps).
+- The dashboard used the row typed in most recently, even a backfill for an old period (245 bps), or even a future rate.
+- The Go settlement code had no rule for two rows with the same start date.
+
+### The fix
+- currentFeeScheduleDisplay.ts: the same rule as payments: newest start date already reached, ties by newest entry.
+- fee_schedule.go: the same tie-break.
+
+### The code
+Before (apps/api/src/fees/currentFeeScheduleDisplay.ts:36):
+```sql
+ORDER BY created_at DESC
+```
+After:
+```sql
+WHERE merchant_id = $1 AND effective_from <= now()
+ORDER BY effective_from DESC, created_at DESC
+```
+The dashboard now asks the same question as the payment code.
+
+### The proof
+- Before: dashboard 150 (a future rate), payments 225; Go picked 200 instead of the later correction 210.
+- After: dashboard 225 = payments 225; Go picks 210.
+
+### If the judges ask
+"What about the discount?"
+That is E50, still open: the discount is applied three different ways, and choosing the right one is a business decision.
+
+Commit: PENDING_N31

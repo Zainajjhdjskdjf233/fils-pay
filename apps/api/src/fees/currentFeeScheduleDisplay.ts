@@ -30,10 +30,14 @@ export async function getCurrentFeeScheduleForDisplay(
   merchantId: string,
 ): Promise<CurrentFeeScheduleDisplay | null> {
   const result = await pool.query<{ mdr_bps: number; effective_from: Date; created_at: Date }>(
+    // E20: the same rule payments are charged with (feeSchedule.ts
+    // getEffectiveMdrBps): newest row already in effect, ties by created_at.
+    // Ordering by created_at alone showed a backfill (245) or even a future
+    // rate instead of the charged one (225).
     `SELECT mdr_bps, effective_from, created_at
        FROM fee_schedules
-      WHERE merchant_id = $1
-      ORDER BY created_at DESC
+      WHERE merchant_id = $1 AND effective_from <= now()
+      ORDER BY effective_from DESC, created_at DESC
       LIMIT 1`,
     [merchantId],
   );

@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 11:17 AM (30 Oct 2026)
-Summary: Errors 27/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
+Updated: 11:19 AM (30 Oct 2026)
+Summary: Errors 28/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -257,7 +257,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: medium
 - Proposed fix: display uses the same query as `getEffectiveMdrBps`; add `created_at` tie-break in Go.
 - Expected result: display and charge show the same bps.
-- Status: open
+- Status: fixed (see section 5); the capture-discount part is E50 (skipped)
 
 ### E21 — CSV adjustment import reads BD amounts 10 times too small
 - Where: apps/api/src/admin/adjustmentCsvParsing.ts:8 → apps/api/src/lib/decimal.ts:4,16
@@ -491,7 +491,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/payments/capture.ts:196 vs Go ComputeSettlementFee
 - Error: ledger fee at capture ≠ batch fee for discounted merchants.
 - Severity: medium
-- Status: open (fix together with E20)
+- Status: skipped — needs a design decision (see section 5, E50)
 
 ### E51 — [found later] API and seed cannot start: built-in dev key is 34 bytes, check needs 32
 - Where: apps/api/src/config.ts:153 (`DEV_FALLBACK_WEBHOOK_KEY_B64`), :172 (length check), :249-250
@@ -1156,6 +1156,18 @@ ROLLBACK;
 - Regression: full-db-test.sh = baseline (5 known failures); Go 70 pass.
 - Review: two small lock wrappers → no fix-reviewer; Copilot CLI not installed.
 - Actual result: matches expected (two processes → one notification).
+
+### E20 — 11:19 AM — the dashboard fee is the charged fee
+- Changed: apps/api/src/fees/currentFeeScheduleDisplay.ts: `WHERE effective_from <= now() ORDER BY effective_from DESC, created_at DESC` (same rule as feeSchedule.ts getEffectiveMdrBps; was `ORDER BY created_at DESC`). apps/settlement/internal/settlement/fee_schedule.go: `ORDER BY effective_from ASC, created_at ASC` (same tie-break; Go had none).
+- Test: apps/api/src/fees/currentFeeScheduleDisplay.e20.test.ts — before: shown `actual: 150` (a FUTURE rate keyed in last) while charged 225. settlement/fee_schedule_e20_test.go — before: `EffectiveMdrBpsAt = 200, want 210`. After: both PASS.
+- currentFeeScheduleDisplay.test.ts:83-91 asserted the bug (backfill 245 wins; am: "this test is the reason i asked above"); corrected to 225 — the exact case-file numbers (CASE-FILE Item 02: "245 bps, but payments go through at 225 bps").
+- Regression: full-db-test.sh = baseline (5 known failures); Go 71 pass.
+- Review: query order only → no fix-reviewer.
+- Actual result: matches expected.
+
+### E50 — 11:19 AM — skipped (needs a design decision)
+- Found: the negotiated discount is applied three different ways. (1) Settlement: discount the amount, then apply MDR (discounted_fee.go:7-10). (2) Card API capture: full MDR at capture (capture.ts:196), then a separate ledger credit of fee × discount (discountAdjustment.ts, called only from routes/transactions.ts:111). (3) Payment-link checkout: no discount at all — MK's comment at pay.ts:117-118 "it's applied for both now (moved into capture.ts in July)" is false (grep: applyCaptureDiscountAdjustment has one caller).
+- Why skipped: making them agree changes merchant fees; which formula is the contract (partner-pricing addendum) is a business decision, not provable from code. Decision for Zainab: pick one formula (recommend settlement's, since payouts already use it).
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)

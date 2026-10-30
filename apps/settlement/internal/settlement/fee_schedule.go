@@ -29,7 +29,7 @@ func LoadFeeSchedules(ctx context.Context, tx pgx.Tx, merchantID uuid.UUID) ([]F
 	rows, err := tx.Query(ctx, `
 		SELECT effective_from, mdr_bps FROM fee_schedules
 		 WHERE merchant_id = $1
-		 ORDER BY effective_from ASC
+		 ORDER BY effective_from ASC, created_at ASC -- E20: same tie-break as feeSchedule.ts (later-entered wins; EffectiveMdrBpsAt walks from the end)
 	`, merchantID)
 	if err != nil {
 		return nil, err

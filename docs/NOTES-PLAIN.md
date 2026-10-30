@@ -181,3 +181,9 @@ Where: apps/api/src/paymentLinks/pay.ts:144 · Commit: ad472fc
 In August, shops got two "you have been paid" messages for one payout, because two programs checked at the same moment and both thought they were first. We also found that the bank payout instruction was written once per webhook address, so a shop with two addresses could get two instructions. Now both steps take a database lock, so only one program works at a time and each batch is handled once. Tests that run two programs at once now see exactly one message and one instruction per batch.
 
 Where: apps/settlement/internal/settlement/payout_notify.go:40 · Commit: 8d56ba7
+
+## N31 — The dashboard shows the fee that is really charged
+
+Finance saw a 2.45% fee on the dashboard while payments were charged 2.25%. The dashboard picked the fee row that was typed in last, even if it was a correction for an old period, while payments used the row that is currently in effect. Now both use the same rule, and the settlement program uses the same tie-break too. A test with the exact case-file numbers now shows 2.25% on both.
+
+Where: apps/api/src/fees/currentFeeScheduleDisplay.ts:38 · Commit: PENDING_N31
