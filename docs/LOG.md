@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 10:32 AM (30 Oct 2026)
-Summary: Errors 16/60 fixed · Hidden 34 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
+Updated: 10:45 AM (30 Oct 2026)
+Summary: Errors 17/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -267,7 +267,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: high (CASE-FILE Item 02 bullet 7)
 - Proposed fix: use `parseBhdToFils`.
 - Expected result: 4.75 → 4750; 4.755 → 4755.
-- Status: open
+- Status: fixed (see section 5)
 
 ### E22 — The same adjustment CSV can be applied twice
 - Where: apps/api/src/admin/adjustmentImport.ts:63-65; migration 0065
@@ -744,6 +744,12 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - What: after F01d a batch with refunds has net = gross - fee - refund_fils + fee_reversed_fils (0073). Comments only, no runtime check. Also: apps/api/src/admin/settlementClient.ts:282-295 `notifySettlementRefundAdjustment` divides the amount by 10 and calls a Go route that does not exist; nothing calls it (grep finds only its definition).
 - Meaning: fix the comments and show refund_fils in the batch API with F01 reports/reconciliation.
 
+### H35 — Test comments defend the 10x import bug with a README line that does not exist
+- Where: apps/api/src/routes/adminAdjustmentImport.test.ts:236-238.
+- What: FH: "4.75 -> 475 here. matches the README money section (1250 fils = 12.50 BD)"; MK: "BD has 3 decimals?? 4.75 BD is 4750 fils"; AM: "the import format is 2dp by agreement with finance. fine".
+- Check: no file in the repo contains "12.50 BD" except this comment (`grep -rln "12.50 BD" .`); CASE-FILE.md:47 shows finance complaining ("Uploaded 4.75 BD, ledger shows 0.475 — ten times less"), so there was no such agreement. MK saw the bug and it stayed (see E21 blame: 43073e5, 6f462e1).
+- Meaning: false justification; CASE-FILE wins. Fixed in E21.
+
 ## 4. Features (from the brief)
 
 ### F01 — Finish refunds end to end (FP-212)
@@ -1004,6 +1010,33 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Decision: test the refund rollup through applyEvent, not runConsumerPass — Why: other suites leave poison events in the shared test DB (E53) that block any runConsumerPass test — Alternative: fix E53 first (its own entry).
 - Actual result: matches expected (refund shows in the daily report on the right day; gapFils 0 before and after the batch takes it).
 
+### E21 — 10:45 AM — CSV adjustment import reads BD with 3 decimals
+- Plan OK: Zainab, 10:38 AM ("Yes, go ahead. Also add the read-only query for the old wrong imports.").
+- Changed: apps/api/src/admin/adjustmentCsvParsing.ts:5-9 `toFils(parseDecimalMinor(raw), { allowNegative: true })` → `parseBhdToFils(raw)` (packages/money/src/fils.ts:282: 1-3 decimals, sign, BigInt, no floats). apps/api/src/lib/decimal.ts left in place (no other user; not deleted).
+- Test: apps/api/src/admin/adjustmentCsvParsing.e21.test.ts (no DB). Before: `actual: 475, expected: 4755`; "4.7555" accepted (`Missing expected exception`). After: 2/2 PASS.
+- Existing tests locked in the bug and were corrected (Judge note J20): adjustmentImport.test.ts:61 600 → 6000, :67 475 → 4750, :70 125 → 1250, :125-126 350 → 3500, :148 500 → 5000; routes/adminAdjustmentImport.test.ts:108 600 → 6000. After: 20/20 import tests pass.
+- Regression: full-db-test.sh = baseline (5 known failures) after correcting :108 (first run showed it as a 6th failure: `actual: 6000, expected: 600`).
+- Read-only query for old wrong imports (Zainab asked; changes nothing — Postgres refuses writes inside it). Every row whose posted fils differ from its raw BD text × 1000:
+```sql
+BEGIN TRANSACTION READ ONLY;
+SELECT i.id AS import_id, i.original_filename, i.applied_at, r.row_number, r.merchant_id,
+       r.raw_amount_text,
+       r.parsed_amount_fils                                       AS posted_fils,
+       trim(r.raw_amount_text)::numeric * 1000                    AS correct_fils,
+       trim(r.raw_amount_text)::numeric * 1000 - r.parsed_amount_fils AS missing_fils,
+       r.ledger_entry_group_id
+  FROM adjustment_import_rows r
+  JOIN adjustment_imports i ON i.id = r.adjustment_import_id
+ WHERE trim(r.raw_amount_text) ~ '^-?[0-9]+(\.[0-9]+)?$'
+   AND trim(r.raw_amount_text)::numeric * 1000 <> r.parsed_amount_fils
+ ORDER BY i.applied_at, r.row_number;
+ROLLBACK;
+```
+  - Proof (test DB filspay_e21_104121_7918, scratchpad/e21-wrong-imports-4Kjm.sql): after the fix → 0 rows; after setting one 4.75 row to the old value 475 → 1 row `4.75|475|4750.00|4275.00|<ledger group>`; `DELETE` inside `BEGIN TRANSACTION READ ONLY` → `ERROR: cannot execute DELETE in a read-only transaction`.
+  - Not run on any real database (we have none). Correcting the found rows is a finance/human decision: post a new adjustment for `missing_fils`, never edit old ledger rows.
+- Review: one-line swap to an existing tested helper → no fix-reviewer; Copilot CLI not installed.
+- Actual result: matches expected (4.75 → 4750; 4.755 → 4755).
+
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)
 - Status: not started
@@ -1103,3 +1136,9 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - What happened: all F01d tests and the e2e passed, but fix-reviewer found that RecalculateMDR (recalculate_mdr.go:103) rebuilt net as gross - fee, so after any fee recalculation a batch with refunds would pay the refund back to the shop. I proved it with a red test (9700 vs 8481), fixed it with one line, and kept the test.
 - Why it matters: a change in one place (batch close) broke an assumption in another (recalculation). Review across files is worth it for money code.
 - Proof: refund_batch_f01d_test.go TestF01d_RecalculateMDRKeepsRefundAdjustment; section 5 F01d.
+
+### J20 — 10:45 AM — old tests were guarding the bug
+- What happened: the E21 fix made 4 existing tests fail (adjustmentImport.test.ts, adminAdjustmentImport.test.ts). They expected 4.75 BD to post 475 fils, i.e. they locked in the bug. A comment next to one (adminAdjustmentImport.test.ts:236-238) shows MK spotted it and AM waved it off with an "agreement with finance" that the case file contradicts (H35). I corrected the expected values instead of keeping the bug, and wrote each change down.
+- Why it matters: green tests are not proof of right behavior; CASE-FILE.md:47 is the authority.
+- Proof: section 5 E21; diff of the two test files in the E21 commit.
+

@@ -737,3 +737,38 @@ Waiting refunds now lower "pending". Refunds that a batch took from another day 
 A refund can wait a day before a batch takes it. So one day has the refund in the ledger but not in a batch, and the next day has it in a batch but not in the ledger. One number covers each side.
 
 Commit: 9afd98d
+
+## N20 — The CSV import reads Bahraini Dinars with 3 decimals
+
+### The idea
+Finance uploads a CSV file to fix balances by hand. Each row has an amount in BD. 1 BD is 1000 fils, so BD has 3 decimals, not 2 like dollars.
+
+### The problem
+The import read amounts as if they had 2 decimals.
+- 4.75 BD was saved as 475 fils, ten times too small.
+- 4.755 BD lost its last digit and became 475 fils too.
+
+### The fix
+- adjustmentCsvParsing.ts: use parseBhdToFils, the BD parser that already exists in the money package.
+- Old tests that expected the wrong numbers were corrected.
+
+### The code
+Before (apps/api/src/admin/adjustmentCsvParsing.ts:8):
+```ts
+return toFils(parseDecimalMinor(raw), { allowNegative: true });
+```
+After:
+```ts
+return parseBhdToFils(raw);
+```
+parseBhdToFils reads up to 3 decimals and multiplies by 1000 with whole numbers only. A 4th decimal is now an error, not silently cut.
+
+### The proof
+- Before: 4.755 → 475 fils; 4.7555 was accepted.
+- After: 4.755 → 4755, 4.75 → 4750, -3.50 → -3500; 4.7555 is rejected. A read-only query lists any old rows that were saved wrong.
+
+### If the judges ask
+"What about money that was already imported wrong?"
+We do not edit old ledger rows. The read-only query lists each wrong row and the missing fils, so finance can post a new correcting adjustment.
+
+Commit: PENDING_N20

@@ -115,3 +115,9 @@ Where: apps/settlement/internal/settlement/batch.go:227 · Commit: 6ff2ffb
 Refunds did not appear in the daily reports, because the report worker was never told to listen for them and its half-written refund code pointed at columns that did not exist. A summary view was always empty because it matched refunds against the wrong id. The money check (reconciliation) also showed a gap whenever a refund was still waiting to be paid out. We added the missing columns, fixed the view, taught the worker and the rebuild tool about refunds, and taught reconciliation that a refund can wait a day. Tests and a live run now show the refund on the right day and a gap of zero.
 
 Where: apps/api/src/settlement/query.ts:363 · Commit: 9afd98d
+
+## N20 — The CSV import reads Bahraini Dinars with 3 decimals
+
+Finance can upload a file of manual balance changes, but the system read the amounts as if money had 2 decimals like dollars. Bahraini Dinars have 3, so 4.75 BD became 0.475 BD in the books, ten times too little. We switched to the correct BD reader that already existed in the code, and fixed old tests that had been checking for the wrong numbers. Now 4.75 BD is saved as 4.750 BD, and a read-only query can find old rows that were saved wrong so finance can correct them.
+
+Where: apps/api/src/admin/adjustmentCsvParsing.ts:8 · Commit: PENDING_N20
