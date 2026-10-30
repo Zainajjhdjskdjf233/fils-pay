@@ -2,20 +2,9 @@ import { randomUUID } from "node:crypto";
 import type { Pool } from "pg";
 import { applyRateFils, toFils } from "@filspay/money";
 import { withTransaction } from "../db/withTransaction.js";
-import { BadRequestError } from "../lib/errors.js";
 
 
-/**
- * Parses a promotional discount amount (BD string from the merchant
- * pricing dashboard) into fils for the ledger adjustment.
- */
-export function parsePromotionalDiscountFils(raw: string): number {
-  const parsed = parseFloat(raw);
-  if (!Number.isFinite(parsed) || parsed < 0) {
-    throw new BadRequestError("invalid_discount", `could not parse discount amount "${raw}"`);
-  }
-  return Math.round(parsed * 100);
-}
+// E79: an unused parsePromotionalDiscountFils (parseFloat, x100 — cents, not fils) was removed.
 
 /**
  * Applies a merchant's negotiated processing discount against the MDR fee

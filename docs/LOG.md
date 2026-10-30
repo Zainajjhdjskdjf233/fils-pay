@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 09:31 PM (30 Oct 2026)
-Summary: Errors 172/178 fixed (+3 partly: E50, E94, E178; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 09:33 PM (30 Oct 2026)
+Summary: Errors 173/178 fixed (+3 partly: E50, E94, E178; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -751,7 +751,8 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: discountAdjustment.ts:13-17 parsePromotionalDiscountFils (×100); fees/estimate.ts (float, unused since E44); scheme_export.go:29-31 SchemeAmountBD (unused since E14); settlementClient.ts:296 (/10, H34); capture.ts:14-41 recordCaptureMetric (UTC date); v1/fees/calculateFee.ts:29
 - Error: no callers today (grep) — a trap if wired up. Deletion needs Zainab.
 - Proof: code read (ADR check agent (12:58 PM); checked by me).
-- Severity: low · Status: open
+- Severity: low · Status: partly fixed (helpers removed; three dead files wait for Zainab's OK to delete)
+- Decision (Claude, Zainab approved deciding without review): remove the dead money helpers that sit inside live files (parsePromotionalDiscountFils, recordCaptureMetric, notifySettlementRefundAdjustment, Go SchemeAmountBD); leave the three wholly dead files for Zainab to delete — Why: grep proves none has a caller, each carried float, ×100 or /10 money math that would be wrong if someone wired it up, and tests stay green; deleting whole files needs rm, which still needs Zainab's approval — Alternative: delete the dead files now too (apps/api/src/fees/estimate.ts, apps/api/src/v1/fees/calculateFee.ts, apps/api/src/v1/routes/transactions.ts)
 
 ### E80 — [found later] Scheme export fallback can print more than 2 decimals
 - Where: apps/settlement/internal/settlement/scheme_export.go:71 `COALESCE(sel.amount, sel.amount_fils::numeric / 1000)::text`
@@ -3044,6 +3045,12 @@ ROLLBACK;
 - Proof: `grep -rn adjustMerchantBalanceJournaled apps packages scripts db` → 0; balance, route and CSV-import suites 27/27; api and admin tsc clean.
 - check.sh (clean environment): OK. Needs a redeploy (admin text).
 
+### E79 — 09:33 PM — four dead money helpers removed; three wholly dead files listed for deletion
+- Removed (grep: 0 callers each): apps/api/src/payments/discountAdjustment.ts parsePromotionalDiscountFils (parseFloat ×100 = cents) and its now-unused import; apps/api/src/payments/capture.ts recordCaptureMetric (UTC day; the reporting worker owns merchant_daily_volume); apps/api/src/admin/settlementClient.ts notifySettlementRefundAdjustment (sent amounts / 10, H34); apps/settlement/internal/settlement/scheme_export.go SchemeAmountBD (float64 money). A one-line E79 comment marks each place.
+- Left for Zainab to delete (rm needs her approval): apps/api/src/fees/estimate.ts (estimateFeeFils, float rates; no importer), apps/api/src/v1/fees/calculateFee.ts and apps/api/src/v1/routes/transactions.ts (the v1 tree is not registered, app.ts:66 'that tree is dead — MK').
+- Proof: grep counts 0/0/0 (SchemeAmountBD only in a comment at batch.go:306); payment, settlementClient and transaction suites 75/75; Go settlement package ok; api tsc clean; go build ok.
+- check.sh (clean environment): OK.
+
 ## 6. Deploy
 
 ### Official submission rules (04:28 PM, from Zainab; they override older plans)
@@ -3361,3 +3368,4 @@ Zainab asked for speed without losing safety. Two read-only agents now plan ahea
 - Judge note (09:29 PM): E50 — capture and settlement could charge a discounted shop different fees by a fils; capture now records exactly what settlement charges.
 - Judge note (09:30 PM): E178 — a shop whose discount was later set to 0 could lose a credit it was owed; the recorded amount now decides.
 - Judge note (09:31 PM): E154 — I first started to wire the 'dead' journaled function in, then saw it would give one admin unapproved money movement; it was deleted instead and the button now says it moves no money.
+- Judge note (09:33 PM): E79 — four unused helpers with wrong money math are gone, so nobody can wire them in by mistake.

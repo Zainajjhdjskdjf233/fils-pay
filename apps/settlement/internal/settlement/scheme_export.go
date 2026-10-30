@@ -24,11 +24,7 @@ func TruncateToSchemeAmount(grossFils money.Fils) money.Fils {
 	return (grossFils / 10) * 10
 }
 
-// SchemeAmountBD converts a transaction's gross fils to the BD value stored
-// in scheme_export_lines.amount (numeric(10,2)).
-func SchemeAmountBD(grossFils money.Fils) float64 {
-	return float64(grossFils) / 1000.0
-}
+// E79: an unused SchemeAmountBD (float64 money) was removed; amounts come from TruncateToSchemeAmount as integers.
 
 // buildBatchClosedPayload builds the settlement.batch_closed outbox
 // payload, following the same shape convention the webhook dispatcher
