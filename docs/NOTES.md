@@ -2259,4 +2259,4 @@ end is the next Bahrain midnight for that day.
 "Why in CloseBatch and not in the button?"
 The button, the internal API and the command-line tool all end in CloseBatch, so one check protects them all.
 
-Commit: PENDING_N61
+Commit: fb945fa

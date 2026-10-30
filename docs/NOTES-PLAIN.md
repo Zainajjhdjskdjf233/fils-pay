@@ -366,4 +366,4 @@ Where: apps/api/src/auth/otp.ts:71 · Commit: a3975a9
 
 An admin could close today's settlement in the middle of the day, and every payment after that moment was never paid out to the shop, with no warning. Now the system refuses to close a day until Bahrain midnight has passed. A test shows today is refused and yesterday still closes normally.
 
-Where: apps/settlement/internal/settlement/batch.go:67 · Commit: PENDING_N61
+Where: apps/settlement/internal/settlement/batch.go:67 · Commit: fb945fa

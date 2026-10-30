@@ -74,6 +74,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:47 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- fb945fa fix(E118): a business day can only be closed after it has ended — early close stranded later captures
 - a3975a9 fix(E117): OTP guess limit per user across logins; older codes and pending sessions end at login
 - a8fdcb1 feat(capacity): load shedding (503 + Retry-After), CPU rebalanced to Postgres, k6 checkout test; capacity ~15 checkouts/s
 - d7d17b2 fix(E02): Docker stack within 1 vCPU/2 GB — Dockerfiles, compose limits, restarts, health checks, volumes, per-service DB roles
@@ -88,7 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:47 PM
 - 976d166 fix(E44): reconciliation pending fee uses the settlement formula (schedule, tier, integer)
 - eebf7d4 fix(E42): reporting cursor on (txid, id) below the snapshot horizon — late commits were skipped
 - 41c9754 fix(E53): bad outbox events are parked in reporting_dead_letters instead of blocking the worker
-- 44adee8 fix(E41): missing rollup row no longer crashes the reporting pass
 
 ## 7. All errors
 ## High (32 of 33 fixed)
@@ -2484,5 +2484,5 @@ end is the next Bahrain midnight for that day.
 "Why in CloseBatch and not in the button?"
 The button, the internal API and the command-line tool all end in CloseBatch, so one check protects them all.
 
-Commit: PENDING_N61
+Commit: fb945fa
 
