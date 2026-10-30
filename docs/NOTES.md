@@ -1139,4 +1139,4 @@ The second process waits for the first to finish, then sees its rows and skips t
 "Why not a unique index?"
 It would fail to create on a database that already has the duplicates from the incident. Cleaning those up means deleting rows, which needs a human. The choice is marked for Zainab.
 
-Commit: PENDING_N30
+Commit: 8d56ba7

@@ -180,4 +180,4 @@ Where: apps/api/src/paymentLinks/pay.ts:144 · Commit: ad472fc
 
 In August, shops got two "you have been paid" messages for one payout, because two programs checked at the same moment and both thought they were first. We also found that the bank payout instruction was written once per webhook address, so a shop with two addresses could get two instructions. Now both steps take a database lock, so only one program works at a time and each batch is handled once. Tests that run two programs at once now see exactly one message and one instruction per batch.
 
-Where: apps/settlement/internal/settlement/payout_notify.go:40 · Commit: PENDING_N30
+Where: apps/settlement/internal/settlement/payout_notify.go:40 · Commit: 8d56ba7
