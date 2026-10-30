@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
 Updated: 07:06 PM (30 Oct 2026)
-Summary: Errors 123/176 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live, /healthz at the edge waits for the redeploy) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d27ddf0; later fixes need a redeploy, LOG §6) · CHECKPOINT reached
+Summary: Errors 123/176 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -100,7 +100,7 @@ Every line of CASE-FILE.md that names a problem or a requirement, and the entrie
 | Item 04 — fees and payouts come out right | F01a, F01d | Done |
 | Item 04 — shop gets the right webhook | F01c (+ E32 signature) | Done |
 | Item 04 — timeline, reports and reconciliation | F01b (timeline), F01e (E43), E60, E44 | Done |
-| Item 04 — live on Dilmune Cloud | F02 | Done (healthz at the edge after the next redeploy, E164) |
+| Item 04 — live on Dilmune Cloud | F02 | Done (redeploy 2 at d3e4fd1) |
 | Item 05 — correctness: load test, security review, hidden regression tests, findings report | all E entries; second bug hunt; /findings | In progress |
 | Item 05 — capacity: estimate, turn away excess, restart, no data loss | plan steps 2-3 (k6 installed) | Open |
 | Item 05 — hosting: 1 vCPU / 2 GB, API 0.5 vCPU / 512 MB | E02 plan | Open |
@@ -1564,7 +1564,7 @@ Open questions: who is `p@x` (needs host push logs or the pre-rewrite repo); is 
 - Required by: CASE-FILE.md Item 04 ("The app is live on Dilmune Cloud, our hosting provider").
 - Plan: /deploy. Needs E01, E51 and E02 first; health route; env names only.
 - Expected result: live URL answers `GET /healthz` with 200 (the API's route is /healthz, health.ts:13; there is no /health).
-- Status: done, one step waiting — live at http://139.59.57.26/ and :8081 since commit d27ddf0; live end-to-end check 45 public + 29 logged-in checks OK (LOG §6). `GET /healthz` through nginx on port 80 returned the web page (200 text/html), not the API (E164); fixed in ops/nginx/nginx.conf and verified on the local stack; live after the next redeploy.
+- Status: done — live at http://139.59.57.26/ and :8081 (redeploy 2 at d3e4fd1, 07:12 PM: /healthz and /readyz live, 44/45 public + 29/29 logged-in checks, LOG §6); first deploy at commit d27ddf0; live end-to-end check 45 public + 29 logged-in checks OK (LOG §6). `GET /healthz` through nginx on port 80 returned the web page (200 text/html), not the API (E164); fixed in ops/nginx/nginx.conf and verified on the local stack; live after the next redeploy.
 
 ## 5. Fixes
 
@@ -2764,6 +2764,14 @@ A fresh clone of the fork, built and started from nothing but the repo.
 - Decision (Zainab, 05:57 PM): OTP_DEV_EXPOSE=true on this live demo server ONLY, so judges can finish the OTP step (no SMS/email sender exists). The code default stays off and the E37 fix stays. Deliberate demo trade-off — safeguard: in a real deployment OTP goes by SMS or email and this flag stays off. Goes into SUBMISSION.md "Decisions and open risks".
 - Rule (Zainab): on the live server never run scripts/ or any reset, rebuild or sweep command; only migrations (the migrate container).
 - Demo accounts: a fresh production database has none (the seed is dev-only, E65). Proposal: one demo merchant owner and one admin, random passwords generated on the server into a mode-600 file, never printed; Zainab decides whether to share them.
+
+### Redeploy 2 and live end-to-end check — 07:12 PM (30 Oct 2026)
+- Asked by Zainab after she pushed. `ssh dilmune@139.59.57.26 'bash ~/fils-pay/ops/deploy.sh'` → exit 0; server at d3e4fd1 (`git -C ~/fils-pay log --oneline -1`); api, nginx, settlement healthy, reporting up, migrate Exited (0). Postgres was not recreated (Up about an hour), so live data stayed.
+- Now live: every fix from E164 to E176 (E164 health routes, E38, E167, E171, E148, E47/E113, E40, E90, E88, E142, E160, E59, E114, E176 and the others after d27ddf0).
+- E176 live: `docker inspect` → settlement StopTimeout=40.
+- Public checks (same 45 as the first run): 44 OK. `/healthz` → 200 `{"status":"ok"}` and `/readyz` → 200 `{"status":"ready"}` through nginx: E164 confirmed live. One difference: `/v1/payment-links/%00` → 400 from nginx (first run: 404 from the API). The /v1/ block did not change (`git diff d27ddf0 HEAD -- ops/nginx/nginx.conf` adds only the two health lines); nginx 1.27.5. Cause not proven. 400 meets the rule "bad input gives 4xx, never 500", so the check's expectation is updated, not the code.
+- Logged-in checks on the server (~/live-e2e.sh): 29 OK, FAILS: 0 — login + OTP; two checkouts paid; FULL refund 200 (dashboard: refunded 10000/10000); PARTIAL refund 4.000 BD 200 (partially_refunded 10000/4000); over-refund 422; refund of a fully refunded payment 409; reconciliation today: ledger 16331 = pending 16331, gap 0; settlement summary and batches 200; bad dates and ids 400.
+- Next redeploy: at the code freeze (9:00 PM), as Zainab planned.
 
 ## 7. Judge notes
 

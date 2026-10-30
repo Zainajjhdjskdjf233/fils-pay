@@ -10,7 +10,7 @@
 
 **Live URLs**
 - Checkout and merchant dashboard: http://139.59.57.26/ (dashboard login: http://139.59.57.26/dashboard/login)
-- Public API: http://139.59.57.26/v1/… (health: http://139.59.57.26/healthz after the next redeploy, see E164)
+- Public API: http://139.59.57.26/v1/… (health: http://139.59.57.26/healthz)
 - Admin console: http://139.59.57.26:8081/
 - Demo accounts: a demo merchant owner and a super_admin exist on the server. Their passwords are not in this document or in git; they are in a mode-600 file on the server and are handed to the organizers on request.
 
@@ -154,7 +154,7 @@ Each finding below follows the same pattern: symptom, how it was found and repro
 - **Left as designed (for review):** E150 (a balance adjustment for a merchant with no balance row returns 404; recorded by MK as a choice, three tests assert it); admin impersonation still works for a suspended merchant (E128); API keys can save report filters (E88).
 - **Open risks (44 Medium/Low entries, docs/ERRORS.md):** among them E139 (capture and status recompute disagree on one rare refund order; no money moves), E146 (no rate limit on signup and login), E89 (unsalted hash of card data in the simulator), E84 (CSRF from same-site pages), E47 (no Content-Security-Policy yet).
 - **Existing data:** fixes change future behaviour. Rows written wrongly before a fix are not rewritten; finance would correct them from the ledger history.
-- **Redeploy pending:** fixes after commit d27ddf0 (from E164 onward) reach the live server at the next redeploy.
+- **Live version:** the server runs d3e4fd1 (redeploy 2, 07:12 PM); one more redeploy at the code freeze.
 
 ## 5. UI and UX changes
 

@@ -751,3 +751,27 @@ Where: apps/api/src/lib/queryParsing.ts · Commit: 3617361
 The admin list of imports used only the time as a bookmark between pages. Two imports at the same time meant one was never shown. Now the bookmark is time plus id. A test with three same-time imports proves all are shown.
 
 Where: apps/api/src/admin/adjustmentImport.ts · Commit: 8b391fe
+
+## N126 — Only two fraud answers allowed
+
+The bank's fraud result could be any word, and we stored it. Now only "cleared" or "confirmed_fraud" is accepted. Anything else is refused and nothing is saved. A test proves it.
+
+Where: apps/api/src/routes/acquirerCallbacks.ts · Commit: 35c9921
+
+## N127 — No delete without a filter
+
+A script helper could build a delete with no condition, which empties a whole table. Now it refuses that, and it only accepts plain table and column names. A test proves both.
+
+Where: scripts/lib/sqlFilter.ts · Commit: 5e4a32a
+
+## N128 — One new code per resend
+
+Ten "send me a new code" requests at the same moment made ten codes. Now the 30-second rule is checked in the same database step that retires the old code. A test with ten requests at once shows only one wins.
+
+Where: apps/api/src/routes/auth.ts · Commit: dacc5f8
+
+## N129 — Time to finish a payout run
+
+On a redeploy, Docker stopped the payout service after 10 seconds, but it needs up to 30 to finish. Now it gets 40. Nothing was lost before, because unfinished steps roll back, but a run could restart.
+
+Where: ops/docker-compose.yml · Commit: d3e4fd1

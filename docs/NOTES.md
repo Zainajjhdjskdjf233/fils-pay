@@ -4417,3 +4417,136 @@ The id breaks ties, so every import appears once.
 It gets a clear 400 once; the admin page then starts from page one.
 
 Commit: 8b391fe
+
+## N126 — Only two fraud answers allowed
+
+### The idea
+The bank calls us back with the result of a fraud review. It is like a letter that must say "cleared" or "fraud".
+
+### The problem
+Any word was accepted and stored as the result.
+- A comment said it was checked; it was not.
+
+### The fix
+- acquirerCallbacks.ts: anything other than cleared or confirmed_fraud gets 400.
+
+### The code
+Before (apps/api/src/routes/acquirerCallbacks.ts:72):
+```ts
+outcome: body.outcome as AcquirerCallbackInput["outcome"],
+```
+After:
+```ts
+if (body.outcome !== "cleared" && body.outcome !== "confirmed_fraud") {
+  throw new BadRequestError("invalid_request", "outcome must be cleared or confirmed_fraud");
+}
+```
+A wrong word is refused before anything is stored.
+
+### The proof
+- Before: a signed callback with "approved_by_magic" was stored.
+- After: 400 and nothing stored.
+
+### If the judges ask
+"The callback is signed. Why check more?"
+A signature proves who sent it, not that the content makes sense.
+
+Commit: 35c9921
+
+## N127 — No delete without a filter
+
+### The idea
+A helper builds DELETE commands for scripts. It is like a shredder that should only take the pages you hand it.
+
+### The problem
+An empty filter built "DELETE FROM holds" with no condition.
+- That empties the whole table.
+- Names were pasted into the SQL as they were.
+
+### The fix
+- sqlFilter.ts: refuse a DELETE with no condition; allow only plain table and column names.
+
+### The code
+Before (scripts/lib/sqlFilter.ts:30):
+```ts
+return { text: `DELETE FROM ${table} ${clause}`.trim(), values };
+```
+After:
+```ts
+if (clause === "") throw new Error(`sqlFilter: refusing DELETE FROM ${table} with no filter`);
+```
+The helper stops instead of deleting everything.
+
+### The proof
+- Before: { id: undefined } gave "DELETE FROM holds".
+- After: refused; the normal case still works.
+
+### If the judges ask
+"Does any script call it with an empty filter today?"
+No; its only caller passes a list, but one wrong value would empty the table, so the helper now refuses.
+
+Commit: 5e4a32a
+
+## N128 — One new code per resend
+
+### The idea
+A shop can ask for a new login code, at most once every 30 seconds. Like a ticket machine that gives one ticket per press.
+
+### The problem
+Ten requests at the same moment all passed the 30-second check.
+- Ten new codes were made.
+
+### The fix
+- auth.ts: the 30-second check is inside the same database update that retires the old code.
+
+### The code
+Before (apps/api/src/routes/auth.ts:274):
+```sql
+UPDATE otp_challenges SET consumed_at = now() WHERE id = $1
+```
+After:
+```sql
+UPDATE otp_challenges SET consumed_at = now()
+ WHERE id = $1 AND consumed_at IS NULL AND created_at <= now() - interval '30 seconds'
+```
+Only the first request changes the row; the others get 429.
+
+### The proof
+- Before: 10 at once, all 10 got 200.
+- After: exactly one 200 per round, five rounds.
+
+### If the judges ask
+"The guess count still carried over. Why does it matter?"
+Each extra code is another message sent and another valid code alive; the limit should hold.
+
+Commit: dacc5f8
+
+## N129 — Time to finish a payout run
+
+### The idea
+When we redeploy, the payout service is asked to stop. It is like asking a cashier to finish the current customer before closing.
+
+### The problem
+The service waits 30 seconds to finish, but Docker forced it off after 10.
+- A nearly done run had to start again.
+
+### The fix
+- docker-compose.yml: give the payout service 40 seconds to stop.
+
+### The code
+Before (ops/docker-compose.yml:107): no setting, so 10 seconds.
+After:
+```yaml
+stop_grace_period: 40s
+```
+Docker now waits longer than the service's own 30 seconds.
+
+### The proof
+- Before: no stop_grace_period in the file.
+- After: docker compose config shows 40s for settlement.
+
+### If the judges ask
+"Could money be paid twice if it is cut off?"
+No; each step is one transaction that rolls back, and a re-run skips finished batches.
+
+Commit: d3e4fd1
