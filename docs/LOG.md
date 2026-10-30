@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 04:38 PM (30 Oct 2026)
-Summary: Errors 73/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 04:42 PM (30 Oct 2026)
+Summary: Errors 74/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1091,7 +1091,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/transactions/exportCsv.ts:7 (MAX_EXPORT_ROWS 50,000), :49-65 builds the whole CSV in memory; compose runs node with --max-old-space-size=384.
 - Error: One 50k-row export holds about 120 MB of heap (agent simulation with the real 11 columns); 4 at once → "JavaScript heap out of memory", the API exits. Over-cap requests still load 50,001 rows before 413.
 - Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
-- Severity: high · Status: open
+- Severity: high · Status: fixed (see section 5)
 
 ### E139 — [coverage] Capture and the status recompute disagree on a refunded, partly captured transaction
 - Where: apps/api/src/payments/capture.ts:198 sets status ignoring refunded_fils; payments/refundState.ts:47-49 and transactionStatusRecompute.ts:38 use another rule.
@@ -2240,6 +2240,14 @@ ROLLBACK;
 - fix-reviewer: APPROVE (today accepted at every hour, tomorrow refused, incl. 21:00-24:00 UTC; admin form defaults to the browser's local date, fine in Bahrain; approval path needs no re-check). Took its nit (one Date.now()). It also found a false comment: creditRequestValidation.test.ts:112 "YA: there's a 'not older than 35 days' test right below this one" — no such test exists (section 3 evidence).
 - check.sh: OK.
 - Actual result: a credit can no longer be parked years in the future or booked into ancient periods.
+
+### E138 — 04:42 PM — one CSV export at a time (my E39 cap was not enough)
+- Changed: apps/api/src/transactions/exportCsv.ts:51: a per-process counter allows one export at a time (taken before the first await; released in `finally`); a second one gets 503 `export_busy`; the query reads the 6 CSV columns instead of `SELECT *`. apps/api/src/plugins/errorHandler.ts: an AppError 503 gets `Retry-After: 5`.
+- Why it was mine: E39 capped rows at 50,000 but still built the CSV in memory, so 4 exports at once ran the 384 MB heap out (coverage review measured ~120 MB per export at the cap).
+- Test: apps/api/src/transactions/exportCsv.e138.test.ts. Before: `one export runs` failed (both ran). After: PASS (one runs, the second 503, a later one works); export tests 8/8.
+- fix-reviewer: APPROVE (counter cannot leak; 413 path unchanged; one API container; no other AppError 503). Noted: `streamTransactionsExportCsv` (exportCsv.ts:93) is dead code with SELECT *, an `occurred_at >` cursor that skips ties (E110) and no cap — do not wire it as is.
+- check.sh: OK.
+- Actual result: exports can no longer crash the API by running in parallel.
 
 ## 6. Deploy
 

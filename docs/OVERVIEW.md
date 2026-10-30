@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 4:39 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 4:42 PM
 
 ## Contents
 1. Status now
@@ -14,8 +14,8 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:39 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 73 of 163 fixed.
-  - High: 44 of 46 fixed
+- Errors: 74 of 163 fixed.
+  - High: 45 of 46 fixed
   - Medium: 25 of 54 fixed
   - Low: 4 of 63 fixed
 - Missing feature (refunds, F01): done
@@ -27,7 +27,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:39 PM
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 73 of 163 fixed.
+- 🔄 Fix: 74 of 163 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -91,7 +91,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:39 PM
 - c06b7eb fix(E122): link pay gives back its lock slot, frees the link and voids when pool.connect fails
 
 ## 7. All errors
-## High (44 of 46 fixed)
+## High (45 of 46 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -139,7 +139,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:39 PM
 | E135 | [coverage] Single-merchant KYC review approves a merchant in any state | Fixed |
 | E136 | [coverage] Any admin role, including support, can resend all of a merchant's past webhooks, again and again | Fixed |
 | E137 | [coverage] KYC thumbnail: a 1 MB PNG decompression bomb can push the API past its 512 MB limit | Fixed |
-| E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Open |
+| E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
 ### Medium (25 of 54 fixed)
@@ -270,7 +270,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:39 PM
 | E163 | [second review] API config accepts integer prefixes ("3000oops" → 3000) and unsafe integers | Open |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79
 
 ### N01 — Database setup stopped halfway
 
@@ -3055,4 +3055,141 @@ Support admins now get 403 on resend.
 Support is the lowest role and the duplicates looked real to shops. A duplicate payout message was a real incident before (E30).
 
 Commit: 8fe5a25
+
+### N76 — A tiny image can no longer crash the API
+
+#### The idea
+When a shop uploads a document photo, we make a small preview picture. Like shrinking a big poster into a stamp.
+
+#### The problem
+A 1 MB picture can unpack into a huge image.
+- Making its preview used about 300 MB of memory.
+- Two at once went past the API's 512 MB limit and crashed it.
+
+#### The fix
+- kycThumbnail.ts: refuse to unpack any image over 25 million pixels, and make previews one at a time. A too-big image just gets no preview; the document is still saved.
+
+#### The code
+Before (apps/api/src/onboarding/kycThumbnail.ts:32):
+```ts
+const resized = await sharp(buffer)
+```
+After:
+```ts
+return await sharp(buffer, { limitInputPixels: MAX_INPUT_PIXELS })
+```
+sharp now stops before unpacking a too-big image.
+
+#### The proof
+- Before: a 36-megapixel test image was unpacked into a preview.
+- After: no preview for it; normal photos still get one; 22 upload tests pass.
+
+#### If the judges ask
+"Why not refuse the upload?"
+The reviewer showed that real 48-megapixel phone photos would then be refused. Skipping only the preview is safer.
+
+Commit: b2ebc90
+
+### N77 — A comma in a CSV amount can no longer post the wrong money
+
+#### The idea
+Finance can upload a CSV file of balance corrections: shop, amount, reason. Like a list of cheques.
+
+#### The problem
+The file reader cut every line after three pieces.
+- "1,000.000" became amount "1" and reason "000.000".
+- 1 BD was posted instead of 1,000 BD, with no warning.
+
+#### The fix
+- adjustmentCsvParsing.ts: refuse any line with more than three pieces, and require the exact header.
+
+#### The code
+Before (apps/api/src/admin/adjustmentCsvParsing.ts:42):
+```ts
+const cells = (lines[i] as string).split(",").map((cell) => cell.trim());
+```
+After:
+```ts
+const cells = (lines[i] as string).split(",").map((cell) => cell.trim());
+if (cells.length > 3) {
+  throw new BadRequestError("invalid_csv_row", `row ${i} has more than 3 columns; ...`);
+}
+```
+A line with an extra comma is refused instead of cut.
+
+#### The proof
+- Before: "1,000.000" was read as 1 BD.
+- After: refused with 400; all 37 import tests pass.
+
+#### If the judges ask
+"What about a reason with a comma?"
+It is refused too, because the format has no quotes. A clear error is better than a cut-off reason.
+
+Commit: 757eab0
+
+### N78 — A credit cannot be dated in the future or long ago
+
+#### The idea
+An admin credit has a date that says which day it belongs to, like the date on a receipt.
+
+#### The problem
+Any date was accepted.
+- "2099-12-31" made the payout wait until 2099.
+- "1900-01-01" put money into periods closed long ago.
+
+#### The fix
+- creditRequestValidation.ts: the date must be today (Bahrain time) or up to 90 days back.
+
+#### The code
+Before (apps/api/src/admin/creditRequestValidation.ts:75): only the date format was checked.
+After:
+```ts
+if (rawDate > bahrainToday || rawDate < earliest) {
+  throw new BadRequestError("invalid_effective_date", ...);
+}
+```
+Dates outside the window get a clear 400.
+
+#### The proof
+- Before: 2099-12-31 was accepted.
+- After: future and very old dates are refused; today and recent dates work; 34 credit tests pass.
+
+#### If the judges ask
+"Why 90 days?"
+No rule in the code defines a closed period, so we chose a quarter and marked it for Zainab to review.
+
+Commit: f078974
+
+### N79 — Big exports run one at a time
+
+#### The idea
+Shops can download their transactions as a CSV file, like printing a long bank statement.
+
+#### The problem
+Each export is built fully in memory.
+- Four big exports at once crashed the API.
+- Our own earlier fix (a 50,000-row limit) was not enough.
+
+#### The fix
+- exportCsv.ts: only one export at a time; a second one gets "busy, retry" (503). It also reads only the six needed columns.
+
+#### The code
+Before (apps/api/src/transactions/exportCsv.ts:44): no limit on parallel exports.
+After:
+```ts
+if (exportsInFlight >= 1) {
+  throw new AppError(503, "export_busy", "another export is running; retry in a few seconds");
+}
+```
+The second export waits its turn instead of crashing the server.
+
+#### The proof
+- Before: two exports ran at the same time.
+- After: one runs, the other gets 503, a later one works; 8 export tests pass.
+
+#### If the judges ask
+"Isn't one at a time slow?"
+An export takes about a second; a crash takes the whole API down. Streaming would be the long-term fix.
+
+Commit: PENDING_N79
 

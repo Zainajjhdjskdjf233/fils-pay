@@ -6,6 +6,10 @@ import { AppError } from "../lib/errors.js";
 /** E39: at most this many rows per export; above it the caller must narrow the range. */
 export const MAX_EXPORT_ROWS = 50_000;
 
+/** E138: exports running in this process. One at a time: each builds its CSV
+ *  in memory (~120 MB at the cap), and 4 at once ran the 384 MB heap out. */
+let exportsInFlight = 0;
+
 export interface TransactionsExportFilters {
   merchantId: string;
   from?: Date;
@@ -42,12 +46,31 @@ export async function buildTransactionsExportCsv(
   filters: TransactionsExportFilters,
   options: { maxRows?: number } = {},
 ): Promise<string> {
+  // E138: one export at a time per process. Taken before the first await,
+  // so a second request at the same moment always sees it busy.
+  if (exportsInFlight >= 1) {
+    throw new AppError(503, "export_busy", "another export is running; retry in a few seconds");
+  }
+  exportsInFlight += 1;
+  try {
+    return await buildCsv(pool, filters, options);
+  } finally {
+    exportsInFlight -= 1;
+  }
+}
+
+async function buildCsv(
+  pool: Pool,
+  filters: TransactionsExportFilters,
+  options: { maxRows?: number },
+): Promise<string> {
   // E39: the whole CSV is built in memory, so cap the rows (read one extra
   // to detect "too many") instead of loading an unlimited range.
   const maxRows = options.maxRows ?? MAX_EXPORT_ROWS;
   const statusArray = filters.status && filters.status.length > 0 ? filters.status : null;
   const result = await pool.query<TransactionRow>(
-    `SELECT * FROM transactions
+    // E138: only the six columns the CSV uses (was SELECT *).
+    `SELECT id, status, amount_fils, captured_fils, reference, occurred_at FROM transactions
       WHERE merchant_id = $1
         AND ($2::timestamptz IS NULL OR occurred_at >= $2)
         AND ($3::timestamptz IS NULL OR occurred_at <  $3)

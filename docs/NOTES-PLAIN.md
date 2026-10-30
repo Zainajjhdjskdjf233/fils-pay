@@ -451,3 +451,27 @@ Where: apps/api/src/onboarding/review.ts: · Commit: ce6d4f0
 Any admin, even the lowest support role, could resend all of a shop's old payment and payout messages as many times as they wanted, and the shop could not tell the copies apart. Now only finance and super admins can resend, and a saved archive can be resent just once. A test shows support is refused and a second resend is refused.
 
 Where: apps/api/src/webhooks/archiveReplay.ts: · Commit: 8fe5a25
+
+## N76 — A tiny image can no longer crash the API
+
+A small picture file can unpack into a giant image, and making its preview used so much memory that two uploads at once crashed the server. Now very large images are not unpacked; they are saved without a preview, and previews are made one at a time. A test uses such an image and shows no crash and no preview, while normal photos still work.
+
+Where: apps/api/src/onboarding/kycThumbnail.ts · Commit: b2ebc90
+
+## N77 — A comma in a CSV amount can no longer post the wrong money
+
+The balance-correction upload cut each line after three pieces, so "1,000.000" was read as 1 BD and the real reason was lost. Now a line with an extra comma is refused with a clear message. A test shows the comma case is refused and normal lines still work.
+
+Where: apps/api/src/admin/adjustmentCsvParsing.ts · Commit: 757eab0
+
+## N78 — A credit cannot be dated in the future or long ago
+
+Admins could date a credit years ahead, which held back the shop's payout, or decades back. Now the date must be today or up to 90 days back, in Bahrain time. A test shows future and very old dates are refused.
+
+Where: apps/api/src/admin/creditRequestValidation.ts · Commit: f078974
+
+## N79 — Big exports run one at a time
+
+Downloading transactions builds the whole file in memory, and four big downloads at once crashed the server, even with our earlier row limit. Now only one runs at a time and the next one is told to retry. A test starts two at once and shows one runs and one is asked to wait.
+
+Where: apps/api/src/transactions/exportCsv.ts · Commit: PENDING_N79

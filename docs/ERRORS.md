@@ -13,9 +13,9 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 73 of 163 fixed.
+Summary: 74 of 163 fixed.
 
-## High (44 of 46 fixed)
+## High (45 of 46 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -63,7 +63,7 @@ Summary: 73 of 163 fixed.
 | E135 | [coverage] Single-merchant KYC review approves a merchant in any state | Fixed |
 | E136 | [coverage] Any admin role, including support, can resend all of a merchant's past webhooks, again and again | Fixed |
 | E137 | [coverage] KYC thumbnail: a 1 MB PNG decompression bomb can push the API past its 512 MB limit | Fixed |
-| E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Open |
+| E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
 ## Medium (25 of 54 fixed)

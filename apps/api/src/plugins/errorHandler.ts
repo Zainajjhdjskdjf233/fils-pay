@@ -14,6 +14,7 @@ export function errorHandler(
   reply: FastifyReply,
 ): void {
   if (err instanceof AppError) {
+    if (err.statusCode === 503) reply.header("Retry-After", "5"); // E138: busy, retry
     reply.code(err.statusCode).send({ error: err.code, message: err.message });
     return;
   }
