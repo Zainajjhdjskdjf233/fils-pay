@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { listPaymentLinks } from "../../api/paymentLinks.js";
 import { describeError } from "../../api/client.js";
@@ -30,23 +30,29 @@ export function PaymentLinkListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // E108: a slow answer to an older filter or page must not be mixed into
+  // the list after a newer request started.
+  const loadSeq = useRef(0);
   const load = useCallback(
     async (cursor: string | null) => {
       if (!merchantId) return;
       setLoading(true);
       setError(null);
+      const seq = ++loadSeq.current; // E108: newest request wins
       try {
         const result = await listPaymentLinks(merchantId, {
           status: statuses.length > 0 ? statuses : undefined,
           limit: PAGE_SIZE,
           cursor: cursor ?? undefined,
         });
+        if (seq !== loadSeq.current) return;
         setLinks((previous) => (cursor ? [...previous, ...result.paymentLinks] : result.paymentLinks));
         setNextCursor(result.nextCursor);
       } catch (err) {
+        if (seq !== loadSeq.current) return;
         setError(describeError(err));
       } finally {
-        setLoading(false);
+        if (seq === loadSeq.current) setLoading(false);
       }
     },
     [merchantId, statuses],

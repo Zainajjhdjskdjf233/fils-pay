@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { listSettlementBatches } from "../../api/settlement.js";
 import { describeError } from "../../api/client.js";
@@ -28,10 +28,14 @@ export function SettlementBatchListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // E108: a slow answer to an older filter or page must not be mixed into
+  // the list after a newer request started.
+  const loadSeq = useRef(0);
   const load = useCallback(
     async (cursor: string | null) => {
       setLoading(true);
       setError(null);
+      const seq = ++loadSeq.current; // E108: newest request wins
       try {
         const result = await listSettlementBatches({
           from: from || undefined,
@@ -40,12 +44,14 @@ export function SettlementBatchListPage() {
           limit: PAGE_SIZE,
           cursor: cursor ?? undefined,
         });
+        if (seq !== loadSeq.current) return;
         setBatches((previous) => (cursor ? [...previous, ...result.batches] : result.batches));
         setNextCursor(result.nextCursor);
       } catch (err) {
+        if (seq !== loadSeq.current) return;
         setError(describeError(err));
       } finally {
-        setLoading(false);
+        if (seq === loadSeq.current) setLoading(false);
       }
     },
     [from, to, statuses],

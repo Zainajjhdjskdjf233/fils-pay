@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { Link, useParams } from "react-router-dom";
 import { listDeliveries, listWebhookEndpoints, replayDelivery } from "../../api/webhooks.js";
 import { describeError } from "../../api/client.js";
@@ -48,25 +48,31 @@ export function WebhookEndpointDetailPage() {
     }
   }, [merchantId, id]);
 
+  // E108: a slow answer to an older filter or page must not be mixed into
+  // the list after a newer request started.
+  const loadDeliveriesSeq = useRef(0);
   const loadDeliveries = useCallback(
     async (cursor: string | null) => {
       if (!merchantId || !id) return;
       setLoading(true);
       setError(null);
+      const seq = ++loadDeliveriesSeq.current; // E108: newest request wins
       try {
         const result = await listDeliveries(merchantId, id, {
           status: statuses.length > 0 ? statuses : undefined,
           limit: PAGE_SIZE,
           cursor: cursor ?? undefined,
         });
+        if (seq !== loadDeliveriesSeq.current) return;
         setDeliveries((previous) =>
           cursor ? [...previous, ...result.deliveries] : result.deliveries,
         );
         setNextCursor(result.nextCursor);
       } catch (err) {
+        if (seq !== loadDeliveriesSeq.current) return;
         setError(describeError(err));
       } finally {
-        setLoading(false);
+        if (seq === loadDeliveriesSeq.current) setLoading(false);
       }
     },
     [merchantId, id, statuses],

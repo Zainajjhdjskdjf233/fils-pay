@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { listTransactions } from "../../api/transactions.js";
 import { describeError } from "../../api/client.js";
@@ -46,10 +46,14 @@ export function TransactionListPage() {
     return () => window.clearTimeout(timer);
   }, [searchInput]);
 
+  // E108: a slow answer to an older filter or page must not be mixed into
+  // the list after a newer request started.
+  const loadSeq = useRef(0);
   const load = useCallback(
     async (cursor: string | null) => {
       setLoading(true);
       setError(null);
+      const seq = ++loadSeq.current; // E108: newest request wins
       try {
         const result = await listTransactions({
           status: statuses.length > 0 ? statuses : undefined,
@@ -59,14 +63,16 @@ export function TransactionListPage() {
           limit: PAGE_SIZE,
           cursor: cursor ?? undefined,
         });
+        if (seq !== loadSeq.current) return;
         setTransactions((previous) =>
           cursor ? [...previous, ...result.transactions] : result.transactions,
         );
         setNextCursor(result.nextCursor);
       } catch (err) {
+        if (seq !== loadSeq.current) return;
         setError(describeError(err));
       } finally {
-        setLoading(false);
+        if (seq === loadSeq.current) setLoading(false);
       }
     },
     [statuses, from, to, search],

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { listMerchants } from "../../api/merchants.js";
 import { bulkApproveKyc } from "../../api/merchantsBulk.js";
@@ -30,10 +30,14 @@ export function MerchantListPage() {
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkNotice, setBulkNotice] = useState<string | null>(null);
 
+  // E108: a slow answer to an older filter or page must not be mixed into
+  // the list after a newer request started.
+  const loadSeq = useRef(0);
   const load = useCallback(
     async (cursor: string | null) => {
       setLoading(true);
       setError(null);
+      const seq = ++loadSeq.current; // E108: newest request wins
       try {
         const result = await listMerchants({
           q: appliedQuery || undefined,
@@ -42,12 +46,14 @@ export function MerchantListPage() {
           cursor: cursor ?? undefined,
         });
         const page = result.merchants ?? [];
+        if (seq !== loadSeq.current) return;
         setMerchants((previous) => (cursor ? [...previous, ...page] : page));
         setNextCursor(result.nextCursor ?? null);
       } catch (err) {
+        if (seq !== loadSeq.current) return;
         setError(describeError(err));
       } finally {
-        setLoading(false);
+        if (seq === loadSeq.current) setLoading(false);
       }
     },
     [appliedQuery, statuses],

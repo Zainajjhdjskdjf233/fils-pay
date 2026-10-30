@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 08:12 PM (30 Oct 2026)
-Summary: Errors 151/176 fixed (+12 partly: E50, E92, E101, E131, E145, E163, E48, E67, E86, E94, E96, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 08:14 PM (30 Oct 2026)
+Summary: Errors 152/176 fixed (+12 partly: E50, E92, E101, E131, E145, E163, E48, E67, E86, E94, E96, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -918,7 +918,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: TransactionListPage.tsx:48-72, PaymentLinkListPage.tsx:33-53, SettlementBatchListPage.tsx:31-52, WebhookEndpointDetailPage.tsx:51-73, admin MerchantListPage.tsx:33-54
 - Error: Load more + filter change before it returns mixes pages.
 - Proof: code read (web/admin bug-hunt agent (1:10 PM); checked by me).
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E108)
 
 ### E109 — [found later] Small admin/checkout display bugs
 - Where: admin CreditsPage.tsx:59-68 (loadMore double-click duplicates); AdjustmentImportPage.tsx:71 ("posting X" uses the sum of absolute values); CheckoutPage.tsx:118 (raw UTC paidAt); WebhookReplayPage (old result kept on merchant change)
@@ -2867,6 +2867,11 @@ ROLLBACK;
 - Before: apps/reporting/src/consumer/applyEvent.e96b.test.ts (batch of merchant A, payload naming merchant B with other amounts) → the row was filed under B with the payload's amounts. After: merchant A, gross 1000.
 - Test changed: applyEvent.test.ts created batches with zero amounts and expected the payload's amounts in the trend row; its helper now gives each test batch the same amounts as its payload. Reporting suites 20/20.
 - With the earlier part (129b6bd) E96 is now fully fixed.
+- check.sh (clean environment): OK. Needs a redeploy.
+
+### E108 — 08:14 PM — list pages ignore a slow answer to an older filter or page (newest request wins)
+- Changed: apps/web TransactionListPage.tsx, PaymentLinkListPage.tsx, SettlementBatchListPage.tsx, WebhookEndpointDetailPage.tsx (loadDeliveries) and apps/admin MerchantListPage.tsx: each load gets a number from a useRef counter; after the await, a result, an error or the loading flag from an older request is ignored. Same three-line pattern in all five.
+- Proof: UI-only, no browser test setup for this race; web and admin tsc clean; web tests 13/13.
 - check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy
