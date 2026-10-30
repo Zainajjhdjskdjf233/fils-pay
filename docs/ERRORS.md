@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 168 of 178 fixed.
+Summary: 169 of 178 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -131,7 +131,7 @@ Summary: 168 of 178 fixed.
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-## Low (64 of 72 fixed)
+## Low (65 of 72 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -165,7 +165,7 @@ Summary: 168 of 178 fixed.
 | E88 | [found later] Read-only impersonation and API keys can write saved filters | Fixed |
 | E89 | [found later] Unsalted SHA-256 of card number and CVV stored | Fixed |
 | E90 | [found later] KYC download puts the raw filename into a header | Fixed |
-| E94 | [found later] Settlement internal API: plain HTTP on all interfaces; weak token accepted | Partly fixed |
+| E94 | [found later] Settlement internal API: plain HTTP on all interfaces; weak token accepted | Fixed |
 | E95 | [found later] Internal settlement errors returned to admin browsers | Fixed |
 | E96 | [found later] Reporting trusts payload merchant/amounts; negative amounts pass (my E53 check) | Fixed |
 | E97 | [found later] Reporting config accepts bad numbers ("15s" → 15 ms) | Fixed |

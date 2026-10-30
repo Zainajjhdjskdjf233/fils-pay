@@ -842,7 +842,8 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/settlement/internal/internalapi/server.go:135 (binds "":8091); apps/api/src/config.ts:185-187 (only empty token rejected); docs say the token is "dev-token" (ARCHITECTURE.md:90, ops/README.md:61)
 - Error: any container on the network with the shared token can run money operations; no admin identity or audit on the Go side. Token compare itself is constant-time (fine).
 - Proof: code read (backend security-review agent (1:03 PM); checked by me).
-- Severity: low · Status: partly fixed (token strength checked; plain HTTP inside the private network kept by decision)
+- Severity: low · Status: fixed (token strength checked, 57f4d87; plain HTTP inside the private network kept by decision, 09:29 PM)
+- Decision (Claude, Zainab approved deciding without review): keep plain HTTP between the API and settlement inside the private Docker network; the token-strength check (57f4d87) stays — Why: settlement has no published port and sits only on the 'internal' network with the API (live docker ps, LOG §6), so traffic never leaves the host; TLS would add certificate handling for no reachable attacker — Alternative: mutual TLS between api and settlement
 
 ### E95 — [found later] Internal settlement errors are returned to admin browsers
 - Where: apps/api/src/admin/settlementClient.ts:124-154 (path, fetch error, 500 bytes of body in AppError.message); plugins/errorHandler.ts:17
@@ -1176,6 +1177,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
 - Severity: low · Status: skipped — Decision (Zainab to review)
 - Decision (Zainab to review), 06:50 PM: left as is. The 404 is a deliberate design choice recorded in the repo (`adminBalanceAdjustments.test.ts:183` "FH: Claude suggests auto-creating the row instead. no — MK") and three tests assert it (`adminBalanceAdjustments.test.ts:172-207`). It loses no money: a merchant with no balance row has nothing captured to correct. Alternative: create the balance row inside the adjustment transaction (`INSERT ... ON CONFLICT DO NOTHING` before the `FOR UPDATE`), and change the test at :184 to expect 201.
+- Decision (Claude, Zainab approved deciding without review): keep the 404 for a balance adjustment on a merchant with no merchant_balances row — Why: it moves no money (such a merchant has nothing captured to correct), it is a recorded design choice (adminBalanceAdjustments.test.ts:183) and three tests assert it; creating rows inside the adjustment would also create balance rows the settlement cache logic never made — Alternative: create the balance row inside the adjustment transaction (INSERT … ON CONFLICT DO NOTHING before the FOR UPDATE) and change the test at :184 to expect 201
 
 ### E151 — [coverage] Defence in depth: validateRefundRequest trusts its caller's numbers
 - Where: apps/api/src/payments/refundValidation.ts:21-23, 38-48.
@@ -3330,3 +3332,5 @@ Zainab asked for speed without losing safety. Two read-only agents now plan ahea
 - Judge note (09:17 PM): E58 — a comment claimed identities could mix; a test proves they do not, so nothing was changed and the test stays as a guard.
 - Judge note (09:20 PM): E63 — the rebuild and the worker could both count the same payment; now the rebuild hands the worker an exact starting point.
 - Judge note (09:25 PM): E74 — the cached balance could silently disagree with the ledger; staff now see the ledger figure first and any drift in red.
+- Judge note (09:27 PM): E150 — left as designed after checking it cannot lose or invent money.
+- Judge note (09:27 PM): E94 — internal traffic stays on the private network; the shared secret is now refused when weak.
