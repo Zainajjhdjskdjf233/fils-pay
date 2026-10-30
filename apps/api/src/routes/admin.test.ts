@@ -1751,3 +1751,21 @@ test("testE177_adminLoginIgnoresEmailCase", async () => {
   const bad = await app.inject({ method: "POST", url: "/v1/admin/auth/login", payload: { email: 123, password: ADMIN_PASSWORD } });
   assert.equal(bad.statusCode, 400, bad.body);
 });
+
+// E103 [found later]: "View as merchant" opened the dashboard, but its auth
+// check (GET /v1/auth/me) accepted only a merchant session, so staff landed
+// on the login page. It must accept the impersonation grant (read-only role).
+test("testE103_meAcceptsTheImpersonationGrant", async () => {
+  const admin = await signedInAdmin("support", "e103");
+  const { merchantId } = await createMerchant("e103");
+  const startRes = await app.inject({ method: "POST", url: `/v1/admin/merchants/${merchantId}/impersonate`, headers: { cookie: admin.cookie } });
+  assert.equal(startRes.statusCode, 201, startRes.body);
+  const impCookie = parseCookie(startRes.headers["set-cookie"], config.impersonationCookieName);
+  const me = await app.inject({ method: "GET", url: "/v1/auth/me", headers: { cookie: impCookie } });
+  assert.equal(me.statusCode, 200, me.body);
+  const body = me.json() as { merchant: { id: string }; role: string; email: string; impersonatedBy?: string };
+  assert.equal(body.merchant.id, merchantId);
+  assert.equal(body.role, "support");
+  assert.equal(body.email, admin.email, "the header shows who is viewing");
+  assert.equal((await app.inject({ method: "GET", url: "/v1/auth/me" })).statusCode, 401, "no cookie is still 401");
+});

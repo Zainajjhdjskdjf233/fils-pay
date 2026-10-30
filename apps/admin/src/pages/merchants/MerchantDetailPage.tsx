@@ -210,8 +210,15 @@ export function MerchantDetailPage() {
       // Opened in a second tab on purpose: this tab keeps showing the
       // impersonation banner and its exit action, which is the whole point
       // of the banner existing.
-      const opened = window.open(WEB_BASE_URL, "_blank", "noopener");
-      if (!opened) setImpersonationUrl(WEB_BASE_URL);
+      // E103: with "noopener", window.open always returns null, so the
+      // "popup blocked" link always showed. Open normally, then cut the link
+      // back to this tab (same protection as noopener).
+      const opened = window.open(WEB_BASE_URL, "_blank");
+      if (opened) {
+        opened.opener = null;
+      } else {
+        setImpersonationUrl(WEB_BASE_URL);
+      }
     } catch (err) {
       setActionError(describeError(err));
     } finally {

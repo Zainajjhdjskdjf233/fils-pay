@@ -7,10 +7,12 @@ import { sendOtpCode } from "../auth/notifier.js";
 import {
   createPendingSession,
   lookupPendingSession,
+  lookupSession,
   promoteSession,
   revokeSession,
 } from "../auth/sessions.js";
 import { withTransaction } from "../db/withTransaction.js";
+import { lookupImpersonationGrant } from "../admin/impersonation.js";
 import { BadRequestError, GoneError, TooManyRequestsError, UnauthorizedError } from "../lib/errors.js";
 
 /**
@@ -324,12 +326,37 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
 
   app.get(
     "/me",
-    { preHandler: requireSession },
     async (request: FastifyRequest) => {
-      const auth = request.auth;
-      if (!auth) {
-        throw new UnauthorizedError("unauthenticated");
+      // E103: same order as requireMerchantAuth — a merchant session first,
+      // then an admin "view as merchant" grant (read-only support role), so
+      // the dashboard opened by "View as merchant" no longer bounces to login.
+      const sessionToken = request.cookies[app.config.cookieName];
+      const session = sessionToken ? await lookupSession(app.db, sessionToken) : null;
+      if (!session) {
+        const grantToken = request.cookies[app.config.impersonationCookieName];
+        const grant = grantToken ? await lookupImpersonationGrant(app.db, grantToken) : null;
+        if (!grant) {
+          throw new UnauthorizedError("unauthenticated");
+        }
+        const viewed = await app.db.query<{ email: string; display_name: string; onboarding_status: string }>(
+          `SELECT au.email, m.display_name, m.onboarding_status
+             FROM admin_users au, merchants m
+            WHERE au.id = $1 AND m.id = $2`,
+          [grant.adminUserId, grant.merchantId],
+        );
+        const v = viewed.rows[0];
+        if (!v) {
+          throw new UnauthorizedError("unauthenticated");
+        }
+        return {
+          merchantUserId: grant.adminUserId,
+          email: v.email,
+          role: grant.merchantRole,
+          impersonatedBy: grant.adminUserId,
+          merchant: { id: grant.merchantId, displayName: v.display_name, onboardingStatus: v.onboarding_status },
+        };
       }
+      const auth = session;
       const result = await app.db.query<{
         email: string;
         merchant_id: string;

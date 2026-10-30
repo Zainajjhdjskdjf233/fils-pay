@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 08:25 PM (30 Oct 2026)
-Summary: Errors 158/177 fixed (+8 partly: E50, E92, E131, E48, E67, E78, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 08:28 PM (30 Oct 2026)
+Summary: Errors 159/177 fixed (+8 partly: E50, E92, E131, E48, E67, E78, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -889,7 +889,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/admin/src/pages/merchants/MerchantDetailPage.tsx:213-214 (opens WEB_BASE_URL `/`, which has no route; `noopener` window.open always returns null); apps/api/src/routes/auth.ts:292 (/v1/auth/me uses requireSession, ignores the fp_impersonation grant)
 - Error: the admin lands on a blank page or the merchant login; the "blocked tab" message always shows.
 - Proof: code read (web/admin bug-hunt agent (1:10 PM); checked by me).
-- Severity: medium · Status: open
+- Severity: medium · Status: fixed (see section 5, E103)
 
 ### E104 — [found later] Bulk "Approve KYC" approves merchants no longer on screen; the server checks no status
 - Where: apps/admin/src/pages/merchants/MerchantListPage.tsx:29,90 (selectedIds survive filter changes; all sent); apps/api/src/admin/bulkKyc.ts:27-29 (`UPDATE … SET onboarding_status='approved', kyc_passed=true WHERE id = ANY($1)` — any status, even rejected)
@@ -2922,6 +2922,12 @@ ROLLBACK;
 - Changed: apps/api/src/routes/adminAuth.ts /login: lower(email) = lower($1), exact match first, then id, LIMIT 1; email and password must be strings (a number email used to reach the query). apps/api/src/admin/inviteCode.ts redeemAdminInvite: lower(email) = lower($2).
 - Before: testE177_adminLoginIgnoresEmailCase (admin.test.ts) — an admin stored as E177-…@Admin.TEST could not log in with the lower-case address. After: 200; a numeric email gives 400. Admin and invite suites 85/85.
 - No fix-reviewer: the same pattern the reviewer approved for E145 (8794b16).
+- check.sh (clean environment): OK. Needs a redeploy.
+
+### E103 — 08:28 PM — View as merchant works end to end: /v1/auth/me accepts the impersonation grant, and the admin no longer always shows 'popup blocked'
+- Changed: apps/api/src/routes/auth.ts GET /me: a merchant session first, then an admin impersonation grant (same order as requireMerchantAuth); for a grant it returns the merchant, role 'support' (read-only, E116) and the admin's own email for the dashboard header. apps/admin/src/pages/merchants/MerchantDetailPage.tsx: opens the dashboard without 'noopener' and sets opener = null (with noopener, window.open always returns null, so the 'blocked' link always showed). The live admin already opens <site>/dashboard (ops/Dockerfile.web:21).
+- Before: testE103_meAcceptsTheImpersonationGrant (admin.test.ts) → /me with only the grant cookie gave 401 (the dashboard bounced to login). After: 200 with the merchant, role support and the admin email; no cookie still 401. Admin, auth, app and session suites 85/85; admin tsc clean.
+- Second review (Copilot): not run — copilot not found (LOG line 1567). fix-reviewer: APPROVE; no leak (the grant cookie lives only in the admin's browser); session-first is right; apps/web reads only me.email and me.role (DashboardLayout.tsx:50); opener = null gives the same practical tabnabbing protection. Took its import nit; skipped its 'both cookies' test (no merchant login helper in admin.test.ts; the order matches requireMerchantAuth).
 - check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy
