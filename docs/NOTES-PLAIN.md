@@ -1063,3 +1063,57 @@ Where: db/migrations/0087_refund_summary_plain_view.sql · Commit: 7c6ce65
 If a shop's discount refund failed after a checkout, it was never retried. Now a sweep posts it within a minute, exactly once. Tests prove it, including bad data.
 
 Where: apps/api/src/payments/discountAdjustment.ts · Commit: c5d7416
+
+## N178 — Staff can revoke a key but never hold one
+
+"Rotate key" used to hand staff a working key for the shop. Now staff can only cancel a key, and the shop makes its own new one. Tests prove staff never receive a key.
+
+Where: apps/api/src/admin/apiKeys.ts · Commit: f7c6f5b
+
+## N179 — A warning that turned out wrong
+
+A comment warned that a shop login and a staff pass could mix. A test showed the shop's own login always wins, so nothing changed. The test now guards it.
+
+Where: apps/api/src/routes/admin.test.ts · Commit: 51e835a
+
+## N180 — The report rebuild counts each payment once
+
+Rebuilding the reports could count some payments twice. Now the rebuild tells the reporting worker exactly where to continue. A test proves each payment is counted once.
+
+Where: apps/api/src/admin/reportingRebuild.ts · Commit: fbc85bd
+
+## N181 — Staff see the real balance
+
+Staff saw only a cached balance that could drift. Now they see the ledger balance first, and any difference in red.
+
+Where: apps/api/src/admin/merchants.ts · Commit: adca501
+
+## N182 — One discount formula
+
+Payment and payout worked out discounted fees in two ways that could differ by a fils. Now payment records exactly what payout charges. A test with 10.20 BD proves both give 22 fils.
+
+Where: apps/api/src/payments/capture.ts · Commit: 961e7f9
+
+## N183 — An owed credit stays owed
+
+A discount credit that failed could be lost if the shop's discount was later set to 0. Now the recorded amount decides. A test proves it.
+
+Where: apps/api/src/payments/discountAdjustment.ts · Commit: f1dc827
+
+## N184 — The balance button moves no money
+
+An unused function could have let one person move money alone. It was deleted, and the button now says it changes the display only. Real money goes through credits with two approvers.
+
+Where: apps/api/src/admin/balanceAdjustments.ts · Commit: 12a1e8f
+
+## N185 — Dead money code removed
+
+Four unused helpers with wrong money maths were removed after checking nothing used them. Three unused files are listed for Zainab to delete.
+
+Where: apps/api/src/payments/capture.ts · Commit: 14362c4
+
+## N186 — Decisions written down
+
+Five remaining items were choices. Each is now written down with its reason and the other option. One read-only query shows the right March figure without changing data.
+
+Where: docs/LOG.md · Commit: 141deb5

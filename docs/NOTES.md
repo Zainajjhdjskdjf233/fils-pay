@@ -6149,3 +6149,259 @@ A missed credit is posted within a minute, exactly once.
 No; it reuses the existing function, which counts what was already posted under a row lock.
 
 Commit: c5d7416
+
+## N178 — Staff can revoke a key but never hold one
+
+### The idea
+A shop's API key is like the master key to its till. Staff may need to cancel a lost key, but should never hold one.
+
+### The problem
+"Rotate key" gave staff a brand-new working key.
+- With it, staff could act as the shop, beyond their read-only view.
+
+### The fix
+- New revoke route: the key stops working, with an audit line; no new key is made.
+- The old rotate route answers 410; the console button says "Revoke".
+
+### The code
+Before (apps/api/src/routes/adminMerchants.ts:197):
+```ts
+rawKey: rotated.rawKey,
+```
+After:
+```ts
+const result = await revokeApiKeyAsAdmin(app.db, { merchantId, apiKeyId, adminUserId });
+```
+Staff can cut a key off; the shop owner issues the new one.
+
+### The proof
+- Before: rotate returned a working key to staff.
+- After: rotate 410, revoke 200, the old key gets 401, no new key exists.
+
+### If the judges ask
+"What if a shop needs a new key urgently?"
+The owner creates one in the dashboard in seconds; staff never see it.
+
+Commit: f7c6f5b
+
+## N179 — A warning that turned out wrong
+
+### The idea
+A comment warned that a shop login and a staff "view as shop" pass could mix up who is who.
+
+### The problem
+Nobody had checked it.
+
+### The fix
+- A test sends both at once; nothing in the code needed changing.
+
+### The code
+Test (apps/api/src/routes/admin.test.ts):
+```ts
+const both = `${config.cookieName}=${rawToken}; ${impCookie}`;
+```
+The shop's own login always wins, for reading and writing.
+
+### The proof
+- The test passes on the existing code: /me shows the shop's own data, and a write lands in the shop's own account.
+
+### If the judges ask
+"Why keep a test for something that works?"
+So nobody can change the order later without the test failing.
+
+Commit: 51e835a
+
+## N180 — The report rebuild counts each payment once
+
+### The idea
+Staff can rebuild the sales reports from scratch while a worker keeps them up to date. Like two people counting the same pile: they must agree where one stops.
+
+### The problem
+The rebuild could count payments the worker would count again.
+
+### The fix
+- The rebuild pauses the worker, counts from one snapshot, then tells the worker exactly where to continue.
+- If a payment is still being saved at that moment, it says "try again".
+
+### The code
+Before (apps/api/src/admin/reportingRebuild.ts:11): no cursor update.
+After:
+```sql
+INSERT INTO reporting_outbox_cursor ... SELECT 'reporting', id, txid ... WHERE txid < pg_snapshot_xmin(pg_current_snapshot())
+```
+Each payment is counted exactly once.
+
+### The proof
+- Before: after a rebuild, the worker's position was still behind the counted payment.
+- After: counted once, and the worker starts after it.
+
+### If the judges ask
+"What does 'try again' mean for staff?"
+A short retry; it only happens if another save is still open at that exact moment.
+
+Commit: fbc85bd
+
+## N181 — Staff see the real balance
+
+### The idea
+A shop's balance is stored twice: in the ledger (the truth) and in a quick cached number.
+
+### The problem
+The cached number could drift from the ledger, and staff saw only the cache.
+
+### The fix
+- The admin page shows the ledger balance first, then the cache and any difference in red.
+
+### The code
+Before (apps/admin/src/pages/merchants/MerchantDetailPage.tsx:305): only "Cached payable".
+After:
+```tsx
+Payable (ledger, authoritative): <strong>{bhd(detail.balance.ledgerPayableFils)}</strong>
+```
+Staff always see the true figure.
+
+### The proof
+- Before: no ledger figure on the page.
+- After: ledger 7000, cache 9999, difference 2999 shown.
+
+### If the judges ask
+"Why not fix the cache instead?"
+No payout uses it; showing the truth fixes what people see without touching any money path.
+
+Commit: adca501
+
+## N182 — One discount formula
+
+### The idea
+Shops with a negotiated discount pay a lower fee. Two parts of the system worked it out in two ways, like two calculators that round differently.
+
+### The problem
+Capture and payout could differ by a fils.
+
+### The fix
+- The payout formula (discount first, then fee) is the rule.
+- Capture records exactly what it owes, and every later step uses that number.
+
+### The code
+Before: the credit was fee × discount (for 10.20 BD: fee 26, credit 3, net 23).
+After (apps/api/src/payments/capture.ts):
+```ts
+discountAdjFils: fee − settlementFee  // 26 − 22 = 4, net 22
+```
+Capture now charges exactly what the payout charges.
+
+### The proof
+- Before: net fee 23; payout 22.
+- After: 22 and 22; the retry job uses the same number.
+
+### If the judges ask
+"Did this change any payouts?"
+No; payouts already used this formula, so only the capture record moved to match.
+
+Commit: 961e7f9
+
+## N183 — An owed credit stays owed
+
+### The idea
+A credit a shop was owed at payment time should not vanish later.
+
+### The problem
+If its discount was later set to 0, a missed credit was never retried.
+
+### The fix
+- The retry job also picks payments that recorded an owed credit, whatever today's rate.
+
+### The code
+Before (apps/api/src/payments/discountAdjustment.ts): `if (discountBps === 0) return;` for everyone.
+After:
+```ts
+if (discountBps === 0 && !opts.fromSweep) return;
+```
+The recorded amount decides, not today's setting.
+
+### The proof
+- Before: no credit after the rate dropped to 0.
+- After: the owed 50 fils is posted.
+
+### If the judges ask
+"What about old payments?"
+They have no recorded amount; changing them would mean rewriting old rows, which we do not do.
+
+Commit: f1dc827
+
+## N184 — The balance button moves no money
+
+### The idea
+Staff have a button to correct a shop's displayed balance. Moving real money should need two people.
+
+### The problem
+An unused function that moved real money looked like a "fix" to wire in.
+- Wiring it in would let one person move money alone.
+
+### The fix
+- The unused function was deleted.
+- The button now says it changes the display only; real money goes through credits with two approvers.
+
+### The code
+Before (apps/api/src/admin/balanceAdjustments.ts:67): adjustMerchantBalanceJournaled, never called.
+After: removed; the button text says "moves no money".
+
+### The proof
+- grep: no callers left; the related tests pass.
+
+### If the judges ask
+"Why not use the function that writes to the ledger?"
+It had no second approver; credits already do this safely.
+
+Commit: 12a1e8f
+
+## N185 — Dead money code removed
+
+### The idea
+Unused code with wrong money maths is a trap, like a broken calculator left on the desk.
+
+### The problem
+Four unused helpers used decimals or wrong scales (×100, ÷10).
+
+### The fix
+- Removed all four after checking nothing calls them.
+- Three wholly unused files are listed for Zainab to delete.
+
+### The code
+Before (apps/api/src/admin/settlementClient.ts:303):
+```ts
+amountFils: Math.round(input.amountFils / 10),
+```
+After: the function is gone.
+
+### The proof
+- grep: 0 callers for each; tests and the Go build pass.
+
+### If the judges ask
+"Why not delete the files too?"
+Deleting files needs Zainab's OK under our rules; they are listed by name.
+
+Commit: 14362c4
+
+## N186 — Decisions written down
+
+### The idea
+Some items were choices, not bugs to fix tonight.
+
+### The problem
+They waited for a decision.
+
+### The fix
+- Recorded: keep the 404 for a shop with no balance row (E150); keep internal HTTP inside the private network (E94); March sweep, seed fees and seed outbox as documented notes (E72, E69, E70), with a read-only query for the right March figure.
+
+### The code
+No code change. The read-only query is in LOG.md under E72.
+
+### The proof
+- Each has a "Decision (Claude, Zainab approved deciding without review)" line in LOG.md.
+
+### If the judges ask
+"Why not fix the March sweep?"
+It writes money entries; a read-only query shows the right figure without touching any data.
+
+Commit: 141deb5

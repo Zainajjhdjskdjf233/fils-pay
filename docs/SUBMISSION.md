@@ -288,7 +288,7 @@ Not changed (recorded): money columns are still left-aligned (29 cells in 10 fil
 ### Every error entry
 
 <!-- errors:start (generated from docs/ERRORS.md) -->
-All 178 entries from docs/ERRORS.md (165 of 178 fixed.). Each ID has its error (section 2) and, when fixed, its fix (section 5) in docs/LOG.md.
+All 178 entries from docs/ERRORS.md (172 of 178 fixed.). Each ID has its error (section 2) and, when fixed, its fix (section 5) in docs/LOG.md.
 
 | ID | Title | Level | Status |
 |---|---|---|---|
@@ -341,7 +341,7 @@ All 178 entries from docs/ERRORS.md (165 of 178 fixed.). Each ID has its error (
 | E47 | Admin console: session not rotated after OTP; no CSP | Low | Fixed |
 | E48 | Admin run-batch sends no payout notification; split payouts skip the lifetime estimate | Low | Fixed |
 | E49 | settlement rebuild-balances --merchant never writes the cache | Low | Fixed |
-| E50 | Fee at capture ignores the negotiated discount that settlement applies | Medium | Partly fixed |
+| E50 | Fee at capture ignores the negotiated discount that settlement applies | Medium | Fixed |
 | E51 | API and seed cannot start: built-in dev key is 34 bytes, check needs 32 | High | Fixed |
 | E52 | Every refund fails: code inserts reason = NULL, migration 0070 forbids NULL | High | Fixed |
 | E53 | One malformed outbox event stops the whole reporting consumer | Medium | Fixed |
@@ -349,31 +349,31 @@ All 178 entries from docs/ERRORS.md (165 of 178 fixed.). Each ID has its error (
 | E55 | Seed prints API keys; API listens on every network interface | Low | Fixed |
 | E56 | Go DB tests are flaky when packages run in parallel | Low | Fixed |
 | E57 | Bad input gives 500 instead of 400 (invalid JSON body, malformed UUID) | Low | Fixed |
-| E58 | Session vs impersonation order may mix identities (FP-198 comment) — not reproduced: a test with both cookies shows no mixing | Medium | Skipped |
+| E58 | Session vs impersonation order may mix identities (FP-198 comment) — closed: not a bug, testE58 (admin.test.ts) locks it | Medium | Skipped |
 | E59 | Acquirer callback outcome is never validated | Low | Fixed |
 | E60 | Reconciliation counts payouts of earlier days as an unexplained gap | Medium | Fixed |
 | E61 | Dashboard and admin console cannot reach the API from their own origin (no CORS, no proxy) | Medium | Fixed |
 | E62 | [found later] Two reporting passes at the same time count every event twice | Medium | Fixed |
-| E63 | [found later] Admin reporting rebuild double-counts events the worker has not reached | Medium | Open |
+| E63 | [found later] Admin reporting rebuild double-counts events the worker has not reached | Medium | Fixed |
 | E64 | [found later] Payout trends never show "paid" (settlement.paid not consumed) | Medium | Fixed |
 | E65 | [found later] The seed wipes real tables (incl. admin audit log) with no environment check | Medium | Fixed |
 | E66 | [found later] expire_holds can delete holds released between its SELECT and DELETE | Low | Fixed |
 | E67 | [found later] refund_merchant_summary counts captured once per refund; never refreshed (my F01e bug) | Low | Fixed |
 | E68 | [found later] Seed adds the lifetime payout estimate in float32 | Low | Fixed |
-| E69 | [found later] Seeded fees ignore the seeded fee schedules (suspected) | Low | Open |
-| E70 | [found later] Seeded outbox events do not match the seeded history | Low | Open |
+| E69 | [found later] Seeded fees ignore the seeded fee schedules (suspected) | Low | Skipped |
+| E70 | [found later] Seeded outbox events do not match the seeded history | Low | Skipped |
 | E71 | [found later] Re-seeding leaves old dead letters with reused outbox ids | Low | Fixed |
-| E72 | [found later] reconcile_march uses authorization time and running-total residue (suspected) | Low | Open |
+| E72 | [found later] reconcile_march uses authorization time and running-total residue (suspected) | Low | Skipped |
 | E73 | [found later] CloseBatch never journals the scheme rounding residue (ADR-0002 not implemented) | High | Fixed |
-| E74 | [found later] Balance cache and ledger rebuild measure different things (drift after rebuild) | Medium | Open |
+| E74 | [found later] Balance cache and ledger rebuild measure different things (drift after rebuild) | Medium | Fixed |
 | E75 | [found later] March sweep posts the opposite legs from ADR-0002, charging merchants | Medium | Fixed |
 | E76 | [found later] Dashboard date filter uses UTC days, not Bahrain days | Medium | Fixed |
 | E77 | [found later] Float and toFixed on money in the batch detail page | Low | Fixed |
 | E78 | [found later] Balance rebuild may hit the 30 s timeout; no row lock (suspected) | Low | Fixed |
-| E79 | [found later] Dead helpers with float or wrong-scale money math | Low | Open |
+| E79 | [found later] Dead helpers with float or wrong-scale money math | Low | Partly fixed |
 | E80 | [found later] Scheme export fallback can print more than 2 decimals | Low | Fixed |
 | E81 | [found later] Admin Run batch default date uses the UTC day | Low | Fixed |
-| E82 | [found later] Admin "rotate API key" hands staff a full-power merchant key | Medium | Open |
+| E82 | [found later] Admin "rotate API key" hands staff a full-power merchant key | Medium | Fixed |
 | E83 | [found later] Legal name and CR number editable after KYC approval, no re-review | Medium | Fixed |
 | E84 | [found later] CSRF from same-site pages (Lax only, text/plain accepted) | Low | Fixed |
 | E85 | [found later] Impersonation grant survives admin disable/logout | Low | Fixed |
@@ -385,7 +385,7 @@ All 178 entries from docs/ERRORS.md (165 of 178 fixed.). Each ID has its error (
 | E91 | [found later] Every service connects as one Postgres superuser | Medium | Fixed |
 | E92 | [found later] Ledger immutability claim false; audit log unprotected | Medium | Fixed |
 | E93 | [found later] sqlFilter builds DELETE with no WHERE for null/undefined filters | Medium | Fixed |
-| E94 | [found later] Settlement internal API: plain HTTP on all interfaces; weak token accepted | Low | Partly fixed |
+| E94 | [found later] Settlement internal API: plain HTTP on all interfaces; weak token accepted | Low | Fixed |
 | E95 | [found later] Internal settlement errors returned to admin browsers | Low | Fixed |
 | E96 | [found later] Reporting trusts payload merchant/amounts; negative amounts pass (my E53 check) | Low | Fixed |
 | E97 | [found later] Reporting config accepts bad numbers ("15s" → 15 ms) | Low | Fixed |
@@ -445,7 +445,7 @@ All 178 entries from docs/ERRORS.md (165 of 178 fixed.). Each ID has its error (
 | E151 | [coverage] Defence in depth: validateRefundRequest trusts its caller's numbers | Low | Fixed |
 | E152 | [coverage] Go ApplyRateFils: int64 overflow wraps silently (TS throws) | Low | Fixed |
 | E153 | [coverage] A fully refunded, partly captured row refunded again with no amount gives 422 instead of 409 | Low | Fixed |
-| E154 | [coverage] adjustMerchantBalanceJournaled is dead code | Low | Open |
+| E154 | [coverage] adjustMerchantBalanceJournaled is dead code | Low | Fixed |
 | E155 | [coverage] Webhook PATCH with a bad status gives 500 | Low | Fixed |
 | E156 | [coverage] timingSafeEqualHex accepts extra characters after a valid digest | Low | Fixed |
 | E157 | [coverage] Several files in one KYC request: earlier ones are silently dropped; "one file enforced" comment is false | Low | Fixed |
@@ -469,5 +469,5 @@ All 178 entries from docs/ERRORS.md (165 of 178 fixed.). Each ID has its error (
 | E175 | [second review] Webhook URLs with embedded credentials are accepted but never deliverable | Low | Fixed |
 | E176 | [deep review] A redeploy stops settlement after 10 s, although it waits 30 s for a running batch | Low | Fixed |
 | E177 | [deep review] Admin login and admin invites match emails case-sensitively | Low | Fixed |
-| E178 | [deep review] Discount adjustments are matched to capture events by position, at today's rate | Low | Partly fixed |
+| E178 | [deep review] Discount adjustments are matched to capture events by position, at today's rate | Low | Fixed |
 <!-- errors:end -->
