@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 07:37 PM (30 Oct 2026)
-Summary: Errors 136/176 fixed (+9 partly: E50, E92, E131, E145, E163, E47, E86, E94, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 07:38 PM (30 Oct 2026)
+Summary: Errors 137/176 fixed (+9 partly: E50, E92, E131, E145, E163, E47, E86, E94, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -929,7 +929,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/transactions/exportCsv.ts:89 (`occurred_at > $5`, cursor = last occurred_at)
 - Error: rows sharing the boundary timestamp are skipped. The function is unused today (E39 chose a row cap; I noted this bug in E39's decision but made no entry).
 - Proof: a second review with another AI tool (pasted by Zainab, 2:30 PM); checked by me in the code.
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E110)
 
 ### E111 — [second review] CSV quoting ignores carriage returns
 - Where: apps/api/src/transactions/exportCsv.ts:22 (quotes only on `,` `"` `\n`)
@@ -2753,6 +2753,11 @@ ROLLBACK;
 - Second review (Copilot): not run — copilot not found (LOG line 1567). fix-reviewer: APPROVE; the only caller (processRefund.ts:93-101) passes captured − refunded, so the cap never refuses a real refund; a fractional amount now gets 422, which refunds.f01b.test.ts:94-99 already accepts; suggested computing refundableAmount once. Our answer: agree, taken.
 - E63 (same commit, docs only): analysis and options recorded, marked for Zainab to review.
 - check.sh (clean environment): OK. Needs a redeploy.
+
+### E110 — 07:38 PM — the streaming CSV export pages on (occurred_at, id), so rows with the same timestamp are not skipped [second review]
+- Changed: apps/api/src/transactions/exportCsv.ts streamTransactionsExportCsv: cursor (occurred_at, id), ORDER BY occurred_at, id; optional pageSize argument (default 1000, used by the test). The function is still not wired to a route (fix-reviewer note at E138); if it is wired later it no longer drops rows.
+- Before: apps/api/src/transactions/exportCsv.e110.test.ts against the old query with pages of 2 (3 rows at one timestamp) → fail (a row was skipped). My first 'before' run did not prove this: the old code ignored the page-size argument and read all rows in one page; redone with the old code's page size set to 2, then the file was restored exactly (`git diff --quiet`). After: 3 of 3 rows; export suites 10/10.
+- check.sh (clean environment): OK.
 
 ## 6. Deploy
 

@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 136 of 176 fixed.
+Summary: 137 of 176 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -131,7 +131,7 @@ Summary: 136 of 176 fixed.
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-## Low (46 of 70 fixed)
+## Low (47 of 70 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -173,7 +173,7 @@ Summary: 136 of 176 fixed.
 | E107 | [found later] Expired payment links shown as active with Cancel | Fixed |
 | E108 | [found later] List pages can append rows from an old filter (suspected) | Open |
 | E109 | [found later] Small admin/checkout display bugs | Partly fixed |
-| E110 | [second review] Streaming CSV export pages on occurred_at only (unused code) | Open |
+| E110 | [second review] Streaming CSV export pages on occurred_at only (unused code) | Fixed |
 | E111 | [second review] CSV quoting ignores carriage returns | Fixed |
 | E112 | [second review] Invalid date filters reach the DB (500 instead of 400) | Fixed |
 | E113 | [second review] Session promotion after OTP updates by id only (defence in depth) | Fixed |
