@@ -11,6 +11,8 @@ import {
   generateTransactionsForMerchant,
   type GeneratedCaptureEvent,
   type GeneratedTransaction,
+  rateAt,
+  type MdrRate,
 } from "./fixtures/transactions.js";
 import { SEED, createRng } from "./rng.js";
 
@@ -87,6 +89,37 @@ const HIGH_VOLUME_MAX_AMOUNT_FILS = 1_500_000; // 1,500.000 BD
  *  generate() on a different wall-clock day still produces byte-identical
  *  timestamps. Deliberately not `new Date()`. */
 const SEED_BASE_DATE = new Date("2026-09-01T12:00:00Z");
+
+/**
+ * E69: the seeded fee_schedules, in one place. The same table inserts the
+ * fee_schedules rows below and gives every seeded fee its rate on the day it
+ * happened (it used to be the flat fixture rate for every fee).
+ */
+const SEED_FEE_SCHEDULES: Record<string, Array<{ mdrBps: number; effectiveFrom: Date }>> = {
+  "beta-digital": [
+    { mdrBps: 180, effectiveFrom: new Date("2026-01-01T00:00:00Z") },
+    { mdrBps: 165, effectiveFrom: new Date(SEED_BASE_DATE.getTime() + 5 * 86_400_000) }, // 2026-09-06T12:00:00Z
+  ],
+  "alpha-retail": [
+    { mdrBps: 245, effectiveFrom: new Date("2026-03-01T00:00:00Z") },
+    { mdrBps: 225, effectiveFrom: new Date("2026-08-01T00:00:00Z") },
+  ],
+};
+
+/** The rate in force at a moment: the latest schedule row on or before it, else the fixture rate (as EffectiveMdrBpsAt). */
+function mdrRateFor(merchantKey: string, fixtureMdrBps: number): MdrRate {
+  const rows = SEED_FEE_SCHEDULES[merchantKey];
+  if (!rows) return fixtureMdrBps;
+  return (at: Date) => {
+    let rate = fixtureMdrBps;
+    let best = -Infinity;
+    for (const r of rows) {
+      const t = r.effectiveFrom.getTime();
+      if (t <= at.getTime() && t > best) { best = t; rate = r.mdrBps; }
+    }
+    return rate;
+  };
+}
 
 // Explicitly truncated tables. Every other table (merchant_business_profiles, kyc_documents, merchant_kyc_reviews,
 // sessions, otp_challenges, api_keys, payment_links, webhook_endpoints,
@@ -299,7 +332,7 @@ export async function generate(pool: Pool): Promise<SeedSummary> {
           const generated = generateMarketplaceOrdersForMerchant({
             merchantId,
             merchantKey: fixture.key,
-            mdrBps: fixture.mdrBps,
+            mdrBps: mdrRateFor(fixture.key, fixture.mdrBps),
             discountBps: fixture.negotiatedDiscountBps ?? 0,
             businessDayCount: fixture.marketplaceBusinessDays,
             rng,
@@ -312,7 +345,7 @@ export async function generate(pool: Pool): Promise<SeedSummary> {
           const generated = generateTransactionsForMerchant({
             merchantId,
             merchantKey: fixture.key,
-            mdrBps: fixture.mdrBps,
+            mdrBps: mdrRateFor(fixture.key, fixture.mdrBps),
             count: fixture.splitParentKey === undefined ? TRANSACTIONS_PER_MERCHANT : 0,
             rng,
             baseDate: SEED_BASE_DATE,
@@ -402,7 +435,7 @@ export async function generate(pool: Pool): Promise<SeedSummary> {
           const multiCapture = generateInstalmentCaptures({
             merchantId,
             merchantKey: fixture.key,
-            mdrBps: fixture.mdrBps,
+            mdrBps: mdrRateFor(fixture.key, fixture.mdrBps),
           });
 
           for (const txn of multiCapture.transactions) {
@@ -477,7 +510,7 @@ export async function generate(pool: Pool): Promise<SeedSummary> {
             const { transactions: dayTxns, ledgerGroups: dayLedgerGroups } = generatePeakDay({
               merchantId,
               merchantKey: fixture.key,
-              mdrBps: fixture.mdrBps,
+              mdrBps: mdrRateFor(fixture.key, fixture.mdrBps),
               count: HIGH_VOLUME_TRANSACTIONS_PER_DAY,
               minAmountFils: HIGH_VOLUME_MIN_AMOUNT_FILS,
               maxAmountFils: HIGH_VOLUME_MAX_AMOUNT_FILS,
@@ -490,7 +523,7 @@ export async function generate(pool: Pool): Promise<SeedSummary> {
             let dayFee: Fils = ZERO_FILS;
             let dayNet: Fils = ZERO_FILS;
             for (const txn of dayTxns) {
-              const fee = applyRateFils(txn.capturedFils, fixture.mdrBps);
+              const fee = applyRateFils(txn.capturedFils, rateAt(mdrRateFor(fixture.key, fixture.mdrBps), txn.occurredAt));
               dayGross = addFils(dayGross, txn.capturedFils);
               dayFee = addFils(dayFee, fee);
               dayNet = addFils(dayNet, subtractFils(txn.capturedFils, fee));
@@ -595,7 +628,7 @@ export async function generate(pool: Pool): Promise<SeedSummary> {
         const schemeLineParams: Array<{ transactionId: string; amountFils: Fils; lineSequence: number }> = [];
 
         for (const txn of settledTxns) {
-          const fee = applyRateFils(txn.capturedFils, fixture.mdrBps);
+          const fee = applyRateFils(txn.capturedFils, rateAt(mdrRateFor(fixture.key, fixture.mdrBps), txn.occurredAt));
           const net = subtractFils(txn.capturedFils, fee);
           grossFils = addFils(grossFils, txn.capturedFils);
           feeFils = addFils(feeFils, fee);
@@ -658,7 +691,7 @@ export async function generate(pool: Pool): Promise<SeedSummary> {
         // seed-only payload.
         const firstCaptured = transactions.find((t) => t.status === "captured");
         if (firstCaptured) {
-          const firstCapturedFeeFils = applyRateFils(firstCaptured.capturedFils, fixture.mdrBps);
+          const firstCapturedFeeFils = applyRateFils(firstCaptured.capturedFils, rateAt(mdrRateFor(fixture.key, fixture.mdrBps), firstCaptured.occurredAt));
           await enqueueEvent(client, {
             eventType: "transaction.captured",
             aggregateType: "transaction",
@@ -715,7 +748,7 @@ export async function generate(pool: Pool): Promise<SeedSummary> {
       const marchFixtures = generateMarchReconciliationFixtures({
         merchantId: alphaInserted.merchantId,
         merchantKey: "alpha-retail",
-        mdrBps: alphaFixture.mdrBps,
+        mdrBps: mdrRateFor("alpha-retail", alphaFixture.mdrBps),
       });
 
       for (const txn of marchFixtures.transactions) {

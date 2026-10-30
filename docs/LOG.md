@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 09:57 PM (30 Oct 2026)
-Summary: Errors 173/178 fixed (+1 partly: E79; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 09:58 PM (30 Oct 2026)
+Summary: Errors 174/178 fixed (+1 partly: E79; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -691,9 +691,10 @@ Order follows the fix order: app-stopping → high security → (features) → w
 ### E69 — [found later] Seeded fees ignore the seeded fee schedules (suspected)
 - Where: db/seed/generate.ts:817-829 uses fixture mdrBps 250 while alpha-retail has schedules 245/225 (fixtures/transactions.ts:451).
 - Proof: suspected — needs a seeded DB to confirm.
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E69)
 - Confirmed (08:43 PM), deferred: alpha-retail's seeded fees use the flat fixture rate (fixture.mdrBps = 250) at eight places in db/seed/generate.ts (:302, :315, :405, :480, :493, :598, :661, :718), while the seed gives it fee schedules of 245 bps (from 2026-03-01) and 225 bps (from 2026-08-01) at :827-833. Fix: one effective-rate lookup by date, used at all eight places. Dev sample data only (never on the live server); over the 20-minute rule tonight.
 - Decision (Claude, Zainab approved deciding without review): docs only: leave the seed's flat fixture rate; record the fix (one effective-rate-by-date lookup used at the eight places) — Why: seed data is dev-only and never on the live server (E65 guard); the fix touches five fixture generators and would change every seeded figure and the seed self-check checksum, over the time left — Alternative: pass a rate-on-date function through the fixture generators
+- Update (09:59 PM): the 'docs only' decision is superseded — Zainab asked for the seed code fix; tested on fresh local databases only. Status: fixed (see section 5).
 
 ### E70 — [found later] Seeded outbox events do not match the seeded history
 - Where: db/seed/generate.ts:651-690 (outbox created_at = now(), so August captures roll up on the seed day; 60 high-volume batches get no batch_closed event).
@@ -723,7 +724,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
   ```
   Checked on the test database (09:34 PM): runs, 109 merchant rows.
 - Decision (Claude, Zainab approved deciding without review): docs only: do not change reconcile_march.ts tonight; the correct residue is documented as a read-only query (per scheme line, slice minus truncated amount) in this entry — Why: the script posts ledger entries, so a code change would touch money data; the live server never runs scripts, and the read-only query gives the right figure without writing anything — Alternative: rewrite the sweep per scheme line with tests and run it once on a copy
-- Update (09:59 PM): the 'docs only' decision above is superseded — Zainab asked for the code fix, tested on fresh local databases only; the script was not run on any real data.
+- Update (09:57 PM): the 'docs only' decision above is superseded — Zainab asked for the code fix, tested on fresh local databases only; the script was not run on any real data.
 
 ### E73 — [found later] CloseBatch never journals the scheme rounding residue (ADR-0002 not implemented)
 - Where: apps/settlement/internal/settlement/batch.go:272-284 (scheme line loop); only scripts/reconcile_march.ts wrote scheme_rounding_residue (grep)
@@ -3077,6 +3078,12 @@ ROLLBACK;
 - Before: scripts/reconcile_march.e72.test.ts on a fresh local DB (filspay_e72_215451_10534) failed against the old code (a February-authorized transaction captured as 1005 + 1005 in two March batches swept 0, and an E73-journaled batch was not skipped). After: residue 10 over 2 lines; the journaled batch skipped. e16/e75 tests now build batches, capture events and scheme lines (new helper scripts/reconcileTestData.ts); all script tests 12/12 on the fresh DB.
 - Second review (Copilot): not run — copilot not found (LOG line 1567). fix-reviewer: APPROVE; the slice matches CloseBatch exactly (batch.go:157-166 tags only capture events in the business-day window; :303-310 one line per transaction); refunds and voids cannot enter; NULL transaction_id lines are dropped. Recorded as it asked: (1) the Alpha Retail March seed fixture (db/seed/generate.ts:715-757) has no batches or scheme lines, so a fresh seed now sweeps 0 for it — correct under the new model (nothing was lost to the scheme); (2) a merchant already swept with the old, wrong figure is not corrected by a re-run (description guard).
 - Never run on the live server or any real data (LOG §6 rules); tested only on fresh local databases.
+- check.sh (clean environment): OK.
+
+### E69 — 09:58 PM — seeded fees follow the seeded fee schedules (dev seed only)
+- Changed: db/seed/fixtures/transactions.ts: MdrRate (a fixed rate or 'the rate at this moment') and rateAt(); the five generators and buildCaptureLedgerGroup use the rate in force at each capture. db/seed/generate.ts: SEED_FEE_SCHEDULES (beta-digital 180→165 at 2026-09-06T12:00Z, alpha-retail 245 from 2026-03-01, 225 from 2026-08-01) and mdrRateFor(), used at every fee site (the generator calls, the peak-day and settled-batch fee sums, the seeded outbox fee) and for the March fixture. db/seed/fixtures/marchReconciliation.ts takes the same rate type.
+- Before: db/seed/feeSchedules.e69.test.ts on a fresh local DB (filspay_e69a_215806_19447) with the old seed code → fail (seeded alpha-retail fees used the flat 250 bps). After (fresh DB filspay_e69b_215809_17572): every alpha-retail capture fee equals the schedule rate on its date; the seed self-check (selfVerify.integration.test.ts) still passes; db tsc clean.
+- Dev data only; never run on the live server (E65 guard needs FILSPAY_ALLOW_SEED_RESET=1).
 - check.sh (clean environment): OK.
 
 ## 6. Deploy

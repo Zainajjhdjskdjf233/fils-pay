@@ -1,5 +1,14 @@
 import { createHash } from "node:crypto";
 import { type Fils, ZERO_FILS, applyRateFils, bankersRoundDiv, subtractFils, toFils } from "@filspay/money";
+
+/**
+ * E69: a merchant's MDR rate, either fixed or "the rate in force at this
+ * moment" (the seeded fee_schedules), so seeded fees follow the schedules.
+ */
+export type MdrRate = number | ((occurredAt: Date) => number);
+export function rateAt(rate: MdrRate, occurredAt: Date): number {
+  return typeof rate === "number" ? rate : rate(occurredAt);
+}
 import type { SeededRng } from "../rng.js";
 
 export type TransactionStatus = "authorized" | "captured" | "partially_captured" | "voided";
@@ -68,7 +77,7 @@ const STATUS_POOL: readonly TransactionStatus[] = [
 export function generateTransactionsForMerchant(params: {
   merchantId: string;
   merchantKey: string;
-  mdrBps: number;
+  mdrBps: MdrRate;
   count: number;
   rng: SeededRng;
   baseDate: Date;
@@ -118,7 +127,7 @@ export function generateTransactionsForMerchant(params: {
     transactions.push({ id, merchantId, status, amountFils, capturedFils, reference, acquirerReference, occurredAt });
 
     if (capturedFils > 0) {
-      ledgerGroups.push(buildCaptureLedgerGroup({ transactionId: id, merchantId, mdrBps, capturedFils, occurredAt, reference, rng }));
+      ledgerGroups.push(buildCaptureLedgerGroup({ transactionId: id, merchantId, mdrBps: rateAt(mdrBps, occurredAt), capturedFils, occurredAt, reference, rng }));
     }
   }
 
@@ -142,7 +151,7 @@ export function generateTransactionsForMerchant(params: {
 export function generatePeakDay(params: {
   merchantId: string;
   merchantKey: string;
-  mdrBps: number;
+  mdrBps: MdrRate;
   count: number;
   minAmountFils: number;
   maxAmountFils: number;
@@ -174,7 +183,7 @@ export function generatePeakDay(params: {
       occurredAt,
     });
     ledgerGroups.push(
-      buildCaptureLedgerGroup({ transactionId: id, merchantId, mdrBps, capturedFils: amountFils, occurredAt, reference, rng }),
+      buildCaptureLedgerGroup({ transactionId: id, merchantId, mdrBps: rateAt(mdrBps, occurredAt), capturedFils: amountFils, occurredAt, reference, rng }),
     );
   }
 
@@ -222,7 +231,7 @@ export interface GenerateMarketplaceOrdersResult extends GenerateTransactionsRes
 export function generateMarketplaceOrdersForMerchant(params: {
   merchantId: string;
   merchantKey: string;
-  mdrBps: number;
+  mdrBps: MdrRate;
   discountBps: number;
   businessDayCount: number;
   rng: SeededRng;
@@ -262,7 +271,7 @@ export function generateMarketplaceOrdersForMerchant(params: {
       // off that fee — the exact pair of postings capture.ts and
       // discountAdjustment.ts leave behind, folded into one balanced group
       // the same way every other seeded capture is.
-      const feeBeforeDiscount = applyRateFils(amountFils, mdrBps);
+      const feeBeforeDiscount = applyRateFils(amountFils, rateAt(mdrBps, occurredAt));
       const feeFils = subtractFils(feeBeforeDiscount, applyRateFils(feeBeforeDiscount, discountBps));
       const merchantNet = subtractFils(amountFils, feeFils);
 
@@ -362,7 +371,7 @@ export interface GenerateMultiCaptureResult extends GenerateTransactionsResult {
 export function generateInstalmentCaptures(params: {
   merchantId: string;
   merchantKey: string;
-  mdrBps: number;
+  mdrBps: MdrRate;
 }): GenerateMultiCaptureResult {
   const { merchantId, merchantKey, mdrBps } = params;
 
@@ -403,7 +412,7 @@ export function generateInstalmentCaptures(params: {
       const capturedFils = toFils(instalment);
       // The fee is charged on the instalment actually captured, never on
       // the running total — the same per-call rule capture.ts applies.
-      const feeFils = applyRateFils(capturedFils, mdrBps);
+      const feeFils = applyRateFils(capturedFils, rateAt(mdrBps, occurredAt));
       const merchantNet = subtractFils(capturedFils, feeFils);
 
       const legs: LedgerLeg[] = [
@@ -442,7 +451,7 @@ export function generateInstalmentCaptures(params: {
 export function buildCaptureLedgerGroup(args: {
   transactionId: string;
   merchantId: string;
-  mdrBps: number;
+  mdrBps: MdrRate;
   capturedFils: Fils;
   occurredAt: Date;
   reference: string;
@@ -450,7 +459,7 @@ export function buildCaptureLedgerGroup(args: {
 }): LedgerGroup {
   const { transactionId, merchantId, mdrBps, capturedFils, occurredAt, reference, rng } = args;
 
-  const fee = applyRateFils(capturedFils, mdrBps);
+  const fee = applyRateFils(capturedFils, rateAt(mdrBps, occurredAt));
   const merchantNet = subtractFils(capturedFils, fee);
 
   const legs: LedgerLeg[] = [

@@ -5,6 +5,7 @@ import {
   generateTransactionsForMerchant,
   type GeneratedTransaction,
   type LedgerGroup,
+  type MdrRate,
 } from "./transactions.js";
 
 /** Bahrain (UTC+3, no DST) midnight on 2026-03-01 is 2026-02-28T21:00:00Z,
@@ -46,7 +47,7 @@ export interface MarchReconciliationFixtures {
 export function generateMarchReconciliationFixtures(params: {
   merchantId: string;
   merchantKey: string;
-  mdrBps: number;
+  mdrBps: MdrRate; // E69: the seeded fee schedule applies
 }): MarchReconciliationFixtures {
   const { merchantId, merchantKey, mdrBps } = params;
   const rng = createRng(MARCH_RECON_RNG_SEED);
