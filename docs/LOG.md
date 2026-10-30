@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 08:05 PM (30 Oct 2026)
-Summary: Errors 148/176 fixed (+12 partly: E50, E92, E101, E131, E145, E163, E48, E67, E86, E94, E96, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 08:10 PM (30 Oct 2026)
+Summary: Errors 149/176 fixed (+12 partly: E50, E92, E101, E131, E145, E163, E48, E67, E86, E94, E96, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -876,7 +876,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/paymentLinks/status.ts:37-40 (reserved branch ignores expiry); pay.ts classifyClaimFailure (reserved → 409 processing, not 410); cancel.ts:16 (only status='active')
 - Error: buyer sees "try again shortly" forever; merchant has no Cancel.
 - Proof: code read (web/admin bug-hunt agent (1:10 PM); checked by me).
-- Severity: medium · Status: partly fixed (see section 5, E101; merchant cancel open)
+- Severity: medium · Status: fixed (see section 5, E101)
 
 ### E102 — [found later] Merchant dashboard logs out after 10 minutes and does not notice
 - Where: apps/api/src/routes/auth.ts:100-106 (cookie set only at login, maxAge = pendingSessionTtlMinutes × 60 = 10 min); otp/verify promotes the session to 12 h in the DB but never re-sets the cookie (MK's comment there asks exactly this); apps/web/src/api/client.ts:47-52 (401 never resets DashboardAuthContext)
@@ -2849,6 +2849,12 @@ ROLLBACK;
 - No fix-reviewer: one call to an existing idempotent, locked function, already used by the daemon.
 - Still open: split payouts (splits.PayoutSplitBatch) skip the lifetime payout estimate.
 - check.sh (clean environment): OK. Needs a redeploy (settlement image).
+
+### E101 — 08:10 PM — (rest) a merchant can cancel a link whose reservation went stale; a payment in flight stays protected
+- Changed: apps/api/src/paymentLinks/cancel.ts: the cancel UPDATE also matches status 'reserved' with reserved_at older than the reservation timeout (config paymentLinkReservationTimeoutSeconds, passed by routes/paymentLinks.ts). A live payment holds the row lock through capture (E29), so the cancel waits and then no longer matches.
+- Before: testE101_merchantCanCancelAStaleReservedLink → the stale link gave 409. After: stale → 204, fresh reservation → 409. Payment-link suites 33/33.
+- With the earlier part (f788901: reads 'expired', pay gives 410) E101 is now fully fixed.
+- check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy
 

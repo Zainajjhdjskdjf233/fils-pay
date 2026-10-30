@@ -395,3 +395,16 @@ test("testE101_payOnExpiredStaleReservedLinkIs410", async () => {
   const res = await pay(link.token, APPROVED_CARD);
   assert.equal(res.statusCode, 410, res.body);
 });
+
+// E101 (rest): a merchant can cancel a link whose reservation went stale
+// (the pay attempt died); a fresh reservation (payment in flight) stays 409.
+test("testE101_merchantCanCancelAStaleReservedLink", async () => {
+  const { rawKey, merchantId } = await createApprovedMerchantWithApiKey("e101c");
+  const stale = await createLink(rawKey, merchantId, { reference: "e101-stale" });
+  const fresh = await createLink(rawKey, merchantId, { reference: "e101-fresh" });
+  await pool.query(`UPDATE payment_links SET status = 'reserved', reserved_at = now() - interval '10 minutes' WHERE id = $1`, [stale.id]);
+  await pool.query(`UPDATE payment_links SET status = 'reserved', reserved_at = now() WHERE id = $1`, [fresh.id]);
+  const del = (id: string) => app.inject({ method: "DELETE", url: `/v1/merchants/${merchantId}/payment-links/${id}`, headers: authHeader(rawKey) });
+  assert.equal((await del(stale.id)).statusCode, 204);
+  assert.equal((await del(fresh.id)).statusCode, 409);
+});

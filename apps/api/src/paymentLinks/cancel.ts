@@ -8,14 +8,19 @@ export type CancelPaymentLinkResult =
 /** Cancels an active payment link by id, only if it belongs to merchantId. */
 export async function cancelPaymentLink(
   pool: Pool,
-  input: { id: string; merchantId: string },
+  input: { id: string; merchantId: string; reservationTimeoutSeconds?: number },
 ): Promise<CancelPaymentLinkResult> {
+  // E101: a link whose reservation went stale (the pay attempt died) can be
+  // canceled too. A payment still in flight holds the row lock through
+  // capture (E29), so this UPDATE waits for it and then no longer matches.
   const updateResult = await pool.query<{ id: string }>(
     `UPDATE payment_links
         SET status = 'canceled', canceled_at = now()
-      WHERE id = $1 AND merchant_id = $2 AND status = 'active'
+      WHERE id = $1 AND merchant_id = $2
+        AND (status = 'active'
+             OR (status = 'reserved' AND COALESCE(reserved_at, 'epoch') < now() - make_interval(secs => $3)))
       RETURNING id`,
-    [input.id, input.merchantId],
+    [input.id, input.merchantId, input.reservationTimeoutSeconds ?? 60],
   );
   if (updateResult.rows[0]) {
     return { outcome: "canceled" };
