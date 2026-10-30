@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 07:33 PM (30 Oct 2026)
-Summary: Errors 135/176 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 07:35 PM (30 Oct 2026)
+Summary: Errors 135/176 fixed (+9 partly: E50, E92, E131, E145, E163, E47, E86, E94, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -665,7 +665,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: db/seed/generate.ts:212 `TRUNCATE TABLE … RESTART IDENTITY CASCADE`; comment :209-210 "safe to run against a shared/staging database" is false; no NODE_ENV/database-name guard (grep finds none); selfVerify.ts:100 runs generate() twice.
 - Error: CASCADE from merchants/transactions/admin_users empties refunds, payment_links, credit_requests, webhooks, sessions, api_keys, admin_sessions, admin_audit_log.
 - Proof: code read (second bug hunt, bug-hunter agent (12:55 PM); checked by me in the code). Matters for /deploy: the seed must never run on the hosted box.
-- Severity: medium · Status: open
+- Severity: medium · Status: fixed (see section 5, E65)
 
 ### E66 — [found later] expire_holds can delete holds released between its SELECT and DELETE
 - Where: scripts/expire_holds.ts:43-45 (SELECT ids, then DELETE by id with no status re-check, no transaction). FH's comment :42 names the race; "claude: negligible window, fine."
@@ -2738,6 +2738,12 @@ ROLLBACK;
 - Still open: WebhookReplayPage keeps the previous merchant's result after a merchant change.
 - Proof: UI-only, no browser test setup; web and admin tsc clean; web tests 13/13.
 - check.sh (clean environment): OK. Needs a redeploy.
+
+### E65 — 07:35 PM — npm run seed refuses unless FILSPAY_ALLOW_SEED_RESET=1, and always with NODE_ENV=production
+- Changed: new db/seed/guard.ts assertSeedResetAllowed(); db/seed/index.ts (the only CLI entry, package.json 'seed') calls it first. The false comment at db/seed/generate.ts:209-210 ('safe to run against a shared/staging database') is corrected in place; docs/RUNBOOK.md:131 now shows the flag. generate() itself is unchanged, so the seed integration test still runs.
+- Before: no guard existed (the new test db/seed/guard.e65.test.ts failed with ERR_MODULE_NOT_FOUND); `npm run seed` truncated merchants, transactions, admin_users and, by CASCADE, admin_audit_log with no question. After: 1/1; `npx tsx db/seed/index.ts` without the flag stops with 'seed: this wipes merchants, transactions, admin users and the admin audit log. Set FILSPAY_ALLOW_SEED_RESET=1 …' (command output).
+- The live server never runs the seed (LOG §6 rules; the compose 'seed' service only echoes, profile dev).
+- check.sh (clean environment): OK. No redeploy needed (dev tool).
 
 ## 6. Deploy
 

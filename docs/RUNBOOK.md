@@ -128,7 +128,7 @@ second run is a no-op.
 ## Resetting a non-production environment
 
 ```bash
-npm run migrate && npm run seed
+npm run migrate && FILSPAY_ALLOW_SEED_RESET=1 npm run seed   # E65: dev database only; it wipes tables
 ```
 
 The seed truncates and regenerates the fixture tables it owns and

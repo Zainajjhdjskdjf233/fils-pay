@@ -4,13 +4,16 @@
  * self-verify assertion against it. Exits non-zero iff any REAL assertion
  * fails.
  *
- * Usage: DATABASE_URL=postgres://... npx tsx db/seed/index.ts
+ * Usage: FILSPAY_ALLOW_SEED_RESET=1 DATABASE_URL=postgres://... npx tsx db/seed/index.ts
+ * (E65: it truncates real tables; dev databases only.)
  */
 import { Pool } from "pg";
 import { generate } from "./generate.js";
+import { assertSeedResetAllowed } from "./guard.js";
 import { buildAssertions, runAssertions } from "./selfVerify.js";
 
 async function main(): Promise<void> {
+  assertSeedResetAllowed(process.env); // E65: refuses unless explicitly allowed
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) {
     throw new Error("seed: DATABASE_URL environment variable is not set");

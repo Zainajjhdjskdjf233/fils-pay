@@ -209,6 +209,9 @@ export async function generate(pool: Pool): Promise<SeedSummary> {
     try {
       // AM: only touches the fixture tables listed in TABLES_TO_RESET, so it's
       // safe to run against a shared/staging database. (see RUNBOOK)
+      // E65: false — CASCADE also empties refunds, payment_links, sessions,
+      // api_keys, admin_sessions and admin_audit_log. The CLI (index.ts) now
+      // refuses unless FILSPAY_ALLOW_SEED_RESET=1 (seed/guard.ts).
       await client.query(`TRUNCATE TABLE ${TABLES_TO_RESET.join(", ")} RESTART IDENTITY CASCADE`);
 
       // Admin staff fixtures. Ids come from the database's own

@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 134 of 176 fixed.
+Summary: 135 of 176 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -66,7 +66,7 @@ Summary: 134 of 176 fixed.
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-## Medium (43 of 60 fixed)
+## Medium (44 of 60 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -95,7 +95,7 @@ Summary: 134 of 176 fixed.
 | E62 | [found later] Two reporting passes at the same time count every event twice | Fixed |
 | E63 | [found later] Admin reporting rebuild double-counts events the worker has not reached | Open |
 | E64 | [found later] Payout trends never show "paid" (settlement.paid not consumed) | Fixed |
-| E65 | [found later] The seed wipes real tables (incl. admin audit log) with no environment check | Open |
+| E65 | [found later] The seed wipes real tables (incl. admin audit log) with no environment check | Fixed |
 | E74 | [found later] Balance cache and ledger rebuild measure different things (drift after rebuild) | Open |
 | E75 | [found later] March sweep posts the opposite legs from ADR-0002, charging merchants | Fixed |
 | E76 | [found later] Dashboard date filter uses UTC days, not Bahrain days | Open |
