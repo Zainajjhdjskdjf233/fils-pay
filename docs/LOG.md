@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 05:26 PM (30 Oct 2026)
-Summary: Errors 92/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 05:27 PM (30 Oct 2026)
+Summary: Errors 93/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1211,7 +1211,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/admin/adjustmentCsvParsing.ts:26-57; admin/adjustmentImport.ts:97-109; nginx proxy_read_timeout 60 s.
 - Error: ~20,000 rows in 1 MiB → the console shows 504 while the import commits (estimate, not timed).
 - Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E158)
 
 ### E159 — [second review] Pagination cursors are not validated; a malformed cursor reaches a database cast (500)
 - Where: Six decoders check only for a separator and non-empty parts: apps/api/src/transactions/query.ts:53-67, paymentLinks/query.ts, webhooks/deliveries.ts, settlement/query.ts, admin/merchants.ts, admin/credits.ts; the parts go into SQL casts (e.g. transactions/query.ts:123).
@@ -2376,6 +2376,11 @@ ROLLBACK;
 ### E116 — 05:26 PM — requireMerchantWriterActor refuses an impersonation actor
 - Changed: apps/api/src/auth/requireMerchantAuth.ts:129-134: actorType admin_impersonation → 403 (it was labelled a merchant_session writer). Defence in depth: every route using it already requires owner/finance.
 - Test: apps/api/src/auth/requireMerchantAuth.e116.test.ts. Before: no exception. After: PASS; admin tests (incl. impersonation) 43/43.
+- check.sh: OK.
+
+### E158 — 05:27 PM — the adjustment CSV refuses more than 1000 rows
+- Changed: apps/api/src/admin/adjustmentCsvParsing.ts: MAX_ADJUSTMENT_ROWS = 1000 (value for Zainab to review); more data rows → 400 too_many_rows, before any row is parsed or written.
+- Test: apps/api/src/admin/adjustmentCsvParsing.e158.test.ts (1001 refused, 1000 accepted). Before: `Missing expected exception`. After: PASS; import tests pass.
 - check.sh: OK.
 
 ## 6. Deploy

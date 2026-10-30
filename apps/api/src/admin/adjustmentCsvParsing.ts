@@ -1,6 +1,9 @@
 import { parseBhdToFils, type Fils } from "@filspay/money";
 import { BadRequestError } from "../lib/errors.js";
 
+/** E158: one import is one DB transaction; keep it well under the 60 s proxy timeout (value for Zainab to review). */
+export const MAX_ADJUSTMENT_ROWS = 1000;
+
 /** Parses one CSV row's amount column (BD, up to 3 decimals) into fils.
  *  E21: was parseDecimalMinor (2 decimals), which read 4.75 BD as 475 fils. */
 export function parseAdjustmentAmountFils(raw: string): Fils {
@@ -37,6 +40,9 @@ export function parseAdjustmentCsv(csvContent: string): ParsedAdjustmentCsvRow[]
   // E162: exactly these three columns (the format has no quoting).
   if (header.length !== 3 || header[0] !== "merchantid" || header[1] !== "amount" || header[2] !== "reason") {
     throw new BadRequestError("invalid_csv_header", "the CSV header must be merchantId,amount,reason");
+  }
+  if (lines.length - 1 > MAX_ADJUSTMENT_ROWS) {
+    throw new BadRequestError("too_many_rows", `at most ${MAX_ADJUSTMENT_ROWS} rows per import; split the file`);
   }
 
   const rows: ParsedAdjustmentCsvRow[] = [];
