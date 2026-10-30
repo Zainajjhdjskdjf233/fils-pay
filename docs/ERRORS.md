@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 103 of 175 fixed.
+Summary: 104 of 175 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -131,7 +131,7 @@ Summary: 103 of 175 fixed.
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Open |
 
-## Low (22 of 69 fixed)
+## Low (23 of 69 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -203,4 +203,4 @@ Summary: 103 of 175 fixed.
 | E172 | [second review] Webhook archive/replay date ranges take any `new Date` (rollover, zone-less, numbers) | Open |
 | E173 | [second review] Admin run-batch and MDR recalc: dates checked by regex only, a reversed range is a silent no-op, a missing merchant gives 500 | Open |
 | E174 | [second review] Payment-link expiresAt rolls over (2026-02-30) or is read zone-less | Fixed |
-| E175 | [second review] Webhook URLs with embedded credentials are accepted but never deliverable | Open |
+| E175 | [second review] Webhook URLs with embedded credentials are accepted but never deliverable | Fixed |

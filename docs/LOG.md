@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 06:25 PM (30 Oct 2026)
-Summary: Errors 103/175 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 06:26 PM (30 Oct 2026)
+Summary: Errors 104/175 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1302,7 +1302,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 ### E175 — [second review] Webhook URLs with embedded credentials are accepted but never deliverable
 - Where: apps/api/src/webhooks/create.ts:19 parses the URL but never checks username/password (fetch refuses such URLs at send time).
 - Proof: the second review (items 89, notes received 5:30 PM / 6:15 PM); checked by me in the code (06:18 PM).
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E175)
 
 ## 3. Hidden things
 
@@ -2524,6 +2524,12 @@ ROLLBACK;
 - Test: that corrected assertion. Before: fail. After: PASS; payment-link tests pass; web tsc clean.
 - Also found by: the second review (item 82).
 - Live: needs the redeploy after the push.
+- check.sh: OK.
+
+### E175 — 06:26 PM — webhook URLs with embedded credentials are refused
+- Changed: apps/api/src/webhooks/create.ts validateWebhookUrl (used by create and update): a URL with a username or password → 400 invalid_url (fetch refuses such URLs at send time; they would also sit in the DB in plain text).
+- Test: apps/api/src/webhooks/create.e175.test.ts. Before: fail (both accepted). After: PASS; webhook tests pass.
+- Found by: the second review (item 89).
 - check.sh: OK.
 
 ## 6. Deploy

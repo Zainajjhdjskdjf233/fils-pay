@@ -23,6 +23,11 @@ export function validateWebhookUrl(rawUrl: string, config: Pick<Config, "nodeEnv
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
     throw new BadRequestError("invalid_url");
   }
+  // E175: credentials in the URL are never deliverable (fetch refuses them)
+  // and would sit in our database in plain text.
+  if (parsed.username !== "" || parsed.password !== "") {
+    throw new BadRequestError("invalid_url", "webhook URLs must not contain a username or password");
+  }
   if (config.nodeEnv === "production" && parsed.protocol !== "https:") {
     throw new BadRequestError("invalid_url");
   }
