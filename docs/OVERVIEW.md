@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 4:31 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 4:39 PM
 
 ## Contents
 1. Status now
@@ -14,20 +14,20 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:31 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 69 of 163 fixed.
-  - High: 41 of 46 fixed
+- Errors: 73 of 163 fixed.
+  - High: 44 of 46 fixed
   - Medium: 25 of 54 fixed
-  - Low: 3 of 63 fixed
+  - Low: 4 of 63 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
 - Dilmune Cloud: not yet
-- Decisions waiting for Zainab: 25 (search "for Zainab to review" in LOG.md)
+- Decisions waiting for Zainab: 26 (search "for Zainab to review" in LOG.md)
 - Fork: needs a push (VS Code: Git: Push to... → mine)
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 69 of 163 fixed.
+- 🔄 Fix: 73 of 163 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -74,6 +74,9 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:31 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- f078974 fix(E134): credit effectiveDate must be today (Bahrain) or up to 90 days back; also closes E149
+- 757eab0 fix(E162): adjustment CSV refuses rows with more than 3 columns and any other header
+- b2ebc90 fix(E137): KYC thumbnail limits input pixels and decodes one at a time; oversized images get no thumbnail
 - 8fe5a25 fix(E136): webhook replay and archives are finance/super_admin only; an archive replays once (0084)
 - ce6d4f0 fix(E135): single KYC review decides only a merchant under review (atomic UPDATE, 409 otherwise)
 - 235fb29 fix(E75): March sweep posts ADR-0002 legs (clearing/residue), never merchant_payable
@@ -86,12 +89,9 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:31 PM
 - 1d456a8 fix(E124): one discount adjustment per capture event, sized from its own fee
 - 93d09b2 fix(E123): card shape checked in both payment routes before the link is claimed (400, not 500)
 - c06b7eb fix(E122): link pay gives back its lock slot, frees the link and voids when pool.connect fails
-- c973988 fix(E119): CSV adjustment import capped at the two-person threshold (per row and total)
-- fb945fa fix(E118): a business day can only be closed after it has ended — early close stranded later captures
-- a3975a9 fix(E117): OTP guess limit per user across logins; older codes and pending sessions end at login
 
 ## 7. All errors
-## High (41 of 46 fixed)
+## High (44 of 46 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -135,12 +135,12 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:31 PM
 | E123 | [deep review] Malformed card gives 500 after the link is claimed (link blocked 60 s) | Fixed |
 | E124 | [deep review] Capture replay credits the wrong discount (twice after a zero-discount capture) | Fixed |
 | E45 | [second review] /v1/reporting/export-summary had no login check (always 500) | Fixed |
-| E134 | [coverage] A credit's effectiveDate has no range: a future date holds the payout for years, an old date lands in a closed period | Open |
+| E134 | [coverage] A credit's effectiveDate has no range: a future date holds the payout for years, an old date lands in a closed period | Fixed |
 | E135 | [coverage] Single-merchant KYC review approves a merchant in any state | Fixed |
 | E136 | [coverage] Any admin role, including support, can resend all of a merchant's past webhooks, again and again | Fixed |
-| E137 | [coverage] KYC thumbnail: a 1 MB PNG decompression bomb can push the API past its 512 MB limit | Open |
+| E137 | [coverage] KYC thumbnail: a 1 MB PNG decompression bomb can push the API past its 512 MB limit | Fixed |
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Open |
-| E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Open |
+| E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
 ### Medium (25 of 54 fixed)
 
@@ -201,7 +201,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:31 PM
 | E147 | [coverage] A broken image upload gives 500 and leaves an orphan file on disk | Open |
 | E148 | [coverage] No limit on KYC uploads per merchant: the shared disk can be filled | Open |
 
-### Low (3 of 63 fixed)
+### Low (4 of 63 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -254,7 +254,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:31 PM
 | E127 | [second review] Settlement date filters accept impossible dates | Open |
 | E132 | [deep review] Reconciliation reads its figures from different snapshots | Open |
 | E133 | [second review] Report filter JSON used without a shape check | Fixed |
-| E149 | [coverage] Credit effectiveDate "0000-01-01" passes validation; Postgres likely refuses it (500) | Open |
+| E149 | [coverage] Credit effectiveDate "0000-01-01" passes validation; Postgres likely refuses it (500) | Fixed |
 | E150 | [coverage] Balance adjustment returns 404 for a merchant with no balance row yet | Open |
 | E151 | [coverage] Defence in depth: validateRefundRequest trusts its caller's numbers | Open |
 | E152 | [coverage] Go ApplyRateFils: int64 overflow wraps silently (TS throws) | Open |

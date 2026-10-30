@@ -1,5 +1,7 @@
 # AI setup — how we used AI and how we checked it
 
+Designed and built by Zainab. The setup lives in [`.claude/`](../.claude/) (rules, hooks, agents, commands, skill) and [`CLAUDE.md`](../CLAUDE.md).
+
 Author: Zainab (cybersecurity student). Tools: Claude Code did the work under her
 rules; a second AI tool did an independent review. All files below are in the repository (`.claude/`, `CLAUDE.md`).
 CASE-FILE Item 05: "We care about how you checked what the AI told you."
