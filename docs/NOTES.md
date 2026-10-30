@@ -2712,4 +2712,4 @@ The leftover now leaves the clearing account, not the shop's balance.
 "What about the runs that already happened?"
 They stay until finance decides. A read-only query lists them and shows how many times the sweep ran for each shop.
 
-Commit: PENDING_N73
+Commit: 235fb29

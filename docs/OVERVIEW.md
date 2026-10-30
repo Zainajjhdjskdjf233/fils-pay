@@ -74,6 +74,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:07 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- 235fb29 fix(E75): March sweep posts ADR-0002 legs (clearing/residue), never merchant_payable
 - d4df731 fix(E64): reporting consumes settlement.paid so payout trends show paid
 - 8720dd6 fix(E62): reporting cursor read locked (FOR UPDATE) so concurrent passes cannot double count
 - 383d417 fix(E133): report filter JSON checked (object, UUID, status, real dates) before use: 400, not 500
@@ -88,7 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:07 PM
 - a3975a9 fix(E117): OTP guess limit per user across logins; older codes and pending sessions end at login
 - a8fdcb1 feat(capacity): load shedding (503 + Retry-After), CPU rebalanced to Postgres, k6 checkout test; capacity ~15 checkouts/s
 - d7d17b2 fix(E02): Docker stack within 1 vCPU/2 GB — Dockerfiles, compose limits, restarts, health checks, volumes, per-service DB roles
-- 0cf9a60 fix(E99,E105): one Idempotency-Key per capture/refund attempt; new key only after a definite 4xx
 
 ## 7. All errors
 ## High (39 of 40 fixed)
@@ -2952,5 +2952,5 @@ The leftover now leaves the clearing account, not the shop's balance.
 "What about the runs that already happened?"
 They stay until finance decides. A read-only query lists them and shows how many times the sweep ran for each shop.
 
-Commit: PENDING_N73
+Commit: 235fb29
 

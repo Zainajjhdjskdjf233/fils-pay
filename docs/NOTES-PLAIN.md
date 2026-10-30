@@ -438,4 +438,4 @@ Where: apps/reporting/src/consumer/applyEvent.ts:187 · Commit: d4df731
 
 A one-off script cleaned up tiny rounding leftovers, but it took them from the shops' balances instead of the clearing account the rules name. So each run made shops slightly poorer. Now it uses the same two accounts as the daily close. A test shows no shop balance is touched; a read-only query can list the old runs for finance.
 
-Where: scripts/reconcile_march.ts:97 · Commit: PENDING_N73
+Where: scripts/reconcile_march.ts:97 · Commit: 235fb29
