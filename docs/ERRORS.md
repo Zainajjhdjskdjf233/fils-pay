@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 159 of 177 fixed.
+Summary: 160 of 177 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -131,7 +131,7 @@ Summary: 159 of 177 fixed.
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-## Low (60 of 71 fixed)
+## Low (61 of 71 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -160,7 +160,7 @@ Summary: 159 of 177 fixed.
 | E81 | [found later] Admin Run batch default date uses the UTC day | Fixed |
 | E84 | [found later] CSRF from same-site pages (Lax only, text/plain accepted) | Fixed |
 | E85 | [found later] Impersonation grant survives admin disable/logout | Fixed |
-| E86 | [found later] Dashboard dev proxy forwards /v1/admin; shared cookie jar | Partly fixed |
+| E86 | [found later] Dashboard dev proxy forwards /v1/admin; shared cookie jar | Fixed |
 | E87 | [found later] No anti-framing headers on dashboard and checkout | Fixed |
 | E88 | [found later] Read-only impersonation and API keys can write saved filters | Fixed |
 | E89 | [found later] Unsalted SHA-256 of card number and CVV stored | Fixed |

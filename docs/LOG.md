@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 08:28 PM (30 Oct 2026)
-Summary: Errors 159/177 fixed (+8 partly: E50, E92, E131, E48, E67, E78, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 08:29 PM (30 Oct 2026)
+Summary: Errors 160/177 fixed (+8 partly: E50, E92, E131, E48, E67, E78, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -787,7 +787,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/web/vite.config.ts:12 (`/v1` incl. /v1/admin, E61); cookies ignore ports on localhost
 - Error: any future XSS in the web app (incl. public checkout) reaches the admin API with the admin cookie; hosting must not repeat this (E02 plan: admin on its own host).
 - Proof: code read (security-review agent (12:59 PM); checked by me).
-- Severity: low · Status: partly fixed (hosting: admin on its own nginx server :8081, /v1/admin → 404 on :8080; vite dev proxy unchanged)
+- Severity: low · Status: fixed (see section 5, E86)
 
 ### E87 — [found later] No anti-framing headers on dashboard and checkout
 - Where: apps/web/index.html; apps/api/src/app.ts (no X-Frame-Options / frame-ancestors / nosniff); E47 covers the admin console only
@@ -2929,6 +2929,12 @@ ROLLBACK;
 - Before: testE103_meAcceptsTheImpersonationGrant (admin.test.ts) → /me with only the grant cookie gave 401 (the dashboard bounced to login). After: 200 with the merchant, role support and the admin email; no cookie still 401. Admin, auth, app and session suites 85/85; admin tsc clean.
 - Second review (Copilot): not run — copilot not found (LOG line 1567). fix-reviewer: APPROVE; no leak (the grant cookie lives only in the admin's browser); session-first is right; apps/web reads only me.email and me.role (DashboardLayout.tsx:50); opener = null gives the same practical tabnabbing protection. Took its import nit; skipped its 'both cookies' test (no merchant login helper in admin.test.ts; the order matches requireMerchantAuth).
 - check.sh (clean environment): OK. Needs a redeploy.
+
+### E86 — 08:29 PM — (rest) the dashboard dev server no longer forwards /v1/admin
+- Changed: apps/web/vite.config.ts: the proxy key is the pattern ^/v1/(?!admin(/|$)), so /v1/admin/* stays on the dev server (like the hosted nginx, which answers 404 there since E86's first part).
+- Proof (dev server on :5199, command output 08:30 PM): /v1/admin/auth/me → 200 text/html (not forwarded); /v1/auth/me → 401 application/json (forwarded to the API as before); no proxy errors.
+- The shared cookie jar on localhost is a property of browsers (cookies ignore ports); in hosting the admin runs on its own port with its own cookie name (fp_admin_sid), and the API never accepts one plane's cookie on the other (admin.test.ts 'a merchant session cookie grants nothing on the admin plane').
+- With the earlier part E86 is now fully fixed. check.sh not affected (dev config).
 
 ## 6. Deploy
 
