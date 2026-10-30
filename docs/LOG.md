@@ -1,6 +1,6 @@
 # LOG
 Mode: Competition
-Updated: 11:56 AM (30 Oct 2026)
+Updated: 11:55 AM (30 Oct 2026)
 Summary: Errors 43/60 fixed (+3 partly: E13, E19, E31; same count as docs/ERRORS.md) · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
@@ -1301,7 +1301,7 @@ ROLLBACK;
 - Regression: full-db-test.sh = baseline v3.
 - Actual result: matches expected.
 
-### E58 — 11:56 AM — not reproduced; guard test added
+### E58 — 11:55 AM — not reproduced; guard test added
 - Test: apps/api/src/auth/requireMerchantAuth.e58.test.ts. Valid session for merchant A + impersonation grant for merchant B → GET /v1/transactions shows only A's transaction. Expired session for A + the grant → only B's, and void → 403 (the grant keeps its "support" role). Passed on the first run.
 - Reading: requireMerchantAuth.ts:46-100 takes exactly one source in order (session cookie, API key, impersonation cookie) and builds the whole identity from that source; nothing is merged. MK's FP-198 comment ("a merchant holding an old fp_impersonation cookie gets mixed identities") is unfounded; FH's note ("got the merchant identity as expected") matches the test.
 - No code change. Kept as a regression guard.

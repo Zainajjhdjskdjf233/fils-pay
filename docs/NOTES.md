@@ -1762,3 +1762,33 @@ Only real activity (sales, fees, refunds, corrections) is compared with the batc
 Fee recalculation lines also have a batch id, and they really change what the shop is owed, so they must count.
 
 Commit: ad4a77b
+
+## N48 — Checked: two login cookies never mix identities
+
+### The idea
+A request can carry a shop login cookie and an admin "view as shop" cookie. The app must pick exactly one identity, like a door that reads one key card at a time.
+
+### The problem
+A comment (FP-198) said the two cookies could mix identities. Nobody had tested it.
+- If true, an old admin cookie could give a shop user another shop's data.
+
+### The fix
+- No code change. A new test sends both cookies and checks who the app thinks you are.
+
+### The code
+Before (apps/api/src/auth/requireMerchantAuth.ts:47-58):
+```ts
+const token = request.cookies[request.server.config.cookieName];
+if (token) { const session = await lookupSession(...); if (session) { request.merchantAuth = {...}; return; } }
+```
+After: unchanged. The code takes one source in a fixed order (session, API key, admin cookie) and returns right away, so nothing is merged.
+
+### The proof
+- Valid shop session + admin cookie for another shop → only the first shop's data.
+- Expired session + admin cookie → only the other shop's data, read-only (void → 403).
+
+### If the judges ask
+"Why record something that is not a bug?"
+A suspected security bug needs proof either way. The test is the proof, and it stays to catch a future change.
+
+Commit: d69c07f
