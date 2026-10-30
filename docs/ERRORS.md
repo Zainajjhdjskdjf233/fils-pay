@@ -149,10 +149,10 @@ Summary: 172 of 178 fixed.
 | E66 | [found later] expire_holds can delete holds released between its SELECT and DELETE | Fixed |
 | E67 | [found later] refund_merchant_summary counts captured once per refund; never refreshed (my F01e bug) | Fixed |
 | E68 | [found later] Seed adds the lifetime payout estimate in float32 | Fixed |
-| E69 | [found later] Seeded fees ignore the seeded fee schedules (suspected) | Open |
-| E70 | [found later] Seeded outbox events do not match the seeded history | Open |
+| E69 | [found later] Seeded fees ignore the seeded fee schedules (suspected) | Skipped |
+| E70 | [found later] Seeded outbox events do not match the seeded history | Skipped |
 | E71 | [found later] Re-seeding leaves old dead letters with reused outbox ids | Fixed |
-| E72 | [found later] reconcile_march uses authorization time and running-total residue (suspected) | Open |
+| E72 | [found later] reconcile_march uses authorization time and running-total residue (suspected) | Skipped |
 | E77 | [found later] Float and toFixed on money in the batch detail page | Fixed |
 | E78 | [found later] Balance rebuild may hit the 30 s timeout; no row lock (suspected) | Fixed |
 | E79 | [found later] Dead helpers with float or wrong-scale money math | Partly fixed |

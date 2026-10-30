@@ -693,11 +693,13 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Proof: suspected — needs a seeded DB to confirm.
 - Severity: low · Status: open
 - Confirmed (08:43 PM), deferred: alpha-retail's seeded fees use the flat fixture rate (fixture.mdrBps = 250) at eight places in db/seed/generate.ts (:302, :315, :405, :480, :493, :598, :661, :718), while the seed gives it fee schedules of 245 bps (from 2026-03-01) and 225 bps (from 2026-08-01) at :827-833. Fix: one effective-rate lookup by date, used at all eight places. Dev sample data only (never on the live server); over the 20-minute rule tonight.
+- Decision (Claude, Zainab approved deciding without review): docs only: leave the seed's flat fixture rate; record the fix (one effective-rate-by-date lookup used at the eight places) — Why: seed data is dev-only and never on the live server (E65 guard); the fix touches five fixture generators and would change every seeded figure and the seed self-check checksum, over the time left — Alternative: pass a rate-on-date function through the fixture generators
 
 ### E70 — [found later] Seeded outbox events do not match the seeded history
 - Where: db/seed/generate.ts:651-690 (outbox created_at = now(), so August captures roll up on the seed day; 60 high-volume batches get no batch_closed event).
 - Severity: low · Status: open
 - Deferred (08:43 PM): dev sample data only (outbox created_at = now() and missing batch_closed events for the 60 high-volume batches, db/seed/generate.ts:651-690). The live server never runs the seed (LOG §6 rules; E65 guard).
+- Decision (Claude, Zainab approved deciding without review): docs only: leave the seeded outbox timestamps and the missing batch_closed events — Why: dev sample data only; the reporting rollups of a seeded dev database are the only effect, and the live server never runs the seed — Alternative: set outbox created_at from each event's own time and enqueue batch_closed for the 60 high-volume batches
 
 ### E71 — [found later] Re-seeding leaves old dead letters with reused outbox ids
 - Where: db/seed/generate.ts:98-148 TABLES_TO_RESET lacks reporting_dead_letters (0078); outbox ids restart, so ON CONFLICT DO NOTHING hides a new bad event with a reused id.
@@ -708,6 +710,19 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Proof: suspected — a transaction captured in two batches (1005 + 1005) would sweep 0 while the scheme lines lost 10.
 - Severity: low · Status: open — for Zainab to review (08:37 PM)
 - Analysis: confirmed in the code. computeResidueFils (scripts/reconcile_march.ts:34) takes captured_fils % 10 on each transaction's running total, but the scheme file truncates per batch slice (settlement/batch.go:273), so a transaction captured as 1005 + 1005 in two batches sweeps 0 while the scheme lines lost 10. A correct sweep must sum, per scheme line, the slice amount minus its truncated amount (scheme_export_lines with the matching capture events), not the transaction total. Not changed tonight: it is a money script and needs its own tests; the live server never runs scripts (LOG §6 rules).
+- Read-only query for the correct March residue per merchant (per scheme line: the capture slice in that batch minus its truncated scheme amount). Run it to see the right figure before any sweep; it changes nothing:
+  ```sql
+  SELECT sb.merchant_id, count(*) AS lines, COALESCE(sum(ev.slice - sel.amount_fils), 0) AS residue_fils
+    FROM scheme_export_lines sel
+    JOIN settlement_batches sb ON sb.id = sel.settlement_batch_id
+    JOIN LATERAL (SELECT COALESCE(SUM(te.amount_fils), 0) AS slice FROM transaction_events te
+                   WHERE te.transaction_id = sel.transaction_id AND te.settlement_batch_id = sel.settlement_batch_id
+                     AND te.event_type IN ('captured', 'partially_captured')) ev ON true
+   WHERE sb.batch_date >= DATE '2026-03-01' AND sb.batch_date < DATE '2026-04-01'
+   GROUP BY sb.merchant_id ORDER BY sb.merchant_id;
+  ```
+  Checked on the test database (09:34 PM): runs, 109 merchant rows.
+- Decision (Claude, Zainab approved deciding without review): docs only: do not change reconcile_march.ts tonight; the correct residue is documented as a read-only query (per scheme line, slice minus truncated amount) in this entry — Why: the script posts ledger entries, so a code change would touch money data; the live server never runs scripts, and the read-only query gives the right figure without writing anything — Alternative: rewrite the sweep per scheme line with tests and run it once on a copy
 
 ### E73 — [found later] CloseBatch never journals the scheme rounding residue (ADR-0002 not implemented)
 - Where: apps/settlement/internal/settlement/batch.go:272-284 (scheme line loop); only scripts/reconcile_march.ts wrote scheme_rounding_residue (grep)
@@ -3369,3 +3384,6 @@ Zainab asked for speed without losing safety. Two read-only agents now plan ahea
 - Judge note (09:30 PM): E178 — a shop whose discount was later set to 0 could lose a credit it was owed; the recorded amount now decides.
 - Judge note (09:31 PM): E154 — I first started to wire the 'dead' journaled function in, then saw it would give one admin unapproved money movement; it was deleted instead and the button now says it moves no money.
 - Judge note (09:33 PM): E79 — four unused helpers with wrong money math are gone, so nobody can wire them in by mistake.
+- Judge note (09:34 PM): E72 — the March sweep miscounts residue for split captures; the right figure is now a read-only query, and the script was not run.
+- Judge note (09:34 PM): E69 — sample fees ignore their own fee schedules; recorded with the exact places, not changed.
+- Judge note (09:34 PM): E70 — sample outbox events do not match sample history; dev-only, recorded, not changed.
