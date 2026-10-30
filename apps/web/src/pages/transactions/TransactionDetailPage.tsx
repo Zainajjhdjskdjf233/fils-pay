@@ -293,7 +293,7 @@ export function TransactionDetailPage() {
               <td>{statusLabel(event.eventType)}</td>
               <td className="dash-num">{event.amountFils === null ? "—" : bhd(event.amountFils)}</td>
               <td>
-                {event.actorType}
+                {statusLabel(event.actorType)}
                 {event.actorId ? (
                   <div className="dash-muted">
                     <code>{event.actorId}</code>

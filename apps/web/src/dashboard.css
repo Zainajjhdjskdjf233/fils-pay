@@ -427,3 +427,6 @@
   .dash-table { display: block; overflow-x: auto; }
 }
 @media (prefers-reduced-motion: reduce) { .dash-loading::before { animation: none; } }
+/* UX: keep the header on one row on a laptop screen. */
+.dash-header { gap: 1rem; }
+.dash-identity { font-size: 0.9em; gap: 0.5rem; }
