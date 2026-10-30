@@ -13,9 +13,9 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 43 of 60 fixed.
+Summary: 44 of 60 fixed.
 
-## High (24 of 27 fixed)
+## High (25 of 27 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -37,7 +37,7 @@ Summary: 43 of 60 fixed.
 | E16 | March sweep script is not idempotent and uses UTC months | Fixed |
 | E17 | Split payouts: children do not add up to the parent | Fixed |
 | E18 | FP-203: "Recalculate cached balances" button and CLI read different sources | Fixed |
-| E19 | MDR recalculation changes batches that were already paid | Partly fixed |
+| E19 | MDR recalculation changes batches that were already paid | Fixed |
 | E21 | CSV adjustment import reads BD amounts 10 times too small | Fixed |
 | E23 | Daily close runs at 3:00 AM Bahrain, not midnight | Fixed |
 | E26 | Admin "recompute statuses" turns test merchants live | Fixed |

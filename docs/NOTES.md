@@ -1792,3 +1792,41 @@ After: unchanged. The code takes one source in a fixed order (session, API key, 
 A suspected security bug needs proof either way. The test is the proof, and it stays to catch a future change.
 
 Commit: d69c07f
+
+## N49 — Fee recalculation no longer charges back the volume discount
+
+### The idea
+When the platform has processed a lot of money, every shop gets a 0.15% volume discount on its fee. The daily close applies it. A later fee recalculation must use the same rules, like re-adding a receipt with the same coupons.
+
+### The problem
+The recalculation used a different rate.
+- It used the shop's default rate, not its fee schedule.
+- It ignored the volume discount, which was never saved with the batch.
+- So recalculating with no rate change raised a fee from 185 to 250 fils.
+
+### The fix
+- Migration 0080: each batch saves the volume discount it was closed with.
+- batch.go: the daily close writes it.
+- recalculate_mdr.go: uses the fee schedule at each payment's time, minus the saved discount.
+
+### The code
+Before (apps/settlement/internal/settlement/recalculate_mdr.go:163):
+```go
+fee += ComputeSettlementFee(money.Fils(amountFils), mdrBps, discountBps)
+```
+After:
+```go
+rate := EffectiveMdrBpsAt(schedules, occurredAt, mdrBps) - tierBonusBps
+fee += ComputeSettlementFee(money.Fils(amountFils), rate, discountBps)
+```
+The same rate the daily close used, so "no change" really means no change.
+
+### The proof
+- Before: recalculation with no rate change → fee 185 → 250 (65 fils overcharged).
+- After: no adjustment.
+
+### If the judges ask
+"What about batches closed before this change?"
+They have a saved discount of 0, which is what the old recalculation already assumed, so nothing gets worse for them.
+
+Commit: PENDING_N49

@@ -242,9 +242,9 @@ func CloseBatch(ctx context.Context, db *pgxpool.Pool, merchantID uuid.UUID, bus
 	_, err = tx.Exec(ctx, `
 		UPDATE settlement_batches
 		   SET status = 'closed', gross_fils = $2, fee_fils = $3, net_payout_fils = $4,
-		       refund_fils = $5, fee_reversed_fils = $6, closed_at = now()
+		       refund_fils = $5, fee_reversed_fils = $6, tier_bonus_bps = $7, closed_at = now()
 		 WHERE id = $1
-	`, batchID, int64(batchGross), int64(batchFee), int64(netPayout), int64(batchRefund), int64(batchFeeReversed))
+	`, batchID, int64(batchGross), int64(batchFee), int64(netPayout), int64(batchRefund), int64(batchFeeReversed), tierBonusBps) // E19: store the bonus used
 	if err != nil {
 		return BatchResult{}, fmt.Errorf("settlement: CloseBatch: freeze batch totals: %w", err)
 	}

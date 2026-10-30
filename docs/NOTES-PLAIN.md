@@ -289,3 +289,9 @@ Where: apps/api/src/settlement/query.ts:314 · Commit: ad4a77b
 A code comment warned that a shop login and an admin "view as shop" login in the same browser could mix two identities. We wrote a test that sends both at once, and the app always used exactly one identity, as it should. So this was not a real bug. The test stays to make sure it never becomes one.
 
 Where: apps/api/src/auth/requireMerchantAuth.e58.test.ts · Commit: d69c07f
+
+## N49 — Fee recalculation no longer charges back the volume discount
+
+When the platform is big enough, shops get a small fee discount, and the daily close applies it. The fee recalculation tool did not know about the discount or the shop's scheduled rate, so even with no rate change it raised fees. Now each day's batch remembers the discount it got, and the tool uses the same rate rules as the daily close. A test shows a recalculation with no rate change now changes nothing.
+
+Where: apps/settlement/internal/settlement/recalculate_mdr.go:169 · Commit: PENDING_N49

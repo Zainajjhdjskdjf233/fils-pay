@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 11:55 AM (30 Oct 2026)
-Summary: Errors 43/60 fixed (+3 partly: E13, E19, E31; same count as docs/ERRORS.md) · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
+Updated: 11:57 AM (30 Oct 2026)
+Summary: Errors 44/60 fixed (+2 partly: E13, E31; same count as docs/ERRORS.md) · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -247,7 +247,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: high
 - Proposed fix: `status = 'closed'` only; same rate lookup as CloseBatch.
 - Expected result: paid batches unchanged after recalculation.
-- Status: paid-batch part fixed (see section 5); rate-source part open
+- Status: fixed (paid-batch part 23e2f73; rate-source part see section 5)
 
 ### E20 — Dashboard shows 245 bps, payments charge 225 bps
 - Where: apps/api/src/fees/currentFeeScheduleDisplay.ts:33-37 vs fees/feeSchedule.ts:29-32; Go fee_schedule.go:32; payments/capture.ts:196
@@ -1305,6 +1305,13 @@ ROLLBACK;
 - Test: apps/api/src/auth/requireMerchantAuth.e58.test.ts. Valid session for merchant A + impersonation grant for merchant B → GET /v1/transactions shows only A's transaction. Expired session for A + the grant → only B's, and void → 403 (the grant keeps its "support" role). Passed on the first run.
 - Reading: requireMerchantAuth.ts:46-100 takes exactly one source in order (session cookie, API key, impersonation cookie) and builds the whole identity from that source; nothing is merged. MK's FP-198 comment ("a merchant holding an old fp_impersonation cookie gets mixed identities") is unfounded; FH's note ("got the merchant identity as expected") matches the test.
 - No code change. Kept as a regression guard.
+
+### E19 (rate-source part) — 11:57 AM — recalculation uses the same rate as CloseBatch
+- Changed: db/migrations/0080_settlement_batches_tier_bonus.sql (`settlement_batches.tier_bonus_bps`, default 0). apps/settlement/internal/settlement/batch.go: CloseBatch stores the tier bonus it used. recalculate_mdr.go: loads fee_schedules once; each event's rate = `EffectiveMdrBpsAt(schedules, event time, merchants.mdr_bps) − batch.tier_bonus_bps` (was merchants.mdr_bps, no bonus).
+- Test: settlement/recalculate_mdr_e19b_test.go (schedule 200 bps, platform volume above the tier, so close fee = 185; recalc with no rate change). Before: `adjusted the batch … OldFeeFils:185 NewFeeFils:250 DiffFils:65` (overcharge). After: PASS (no adjustment); all RecalculateMDR, E19 and F01d tests pass. The test restores the shared platform counter.
+- Decision (for Zainab to review): this replaces the earlier "leave rate source open" decision (E19, 23e2f73) — storing the bonus makes the old rate reproducible for new batches. Batches closed before 0080 have bonus 0 (same as before this fix). For a merchant that has fee_schedules rows, a rate change must be entered as a new schedule row; editing merchants.mdr_bps alone no longer changes its recalculation.
+- Regression: full-db-test.sh = baseline v3; Go 74 pass.
+- Actual result: recalculation with no rate change changes nothing.
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)
