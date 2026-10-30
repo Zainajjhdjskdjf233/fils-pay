@@ -74,8 +74,8 @@ export function PaymentLinkListPage() {
 
       <RequireRole allow={["owner", "finance"]}>
         <p>
-          <Link className="dash-button-link" to="/dashboard/payment-links/new">
-            New payment link
+          <Link className="dash-button-link dash-button-primary" to="/dashboard/payment-links/new">
+            + New payment link
           </Link>
         </p>
       </RequireRole>
@@ -89,12 +89,12 @@ export function PaymentLinkListPage() {
               checked={statuses.includes(status)}
               onChange={() => toggleStatus(status)}
             />
-            {status}
+            {statusLabel(status)}
           </label>
         ))}
       </fieldset>
 
-      {error ? <p className="dash-error">{error}</p> : null}
+      {error ? <p className="dash-error" role="alert">{error}</p> : null}
 
       <table className="dash-table">
         <thead>
@@ -112,7 +112,7 @@ export function PaymentLinkListPage() {
           {links.map((link) => (
             <tr key={link.id}>
               <td>
-                <Link to={`/dashboard/payment-links/${link.id}`}>{dash(link.reference)}</Link>
+                <Link to={`/dashboard/payment-links/${link.id}`}>{link.reference || "View link"}</Link>
               </td>
               <td>{dash(link.description)}</td>
               <td className="dash-num">{bhd(link.amountFils)}</td>
@@ -126,13 +126,15 @@ export function PaymentLinkListPage() {
           ))}
           {links.length === 0 && !loading ? (
             <tr>
-              <td colSpan={7}>No payment links match these filters.</td>
+              <td colSpan={7} className="dash-empty">
+                No payment links match these filters. Change the status filter, or create a new payment link.
+              </td>
             </tr>
           ) : null}
         </tbody>
       </table>
 
-      {loading ? <p>Loading...</p> : null}
+      {loading ? <p className="dash-loading">Loading payment links…</p> : null}
 
       <Pagination nextCursor={nextCursor} loading={loading} onLoadMore={() => void load(nextCursor)} />
     </section>

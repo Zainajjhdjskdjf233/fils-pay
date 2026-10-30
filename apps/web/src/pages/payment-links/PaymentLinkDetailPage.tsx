@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { cancelPaymentLink, listPaymentLinks } from "../../api/paymentLinks.js";
 import { describeError } from "../../api/client.js";
 import { useDashboardAuth } from "../../auth/DashboardAuthContext.js";
@@ -39,6 +39,16 @@ export function PaymentLinkDetailPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const location = useLocation();
+  const [notice, setNotice] = useState<string | null>(
+    (location.state as { created?: boolean } | null)?.created
+      ? "Payment link created. Copy it below and send it to your customer."
+      : null,
+  );
+  // UX: show "created" once; a reload or a later visit must not repeat it.
+  useEffect(() => {
+    if ((location.state as { created?: boolean } | null)?.created) window.history.replaceState({}, "");
+  }, [location.state]);
 
   const load = useCallback(async () => {
     if (!merchantId || !id) return;
@@ -57,12 +67,15 @@ export function PaymentLinkDetailPage() {
 
   async function handleCancel(): Promise<void> {
     if (!merchantId || !id) return;
-    if (!window.confirm("Cancel this payment link? It can no longer be paid.")) return;
+    const amount = state.kind === "loaded" ? ` for ${bhd(state.link.amountFils)}` : "";
+    if (!window.confirm(`Cancel this payment link${amount}? Your customer will no longer be able to pay it. This cannot be undone.`)) return;
     setSubmitting(true);
     setActionError(null);
+    setNotice(null);
     try {
       await cancelPaymentLink(merchantId, id);
       await load();
+      setNotice("Payment link canceled. Anyone who opens it now sees that it was canceled.");
     } catch (err) {
       // Includes `409 not_cancelable` for a link that is paid, already
       // canceled, or `reserved` mid-payment-attempt.
@@ -76,6 +89,7 @@ export function PaymentLinkDetailPage() {
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
+      window.setTimeout(() => setCopied(false), 2500);
     } catch {
       // No clipboard permission (or no secure context) — the URL is already
       // on screen and selectable, so there is nothing to recover from.
@@ -83,7 +97,14 @@ export function PaymentLinkDetailPage() {
     }
   }
 
-  if (state.kind === "loading") return <p>Loading...</p>;
+  if (state.kind === "loading") {
+    return (
+      <section>
+        <h1>Payment link</h1>
+        <p className="dash-loading">Loading payment link…</p>
+      </section>
+    );
+  }
   if (state.kind === "error") {
     return (
       <section>
@@ -108,10 +129,15 @@ export function PaymentLinkDetailPage() {
 
   return (
     <section>
-      <h1>Payment link</h1>
+      <p><Link to="/dashboard/payment-links">← Payment links</Link></p>
+      <h1>
+        Payment link {bhd(link.amountFils)}
+        {link.reference ? <span className="dash-muted"> · {link.reference}</span> : null}
+      </h1>
       <p className="dash-muted">
-        <code>{link.id}</code>
+        ID <code>{link.id}</code>
       </p>
+      {notice ? <p className="dash-notice" role="status">{notice}</p> : null}
 
       <dl className="dash-dl">
         <dt>Amount</dt>
@@ -151,19 +177,20 @@ export function PaymentLinkDetailPage() {
           <a href={link.url} target="_blank" rel="noreferrer">
             {link.url}
           </a>{" "}
-          <button type="button" className="dash-button" onClick={() => void handleCopy(link.url)}>
-            {copied ? "Copied" : "Copy link"}
+          <button type="button" className="dash-button dash-button-primary" onClick={() => void handleCopy(link.url)}>
+            {copied ? "Copied ✓" : "Copy link"}
           </button>
+          <span role="status" className="dash-muted">{copied ? " Link copied. Paste it into an email or chat." : ""}</span>
         </dd>
       </dl>
 
-      {actionError ? <p className="dash-error">{actionError}</p> : null}
+      {actionError ? <p className="dash-error" role="alert">{actionError}</p> : null}
 
       {link.status === "active" ? (
         <RequireRole allow={["owner", "finance"]}>
           <button
             type="button"
-            className="dash-button"
+            className="dash-button dash-button-danger"
             disabled={submitting}
             onClick={() => void handleCancel()}
           >
