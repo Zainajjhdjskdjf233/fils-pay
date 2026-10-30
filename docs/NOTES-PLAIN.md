@@ -234,4 +234,4 @@ Where: apps/api/src/routes/auth.ts: · Commit: 31b2741
 
 Any shop user, even a support assistant, could take the money for a payment or cancel it, because those two actions had no role check. We now allow them only for the owner and finance roles. A test shows a support user is refused and a finance user still works.
 
-Where: apps/api/src/routes/transactions.ts:98 · Commit: PENDING_N39
+Where: apps/api/src/routes/transactions.ts:98 · Commit: 2b3c0c7

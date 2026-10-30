@@ -1464,4 +1464,4 @@ The request must be logged in and have one of the two roles.
 "What about admins impersonating a shop?"
 Since E10 every impersonation counts as the support role, so they get 403 too.
 
-Commit: PENDING_N39
+Commit: 2b3c0c7
