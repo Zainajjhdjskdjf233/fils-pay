@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 11:28 AM (30 Oct 2026)
-Summary: Errors 34/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
+Updated: 11:29 AM (30 Oct 2026)
+Summary: Errors 35/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -379,7 +379,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: medium (case file: "The OTP implementation changed at some point. Is it still safe?" → no)
 - Proposed fix: `crypto.randomInt` / `randomBytes`.
 - Expected result: grep finds no `Math.random` in auth or token code.
-- Status: open
+- Status: fixed (see section 5)
 
 ### E34 — OTP attempt limit can be bypassed
 - Where: apps/api/src/routes/auth.ts:158-168, :196-197, :218-233; routes/adminAuth.ts:147-158
@@ -1207,6 +1207,14 @@ ROLLBACK;
 - Note: H11 says the deleted branch `ya/sign-raw` was this fix; same idea, written fresh.
 - Review: two-line serialization change → no fix-reviewer.
 - Actual result: matches expected (merchant HMAC over the raw body matches).
+
+### E33 — 11:29 AM — OTP codes, payment-link tokens and admin invite codes use crypto.randomInt
+- Changed: apps/api/src/lib/random.ts: `randomDigits` and `randomFromAlphabet` use `crypto.randomInt` (file rewritten; 21 lines). apps/api/src/admin/inviteCode.ts: `generateInviteCode` uses `randomFromAlphabet` (it had its own Math.random loop — not in the original E33 list; found by grep). The adminAuth/otp.ts comment "Generated with crypto.randomInt" is now true. Left: dispatcher.ts:60 retry jitter (not a secret).
+- Test: apps/api/src/lib/random.e33.test.ts (no DB): with `Math.random = () => 0`, 20 OTP codes / tokens / invite codes must not all be equal. Before: `OTP codes repeat when Math.random is fixed`. After: PASS (+ shape test).
+- Proof of scope: `grep -rn "Math.random" apps/api/src` (non-test) → only two comments and dispatcher.ts:60 jitter.
+- Regression: full-db-test.sh = baseline (5 known failures).
+- Review: security change but a drop-in source swap with a direct test → no fix-reviewer; Copilot CLI not installed.
+- Actual result: matches expected.
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)

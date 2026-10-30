@@ -1355,3 +1355,38 @@ The body is now byte-for-byte the string inside the signature.
 No. JSON objects have no order; only the bytes change, and now the bytes match the seal.
 
 Commit: 8c76fb8
+
+## N37 — Login codes and secret links now use secure randomness
+
+### The idea
+OTP codes, payment-link tokens and admin invite codes are secrets. They must be impossible to guess, like a lottery draw nobody can predict.
+
+### The problem
+They were made with Math.random.
+- Math.random is fast but predictable: after seeing enough outputs, an attacker can work out the next ones.
+- A comment and ARCHITECTURE.md both claimed a secure source was used. It was not.
+
+### The fix
+- random.ts: use crypto.randomInt, a cryptographic source.
+- inviteCode.ts: admin invite codes use the same helper (they had their own Math.random loop).
+
+### The code
+Before (apps/api/src/lib/random.ts:4):
+```ts
+return Math.floor(Math.random() * max)
+```
+After:
+```ts
+return randomInt(0, max)
+```
+randomInt comes from Node's crypto module and is safe for secrets.
+
+### The proof
+- Before: with Math.random forced to 0, all 20 OTP codes were the same.
+- After: they still differ, so the code no longer depends on Math.random.
+
+### If the judges ask
+"How can a test prove randomness?"
+It cannot prove "random", but it proves the source: if the code still used Math.random, fixing Math.random would freeze the output.
+
+Commit: PENDING_N37
