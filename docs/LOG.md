@@ -1,6 +1,6 @@
 # LOG
 Mode: Competition
-Updated: 12:07 PM (30 Oct 2026)
+Updated: 12:08 PM (30 Oct 2026)
 Summary: Errors 46/61 fixed (+2 partly: E13, E50; same count as docs/ERRORS.md) · Hidden 35 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
@@ -1473,4 +1473,9 @@ ROLLBACK;
 - Counting fix: my LOG Summary had counted partly-fixed entries as fixed (41); docs/ERRORS.md counts only "Fixed" (39). LOG now uses the same rule and lists the 3 partly fixed. E49 marked fixed (done inside E18, b15f944).
 - Order change: E53 before E42 — an E42 test must use runConsumerPass, which E53's poison events break in the shared test DB.
 - Proof: docs/ERRORS.md Summary line (computed by script from the table rows). Time first typed as 11:47 before reading `date` (11:44) — same slip as J21, corrected.
+
+### J25 — 12:08 PM — speed mode ended early: no high/medium work left that can be done without Docker, a human, or a decision
+- What happened: since 10:52 AM: E14, E17, E15, E16, E18, E19, E26, E29, E30, E20, E22, E24, E25, E27, E31, E32, E33, E34, E35, E36, E37, E39, E41, E53, E42, E44, E60 fixed; E50 partly; E58 not reproduced (guard test); F01f + new E61 fixed. Left: E02/F02 (Docker), E13 (Docker + human secret rotation), E50 formula (business decision). Instead of idling until 1:30 PM, the requested plan (E02 compose with limits, load shedding, checkout load test) is presented now; no Docker work started.
+- Reviews this block: fix-reviewer found real problems in E29 (twice), E34, E36 and E42 — each proven with a new red test or reasoning, fixed, and recorded (J22, J23).
+- Proof: git log 01eee15..HEAD; docs/ERRORS.md Summary 46 of 61.
 
