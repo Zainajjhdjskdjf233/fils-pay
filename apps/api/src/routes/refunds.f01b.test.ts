@@ -155,3 +155,18 @@ test("testF01b_refundShowsInTimeline", async () => {
   assert.ok(refundEvent, events.body);
   assert.equal(refundEvent.amountFils, -1_250);
 });
+
+// F01f: the dashboard needs refundedFils on the transaction to show what is left.
+test("testF01f_transactionShowsRefundedFils", async () => {
+  const { merchantId, headers, transactionId } = await merchantWithCapturedPayment("refunded-fils");
+  const res = await app.inject({
+    method: "POST", url: `/v1/merchants/${merchantId}/refunds`, headers: { ...headers, "idempotency-key": randomUUID() },
+    payload: { transactionId, amountFils: 1_250 },
+  });
+  assert.equal(res.statusCode, 200, res.body);
+  const txn = await app.inject({ method: "GET", url: `/v1/transactions/${transactionId}`, headers });
+  assert.equal(txn.statusCode, 200, txn.body);
+  const body = txn.json() as { capturedFils: number; refundedFils: number };
+  assert.equal(body.refundedFils, 1_250);
+  assert.equal(body.capturedFils - body.refundedFils, 8_750);
+});

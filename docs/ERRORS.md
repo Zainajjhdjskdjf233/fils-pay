@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 45 of 60 fixed.
+Summary: 46 of 61 fixed.
 
 ## High (25 of 27 fixed)
 
@@ -47,7 +47,7 @@ Summary: 45 of 60 fixed.
 | E51 | API and seed cannot start: built-in dev key is 34 bytes, check needs 32 | Fixed |
 | E52 | Every refund fails: code inserts reason = NULL, migration 0070 forbids NULL | Fixed |
 
-## Medium (19 of 21 fixed)
+## Medium (20 of 22 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -72,6 +72,7 @@ Summary: 45 of 60 fixed.
 | E53 | One malformed outbox event stops the whole reporting consumer | Fixed |
 | E58 | Session vs impersonation order may mix identities (FP-198 comment) — not reproduced: a test with both cookies shows no mixing | Skipped |
 | E60 | Reconciliation counts payouts of earlier days as an unexplained gap | Fixed |
+| E61 | Dashboard and admin console cannot reach the API from their own origin (no CORS, no proxy) | Fixed |
 
 ## Low (1 of 12 fixed)
 

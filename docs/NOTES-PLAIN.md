@@ -307,3 +307,15 @@ Where: db/migrations/0081_transaction_events_capture_time_idx.sql:7 · Commit: f
 Shops with a negotiated fee discount got it when customers paid by card through the API, but not when customers used a payment link, so those shops paid too much. A comment claimed both were covered, but only one was. Now the payment link uses the same discount step. A test shows the same fee both ways.
 
 Where: apps/api/src/paymentLinks/pay.ts:228 · Commit: 107618c
+
+## N52 — Shops can refund from the dashboard
+
+The refund screen in the shop dashboard had been built but switched off, and it had problems: showing a refund in the payment history would crash the page, and retrying after a network problem could refund twice. We switched it on, fixed the money display for negative amounts, made retries safe, and show how much can still be refunded. Tests check the rules, and the API now tells the page how much was already refunded.
+
+Where: apps/web/src/pages/transactions/RefundDrawer.tsx · Commit: PENDING_N52
+
+## N53 — The dashboard and admin console can reach the API
+
+The shop dashboard and the admin website ran on their own web addresses and called the API on another one, which browsers block unless the API allows it, and it did not. So neither website could actually work. Instead of opening the API to other addresses, we made both websites call the API through their own address, which is safer. A live test of signup, login and the login code through the dashboard address now works.
+
+Where: apps/web/vite.config.ts:12 · Commit: PENDING_N53

@@ -1894,3 +1894,77 @@ The same function, with the same guard against applying it twice.
 Almost: payments discount the fee, settlement discounts the amount, so they can differ by 1-2 fils of rounding. Choosing one formula is marked for Zainab.
 
 Commit: 107618c
+
+## N52 — Shops can refund from the dashboard
+
+### The idea
+A refund gives money back to the customer. Shop owners and finance staff need a button for it on the payment page, like a "return" desk in a store.
+
+### The problem
+The refund drawer was finished long ago but switched off (commented out), and it had hidden bugs.
+- The first refund row in the timeline (a negative amount) would crash the whole page.
+- Every click made a new request key, so a retry after a network error could refund twice.
+- It did not know how much was already refunded.
+
+### The fix
+- RefundDrawer.tsx: switched on; amount typed in BD; one request key per refund attempt; shows captured, refunded and still refundable; optional reason.
+- refundForm.ts (new): the amount and "can this be refunded?" rules, tested on their own.
+- format.ts: money display accepts negative amounts.
+- The API now returns refundedFils for each payment.
+
+### The code
+Before (apps/web/src/format.ts:12):
+```ts
+return `${formatBhd(toFils(amountFils))} BHD`;
+```
+After:
+```ts
+return `${formatBhd(toFils(amountFils, { allowNegative: true }))} BHD`;
+```
+The money display no longer throws on −1.250 BD, so refund rows can be shown.
+
+### The proof
+- Before: bhd(-1250) threw "expected a non-negative amount".
+- After: "-1.250 BHD"; amount and status rules tested; the API returns refundedFils 1250 after a 1.250 BD refund; the web app builds.
+
+### If the judges ask
+"Why keep the same request key on retry?"
+If the first request reached the server but the answer was lost, the retry with the same key gets the first answer back instead of refunding again.
+
+Commit: PENDING_N52
+
+## N53 — The dashboard and admin console can reach the API
+
+### The idea
+A browser only lets a website send cookies to its own address (origin), unless the other server says "I allow you" (CORS).
+
+### The problem
+The dashboard (port 5173) and admin console (5174) called the API on port 3000.
+- The API never says "I allow you", so the browser blocks every call.
+- A comment said "works locally". It did not.
+
+### The fix
+- Both vite configs: the dev server forwards /v1 to the API, so calls stay on the website's own address.
+- Both clients: the default API address is the same origin.
+- In hosting, a reverse proxy will do the same (part of the E02 plan).
+
+### The code
+Before (apps/web/src/api/client.ts:3):
+```ts
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:3000";
+```
+After:
+```ts
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "";
+```
+"" means "my own address", which the proxy forwards to the API.
+
+### The proof
+- Before: the browser's check (preflight) got 404 and no permission header.
+- After: signup, login, login code and "who am I" all work through the dashboard's address.
+
+### If the judges ask
+"Why not just turn on CORS?"
+CORS with cookies would let the session cookie go to another address; keeping everything on one address needs no exception at all.
+
+Commit: PENDING_N53

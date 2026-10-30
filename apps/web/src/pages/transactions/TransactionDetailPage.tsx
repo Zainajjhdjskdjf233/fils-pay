@@ -10,6 +10,7 @@ import { ApiError, describeError } from "../../api/client.js";
 import { RequireRole } from "../../auth/RequireRole.js";
 import { bhd, dash, dateTime } from "../../format.js";
 import type { TransactionDto, TransactionEventDto } from "../../types.js";
+import { RefundDrawer } from "./RefundDrawer.js";
 
 type LoadState =
   | { kind: "loading" }
@@ -28,6 +29,7 @@ type LoadState =
  */
 // MK: timeline renders refund events fine
 // FH: RefundDrawer import removed 2026-06 until the route exists
+// F01f: back — the route exists (F01b).
 export function TransactionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [state, setState] = useState<LoadState>({ kind: "loading" });
@@ -151,6 +153,8 @@ export function TransactionDetailPage() {
         <dd>{bhd(txn.amountFils)}</dd>
         <dt>Captured amount</dt>
         <dd>{bhd(txn.capturedFils)}</dd>
+        <dt>Refunded amount</dt>
+        <dd>{bhd(txn.refundedFils)}</dd>
         <dt>Currency</dt>
         <dd>{txn.currency}</dd>
         <dt>Reference</dt>
@@ -170,7 +174,9 @@ export function TransactionDetailPage() {
           reconciliation page, this hide is NOT backed by a matching
           server-side role check: the API gates capture/void at "any
           authenticated merchant actor". Do not mistake a hidden button here for a security
-          boundary. */}
+          boundary.
+          E35: no longer true — the API now requires owner/finance for capture
+          and void (and refunds, F01b); the hide matches the server rule. */}
       <RequireRole allow={["owner", "finance"]}>
         {capturable || voidable ? (
           <div className="dash-actions">
@@ -221,6 +227,9 @@ export function TransactionDetailPage() {
           </div>
         ) : null}
       </RequireRole>
+
+      {/* F01f: refunds (owner/finance, same as the API). */}
+      <RefundDrawer txn={txn} onRefunded={load} />
 
       <h2>Event timeline</h2>
       <table className="dash-table">

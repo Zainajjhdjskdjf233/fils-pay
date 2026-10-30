@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 12:01 PM (30 Oct 2026)
-Summary: Errors 45/60 fixed (+2 partly: E13, E50; same count as docs/ERRORS.md) · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
+Updated: 12:07 PM (30 Oct 2026)
+Summary: Errors 46/61 fixed (+2 partly: E13, E50; same count as docs/ERRORS.md) · Hidden 35 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -581,6 +581,13 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Expected result: a report for day 2 after day 1's payout shows gapFils 0.
 - Status: fixed (see section 5)
 
+### E61 — [found later] Dashboard and admin console cannot reach the API from their own origin
+- Where: apps/web/src/api/client.ts:3 and apps/admin/src/api/client.ts:3-4 (default base URL http://localhost:3000); apps/web/vite.config.ts, apps/admin/vite.config.ts (no proxy); the API sends no CORS headers (`grep -rni "access-control\|@fastify/cors" apps/api` → nothing).
+- Error: the dashboard (:5173) and admin console (:5174) call the API (:3000) cross-origin with cookies; a browser blocks that. FH's comment "works locally" (web client.ts:35) is false.
+- Proof (12:05 PM): `curl -X OPTIONS localhost:3000/v1/auth/login -H "Origin: http://localhost:5173" -H "Access-Control-Request-Method: POST"` → `HTTP/1.1 404`, no Access-Control-Allow-Origin.
+- Severity: medium (both UIs unusable as shipped; hosting must serve them same-origin)
+- Status: fixed (see section 5)
+
 ## 3. Hidden things
 
 ### H01 — "The Order of the Prompt" and its Five Rules
@@ -763,14 +770,14 @@ Order follows the fix order: app-stopping → high security → (features) → w
   - Reconciliation: settlement/query.ts:250-253 claims refund legs are included (unverified).
   - UI: RefundDrawer.tsx:1-8 parked; web router.tsx:21 removed `/refunds`.
 - Plan (draft, for /fix): 1) fix E52 (NULL reason) and E28 inside processRefund; 2) mount `POST /v1/merchants/:merchantId/refunds` with a client Idempotency-Key and role check; 3) add `refund.succeeded` envelope + eligibility; 4) settlement side: `/internal/refund-adjustment` or batch close reads unbatched refunds; 5) reporting subscribe + fix 0072 join; 6) timeline + web drawer; 7) update the 501 test.
-- Progress: core logic F01a (68fd1bf), route F01b (f84083a, 8f05f9e), webhook F01c (079aeea) done and tested through the API; timeline shows refunds. Settlement payouts F01d done (see section 5; Go batch reads refunds, `/internal/refund-adjustment` not built by design). Reports and reconciliation F01e done (see section 5). OPEN: web refund page (RefundDrawer parked, router.tsx:21). These need Zainab's design OK (many files, Go side).
+- Progress: core logic F01a (68fd1bf), route F01b (f84083a, 8f05f9e), webhook F01c (079aeea) done and tested through the API; timeline shows refunds. Settlement payouts F01d done (see section 5; Go batch reads refunds, `/internal/refund-adjustment` not built by design). Reports and reconciliation F01e done (see section 5). Web refund page F01f done (see section 5). F01 complete.
 - Expected result: partial refund of 1.250 BD on a 10.000 BD capture → ledger merchant_payable −1250 fils plus MDR reversal from `calculateRefundFee`; one `refund.succeeded` webhook; timeline row −1.250; next batch net reduced by the same fils; second parallel request rejected.
-- Status: in progress (API part done: F01a-F01c; settlement, reports, UI open)
+- Status: done (F01a-F01f; see section 5)
 
 ### F02 — Host the app on Dilmune Cloud
 - Required by: CASE-FILE.md Item 04 ("The app is live on Dilmune Cloud, our hosting provider").
 - Plan: /deploy. Needs E01, E51 and E02 first; health route; env names only.
-- Expected result: live URL answers `GET /health` with 200.
+- Expected result: live URL answers `GET /healthz` with 200 (the API's route is /healthz, health.ts:13; there is no /health).
 - Status: open
 
 ## 5. Fixes
@@ -1328,6 +1335,19 @@ ROLLBACK;
 - Test: apps/api/src/paymentLinks/discount.e50.test.ts (same merchant terms, 250 bps, 20 % discount, 10.000 BD via card API and via link). Before: `payment link fee 250 must equal card API fee 200`. After: PASS; payment-link tests (incl. E29) pass.
 - Regression: full-db-test.sh = baseline v3.
 - Actual result: both paths charge 200 fils.
+
+### F01f — 12:07 PM — the dashboard refund page (F01 complete)
+- Changed: apps/web/src/pages/transactions/RefundDrawer.tsx un-parked (it was one commented-out block; restored and changed — whole file replaced, flagged because CLAUDE.md asks first for full rewrites; speed mode said not to stop): amount typed in BD via parseBhdToFils (the API requires a positive amountFils; "blank = everything" removed); one Idempotency-Key per refund attempt, reused on retry (FH's review note: a new key per click could refund twice); partially_refunded refundable; still-refundable = captured − refunded (am's "max = captured" was wrong after a partial refund); optional reason (≤ 500). New apps/web/src/pages/transactions/refundForm.ts (pure rules). TransactionDetailPage.tsx mounts the drawer and shows "Refunded amount"; its comment that capture/void have no server role check is corrected (E35). apps/web/src/format.ts: `bhd` accepts negative amounts — refund rows in the timeline are −1250 and `bhd(-1250)` threw `toFils: expected a non-negative amount` (FH's warning at format.ts:9 was right), which would have crashed the transaction page after the first refund. apps/api/src/transactions/serialize.ts + apps/web/src/types.ts: `refundedFils` (the serializer TODO).
+- Test: apps/web/src/refund.f01f.test.ts (negative bhd; BD parsing incl. 0, 4 decimals, over the remaining amount; refundable statuses). Before: `bhd(-1250)` → `THROWS: toFils: expected a non-negative amount, got -1250`. After: 3/3 PASS (web 11/11). refunds.f01b.test.ts testF01f_transactionShowsRefundedFils: refundedFils 1250, remaining 8750 (before: the field did not exist).
+- Built: `vite build` of web and admin both succeed; the drawer's text is in the web bundle. No browser tool in this session, so no click-through screenshot — to do before /present (UI/UX evidence).
+- Regression: full-db-test.sh = baseline v3.
+
+### E61 — 12:07 PM — same-origin API calls for the dashboard and admin console
+- Changed: apps/web/vite.config.ts and apps/admin/vite.config.ts: dev proxy for /v1, /healthz, /readyz → http://localhost:3000. Both api/client.ts default the base URL to "" (same origin); the VITE_* override still works.
+- Decision (for Zainab to review): same origin instead of adding CORS — Why: cross-origin with credentials is what am warns about (client.ts:36: "this leaks the session cookie to whatever VITE_API_BASE_URL is"); same origin needs no CORS at all — Alternative: @fastify/cors with an allow-list and credentials. Hosting must put the UIs and the API behind one origin (reverse proxy) — part of the E02 plan.
+- Proof (live, API + vite on test DB): through http://localhost:5173 — signup 201, login, `otp/verify` → `{"authenticated":true,…} [200]`, `/v1/auth/me` → 200 with the owner's merchant. Before: preflight 404, no CORS header (E61 entry).
+- Found on the way: the API has no `/health` route (it is `/healthz`/`readyz`); F02's expected result corrected.
+- Regression: full-db-test.sh = baseline v3; web and admin builds pass.
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)

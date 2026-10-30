@@ -8,8 +8,9 @@ import { formatBhd, toFils } from "@filspay/money";
  */
 // FH: toFils without allowNegative throws on a negative — refund events / negative gaps crash the page?
 // MK: amounts are never negative in the dashboard. ignore
+// F01f: FH was right — refund rows in the timeline are negative (-1250).
 export function bhd(amountFils: number): string {
-  return `${formatBhd(toFils(amountFils))} BHD`;
+  return `${formatBhd(toFils(amountFils, { allowNegative: true }))} BHD`;
 }
 
 /** `—` for a null/absent value, so an empty table cell is visibly empty

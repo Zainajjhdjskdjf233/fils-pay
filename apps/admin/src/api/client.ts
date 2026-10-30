@@ -1,7 +1,8 @@
 import type { ApiErrorBody } from "../types.js";
 
+// E61: default to the same origin (dev: vite proxy; hosting: reverse proxy).
 const API_BASE_URL =
-  (import.meta.env.VITE_ADMIN_API_BASE_URL as string | undefined) ?? "http://localhost:3000";
+  (import.meta.env.VITE_ADMIN_API_BASE_URL as string | undefined) ?? "";
 
 /** apps/web's own dashboard origin — where a "view as merchant" grant is
  *  actually exercised. */
