@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 07:55 PM (30 Oct 2026)
-Summary: Errors 145/176 fixed (+11 partly: E50, E92, E101, E131, E145, E163, E47, E86, E94, E96, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 07:57 PM (30 Oct 2026)
+Summary: Errors 146/176 fixed (+11 partly: E50, E92, E101, E131, E145, E163, E47, E86, E94, E96, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -527,7 +527,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 ### E47 — Admin console: session not rotated after OTP; no CSP
 - Where: apps/api/src/adminAuth/sessions.ts:65-77; apps/admin/index.html:6; apps/admin/src/api/impersonation.ts:93
 - Severity: low
-- Status: partly fixed (session rotated, see section 5, E113 + E47; CSP still open)
+- Status: fixed (see section 5, E47)
 
 ### E48 — Admin run-batch sends no payout notification; split payouts skip the lifetime estimate
 - Where: apps/settlement/internal/internalapi/server.go:237; splits PayoutSplitBatch
@@ -2819,6 +2819,12 @@ ROLLBACK;
 - Before: apps/api/src/payments/authorize.e89.test.ts could not run (no such function); the stored request_hash was sha256 of canonical JSON including pan and cvv (idempotency.ts:65-66). After: changing the CVV does not change the hash; a different amount or last 4 still does. 1/1; payment suites 76/76.
 - Second review (Copilot): not run — copilot not found (LOG line 1567). fix-reviewer: APPROVE; nothing else stores or logs the card (transaction rows, saved responses, pay.ts logs); a different card with the same last4+expiry and the same key now replays the saved response (the key decides, as with Stripe); an older key retried after the deploy gets 422 once; rows stored before the fix still hold PAN+CVV hashes (residual: clear request_hash for old authorize rows with a migration, or let them age out). Our answer: agree; also moved the old docblock back onto authorizeTransaction as it suggested.
 - check.sh (clean environment): OK. Needs a redeploy.
+
+### E47 — 07:57 PM — the admin console and the public site send a full Content-Security-Policy (the session half was fixed at e8c9454)
+- Changed: ops/nginx/nginx.conf, both servers: CSP default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none' (was frame-ancestors only).
+- Why it is safe: a fresh vite build of apps/web and apps/admin has one module script from /assets each, no inline script, no eval/new Function, no outside host loaded (grep of the built files); no embed/object/iframe in either app.
+- Proof: local stack, nginx rebuilt (`curl -sI` shows the header on :8080 and :8081); headless Chrome loaded /dashboard/login (form rendered), /pay/nope ('Payment link not found' — scripts ran and the API call worked) and :8081/login (form rendered) with 0 CSP messages in the console log.
+- check.sh (clean environment): OK. Needs a redeploy (nginx image).
 
 ## 6. Deploy
 
