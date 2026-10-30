@@ -21,7 +21,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 6:52 PM
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
-- Dilmune Cloud: not yet
+- Dilmune Cloud: live
 - Decisions waiting for Zainab: 33 (search "for Zainab to review" in LOG.md)
 - Fork: needs a push (VS Code: Git: Push to... → mine)
 
@@ -31,7 +31,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 6:52 PM
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
-- ⬜ Deploy on Dilmune Cloud
+- ✅ Deploy on Dilmune Cloud
 - ✅ Investigation (CASE-MAP.md)
 - ⬜ Findings report (FINDINGS.md)
 - ⬜ Presentation and submission
@@ -66,7 +66,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 6:52 PM
 
 ## 5. To hand in
 - ✅ Fork with the code and AI setup files
-- ⬜ Live URL
+- ✅ Live URL
 - ✅ Capacity estimate
 - ⬜ FINDINGS.md
 - ⬜ SUBMISSION.md with 3 transcript excerpts

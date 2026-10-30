@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
 Updated: 06:51 PM (30 Oct 2026)
-Summary: Errors 114/175 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Summary: Errors 114/175 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 2/2 done (F01 done; F02 live, /healthz at the edge waits for the redeploy) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d27ddf0; later fixes need a redeploy, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -100,7 +100,7 @@ Every line of CASE-FILE.md that names a problem or a requirement, and the entrie
 | Item 04 — fees and payouts come out right | F01a, F01d | Done |
 | Item 04 — shop gets the right webhook | F01c (+ E32 signature) | Done |
 | Item 04 — timeline, reports and reconciliation | F01b (timeline), F01e (E43), E60, E44 | Done |
-| Item 04 — live on Dilmune Cloud | F02 | Open (after E02) |
+| Item 04 — live on Dilmune Cloud | F02 | Done (healthz at the edge after the next redeploy, E164) |
 | Item 05 — correctness: load test, security review, hidden regression tests, findings report | all E entries; second bug hunt; /findings | In progress |
 | Item 05 — capacity: estimate, turn away excess, restart, no data loss | plan steps 2-3 (k6 installed) | Open |
 | Item 05 — hosting: 1 vCPU / 2 GB, API 0.5 vCPU / 512 MB | E02 plan | Open |
@@ -1558,7 +1558,7 @@ Open questions: who is `p@x` (needs host push logs or the pre-rewrite repo); is 
 - Required by: CASE-FILE.md Item 04 ("The app is live on Dilmune Cloud, our hosting provider").
 - Plan: /deploy. Needs E01, E51 and E02 first; health route; env names only.
 - Expected result: live URL answers `GET /healthz` with 200 (the API's route is /healthz, health.ts:13; there is no /health).
-- Status: open
+- Status: done, one step waiting — live at http://139.59.57.26/ and :8081 since commit d27ddf0; live end-to-end check 45 public + 29 logged-in checks OK (LOG §6). `GET /healthz` through nginx on port 80 gave 404 (E164); fixed in ops/nginx/nginx.conf and verified on the local stack; live after the next redeploy.
 
 ## 5. Fixes
 
