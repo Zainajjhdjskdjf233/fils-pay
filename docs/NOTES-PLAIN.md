@@ -931,3 +931,27 @@ Where: apps/api/src/payments/authorize.ts · Commit: f9f833b
 The site told browsers only "do not frame me". Now it tells them to load scripts and data only from FilsPay. We loaded the pages in Chrome to check nothing broke.
 
 Where: ops/nginx/nginx.conf · Commit: 8d4e7f7
+
+## N156 — A dev server stays private
+
+On a laptop, the API could be reached by anyone on the same Wi-Fi, and the seed printed full API keys. Now a dev API listens only on the laptop itself, and keys are masked. The live container still works; we rebuilt it locally to check.
+
+Where: apps/api/src/lib/listenHost.ts · Commit: 782ce36
+
+## N157 — One snapshot for reconciliation
+
+The reconciliation report read its eight numbers at slightly different moments, so a batch closing in between could show a false gap. Now all eight come from one snapshot. The full test suite passes.
+
+Where: apps/api/src/settlement/query.ts · Commit: 5170b9c
+
+## N158 — Refund summary counts each sale once
+
+My own refund summary doubled a sale's amount when it had two refunds. A new migration counts each sale once. A test with two refunds proves it.
+
+Where: db/migrations/0085_refund_summary_captured_once.sql · Commit: 797a8b2
+
+## N159 — Admin payouts send their notice
+
+Payouts started from the admin button did not tell the shop until the nightly job ran. Now the notice goes out right away, and it can never be sent twice. A test proves it.
+
+Where: apps/settlement/internal/internalapi/server.go · Commit: ff78296

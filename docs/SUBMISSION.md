@@ -285,7 +285,7 @@ Not changed (recorded): money columns are still left-aligned (29 cells in 10 fil
 ### Every error entry
 
 <!-- errors:start (generated from docs/ERRORS.md) -->
-All 176 entries from docs/ERRORS.md (146 of 176 fixed.). Each ID has its error (section 2) and, when fixed, its fix (section 5) in docs/LOG.md.
+All 176 entries from docs/ERRORS.md (148 of 176 fixed.). Each ID has its error (section 2) and, when fixed, its fix (section 5) in docs/LOG.md.
 
 | ID | Title | Level | Status |
 |---|---|---|---|
@@ -336,14 +336,14 @@ All 176 entries from docs/ERRORS.md (146 of 176 fixed.). Each ID has its error (
 | E45 | [second review] /v1/reporting/export-summary had no login check (always 500) | High | Fixed |
 | E46 | KYC "PDF only" rule checks the filename, not the content | Low | Fixed |
 | E47 | Admin console: session not rotated after OTP; no CSP | Low | Fixed |
-| E48 | Admin run-batch sends no payout notification; split payouts skip the lifetime estimate | Low | Open |
+| E48 | Admin run-batch sends no payout notification; split payouts skip the lifetime estimate | Low | Partly fixed |
 | E49 | settlement rebuild-balances --merchant never writes the cache | Low | Fixed |
 | E50 | Fee at capture ignores the negotiated discount that settlement applies | Medium | Partly fixed |
 | E51 | API and seed cannot start: built-in dev key is 34 bytes, check needs 32 | High | Fixed |
 | E52 | Every refund fails: code inserts reason = NULL, migration 0070 forbids NULL | High | Fixed |
 | E53 | One malformed outbox event stops the whole reporting consumer | Medium | Fixed |
 | E54 | Webhook backoff test always fails: test expects no jitter, code adds random ±10 % | Low | Fixed |
-| E55 | Seed prints API keys; API listens on every network interface | Low | Open |
+| E55 | Seed prints API keys; API listens on every network interface | Low | Fixed |
 | E56 | Go DB tests are flaky when packages run in parallel | Low | Open |
 | E57 | Bad input gives 500 instead of 400 (invalid JSON body, malformed UUID) | Low | Fixed |
 | E58 | Session vs impersonation order may mix identities (FP-198 comment) — not reproduced: a test with both cookies shows no mixing | Medium | Skipped |
@@ -355,7 +355,7 @@ All 176 entries from docs/ERRORS.md (146 of 176 fixed.). Each ID has its error (
 | E64 | [found later] Payout trends never show "paid" (settlement.paid not consumed) | Medium | Fixed |
 | E65 | [found later] The seed wipes real tables (incl. admin audit log) with no environment check | Medium | Fixed |
 | E66 | [found later] expire_holds can delete holds released between its SELECT and DELETE | Low | Fixed |
-| E67 | [found later] refund_merchant_summary counts captured once per refund; never refreshed (my F01e bug) | Low | Open |
+| E67 | [found later] refund_merchant_summary counts captured once per refund; never refreshed (my F01e bug) | Low | Partly fixed |
 | E68 | [found later] Seed adds the lifetime payout estimate in float32 | Low | Open |
 | E69 | [found later] Seeded fees ignore the seeded fee schedules (suspected) | Low | Open |
 | E70 | [found later] Seeded outbox events do not match the seeded history | Low | Open |
@@ -420,7 +420,7 @@ All 176 entries from docs/ERRORS.md (146 of 176 fixed.). Each ID has its error (
 | E129 | [deep review] Capture idempotency hash ignores the transaction id | Medium | Fixed |
 | E130 | [deep review] Failed link capture leaves the card authorization open | Medium | Fixed |
 | E131 | [deep review] Discount error after a paid link gives the buyer a 500 | Medium | Partly fixed |
-| E132 | [deep review] Reconciliation reads its figures from different snapshots | Low | Open |
+| E132 | [deep review] Reconciliation reads its figures from different snapshots | Low | Fixed |
 | E133 | [second review] Report filter JSON used without a shape check | Low | Fixed |
 | E134 | [coverage] A credit's effectiveDate has no range: a future date holds the payout for years, an old date lands in a closed period | High | Fixed |
 | E135 | [coverage] Single-merchant KYC review approves a merchant in any state | High | Fixed |

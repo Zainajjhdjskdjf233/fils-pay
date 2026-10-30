@@ -5435,3 +5435,136 @@ Scripts and data can only come from FilsPay itself.
 We checked the built apps for inline scripts and outside hosts, then loaded the pages in headless Chrome.
 
 Commit: 8d4e7f7
+
+## N156 — A dev server stays private
+
+### The idea
+The API listens on a network address. Like a shop door: in the mall (Docker) it must face the corridor; at home it should face only your own room.
+
+### The problem
+On a laptop the API listened on every network.
+- Anyone on the same Wi-Fi could reach it.
+- The seed also printed full API keys.
+
+### The fix
+- New listenHost.ts: localhost outside production, all addresses in production, HOST can override.
+- docker-compose.yml: HOST set for the API container.
+- The seed prints masked keys.
+
+### The code
+Before (apps/api/src/index.ts:23):
+```ts
+await app.listen({ port: config.port, host: "0.0.0.0" });
+```
+After:
+```ts
+await app.listen({ port: config.port, host: listenHost(process.env, config.nodeEnv) });
+```
+A laptop API stays private; the live container still answers nginx.
+
+### The proof
+- Before: "Server listening at http://192.168.100.103:3000".
+- After: the test picks localhost for dev; the rebuilt container is healthy behind nginx.
+
+### If the judges ask
+"Could this break the live site?"
+We set HOST in the compose file and rebuilt the API locally; nginx still reached it.
+
+Commit: 782ce36
+
+## N157 — One snapshot for reconciliation
+
+### The idea
+The reconciliation report adds up eight figures. Like counting a till: all counts must be from the same moment.
+
+### The problem
+Each figure was read separately, possibly at different moments.
+- A batch closing mid-report could show a false gap.
+
+### The fix
+- query.ts: all eight reads in one read-only transaction with one snapshot.
+
+### The code
+Before (apps/api/src/settlement/query.ts:315):
+```ts
+await Promise.all([ pool.query(...), pool.query(...), ... ])
+```
+After:
+```ts
+await snap.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY");
+results = await Promise.all([ snap.query(...), ... ]);
+```
+Every figure describes the same moment.
+
+### The proof
+- Before: possible one-off false gaps (timing race).
+- After: reconciliation tests 19/19; full regression 0 failures.
+
+### If the judges ask
+"Why no failing test first?"
+The race needs a batch to close between two reads; we cannot trigger it reliably, so the proof is by construction plus the full suite.
+
+Commit: 5170b9c
+
+## N158 — Refund summary counts each sale once
+
+### The idea
+A summary table lists refunds per shop per day, with the original sale amount. Like a refund log next to the sales total.
+
+### The problem
+My own earlier view added the sale amount once per refund.
+- Two refunds of one sale doubled the sale amount.
+
+### The fix
+- New migration 0085: the sale amount is counted once per transaction per day.
+
+### The code
+Before (db/migrations/0074_refund_reporting.sql:21):
+```sql
+SUM(t.captured_fils) AS original_captured_fils
+```
+After:
+```sql
+(SELECT COALESCE(SUM(t.captured_fils), 0) FROM day_transactions dt JOIN transactions t ON t.id = dt.transaction_id ...)
+```
+Each sale counts once, however many refunds it has.
+
+### The proof
+- Before: 20000 for one 10000 sale with two refunds.
+- After: 10000.
+
+### If the judges ask
+"Is anything still wrong with it?"
+Nothing refreshes the view on a schedule yet; that part is recorded as open.
+
+Commit: 797a8b2
+
+## N159 — Admin payouts send their notice
+
+### The idea
+When a shop is paid, it gets a "you were paid" message. Like a bank text after a transfer.
+
+### The problem
+Payouts started from the admin button sent no message at once.
+- Only the nightly job sent it, much later.
+
+### The fix
+- server.go: after an admin run, the same notice step the nightly job uses runs at once.
+
+### The code
+Before (apps/settlement/internal/internalapi/server.go:239): no notice step.
+After:
+```go
+if enqueued, nerr := settlement.EnqueuePayoutNotifications(r.Context(), pool); nerr != nil {
+```
+The shop hears about the payout right away.
+
+### The proof
+- Before: 0 notices after an admin run.
+- After: 1 notice; all Go tests pass.
+
+### If the judges ask
+"Could this send the notice twice?"
+No; the step skips batches already notified and runs under a lock (E30).
+
+Commit: ff78296

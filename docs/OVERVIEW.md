@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 7:58 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 8:05 PM
 
 ## Contents
 1. Status now
@@ -14,10 +14,10 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:58 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 146 of 176 fixed.
+- Errors: 148 of 176 fixed.
   - High: 46 of 46 fixed
   - Medium: 49 of 60 fixed
-  - Low: 51 of 70 fixed
+  - Low: 53 of 70 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
@@ -27,7 +27,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:58 PM
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 146 of 176 fixed.
+- 🔄 Fix: 148 of 176 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -74,6 +74,10 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:58 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- ff78296 fix(E48): admin run-batch enqueues payout notifications (partly fixed)
+- 797a8b2 fix(E67): refund summary counts captured once per transaction (migration 0085; partly fixed)
+- 5170b9c fix(E132): reconciliation figures come from one REPEATABLE READ snapshot
+- 782ce36 fix(E55): dev API listens on localhost only; seed prints masked keys
 - 8d4e7f7 fix(E47): full Content-Security-Policy on both nginx servers
 - f9f833b fix(E89): authorize idempotency hash excludes the full card number and CVV
 - 0715011 fix(E85): impersonation grants stop on admin disable or logout, with audit rows
@@ -85,10 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:58 PM
 - b7e67cf fix(E76): dashboard date filter uses midnight Bahrain, not UTC
 - 88ed92d fix(E146): login and signup rate limited per client IP (429 + Retry-After)
 - ac8951e fix(E143): ADMIN.md corrected — a webhook replay gets a new delivery id (kept by decision)
-- 9d753ab fix(E110): streaming CSV export pages on (occurred_at, id); no row skipped
-- c0350b1 fix(E151): refund validation caps refundable at captured and refuses fractional fils; E63 marked for review
-- 319790f fix(E65): the seed refuses to wipe tables without FILSPAY_ALLOW_SEED_RESET=1, never in production
-- 7c4a68d fix(E109): checkout paid time readable, credits load-more guarded, import total worded correctly (partly fixed)
 
 ## 7. All errors
 ## High (46 of 46 fixed)
@@ -207,7 +207,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:58 PM
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-### Low (51 of 70 fixed)
+### Low (53 of 70 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -215,15 +215,15 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:58 PM
 | E40 | withTransaction: a failing ROLLBACK hides the real error | Fixed |
 | E46 | KYC "PDF only" rule checks the filename, not the content | Fixed |
 | E47 | Admin console: session not rotated after OTP; no CSP | Fixed |
-| E48 | Admin run-batch sends no payout notification; split payouts skip the lifetime estimate | Open |
+| E48 | Admin run-batch sends no payout notification; split payouts skip the lifetime estimate | Partly fixed |
 | E49 | settlement rebuild-balances --merchant never writes the cache | Fixed |
 | E54 | Webhook backoff test always fails: test expects no jitter, code adds random ±10 % | Fixed |
-| E55 | Seed prints API keys; API listens on every network interface | Open |
+| E55 | Seed prints API keys; API listens on every network interface | Fixed |
 | E56 | Go DB tests are flaky when packages run in parallel | Open |
 | E57 | Bad input gives 500 instead of 400 (invalid JSON body, malformed UUID) | Fixed |
 | E59 | Acquirer callback outcome is never validated | Fixed |
 | E66 | [found later] expire_holds can delete holds released between its SELECT and DELETE | Fixed |
-| E67 | [found later] refund_merchant_summary counts captured once per refund; never refreshed (my F01e bug) | Open |
+| E67 | [found later] refund_merchant_summary counts captured once per refund; never refreshed (my F01e bug) | Partly fixed |
 | E68 | [found later] Seed adds the lifetime payout estimate in float32 | Open |
 | E69 | [found later] Seeded fees ignore the seeded fee schedules (suspected) | Open |
 | E70 | [found later] Seeded outbox events do not match the seeded history | Open |
@@ -258,7 +258,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:58 PM
 | E116 | [second review] Writer actor does not reject impersonation (defence in depth) | Fixed |
 | E126 | [second review] Pagination limits parsed with parseInt; NaN reaches SQL | Fixed |
 | E127 | [second review] Settlement date filters accept impossible dates | Fixed |
-| E132 | [deep review] Reconciliation reads its figures from different snapshots | Open |
+| E132 | [deep review] Reconciliation reads its figures from different snapshots | Fixed |
 | E133 | [second review] Report filter JSON used without a shape check | Fixed |
 | E149 | [coverage] Credit effectiveDate "0000-01-01" passes validation; Postgres likely refuses it (500) | Fixed |
 | E150 | [coverage] Balance adjustment returns 404 for a merchant with no balance row yet | Skipped |
@@ -283,7 +283,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:58 PM
 | E176 | [deep review] A redeploy stops settlement after 10 s, although it waits 30 s for a running batch | Fixed |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101 · N102 · N103 · N104 · N105 · N106 · N107 · N108 · N109 · N110 · N111 · N112 · N113 · N114 · N115 · N116 · N117 · N118 · N119 · N120 · N121 · N122 · N123 · N124 · N125 · N126 · N127 · N128 · N129 · N130 · N131 · N132 · N133 · N134 · N135 · N136 · N137 · N138 · N139 · N140 · N141 · N142 · N143 · N144 · N145 · N146 · N147 · N148 · N149 · N150 · N151 · N152 · N153 · N154 · N155
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101 · N102 · N103 · N104 · N105 · N106 · N107 · N108 · N109 · N110 · N111 · N112 · N113 · N114 · N115 · N116 · N117 · N118 · N119 · N120 · N121 · N122 · N123 · N124 · N125 · N126 · N127 · N128 · N129 · N130 · N131 · N132 · N133 · N134 · N135 · N136 · N137 · N138 · N139 · N140 · N141 · N142 · N143 · N144 · N145 · N146 · N147 · N148 · N149 · N150 · N151 · N152 · N153 · N154 · N155 · N156 · N157 · N158 · N159
 
 ### N01 — Database setup stopped halfway
 
@@ -5718,4 +5718,137 @@ Scripts and data can only come from FilsPay itself.
 We checked the built apps for inline scripts and outside hosts, then loaded the pages in headless Chrome.
 
 Commit: 8d4e7f7
+
+### N156 — A dev server stays private
+
+#### The idea
+The API listens on a network address. Like a shop door: in the mall (Docker) it must face the corridor; at home it should face only your own room.
+
+#### The problem
+On a laptop the API listened on every network.
+- Anyone on the same Wi-Fi could reach it.
+- The seed also printed full API keys.
+
+#### The fix
+- New listenHost.ts: localhost outside production, all addresses in production, HOST can override.
+- docker-compose.yml: HOST set for the API container.
+- The seed prints masked keys.
+
+#### The code
+Before (apps/api/src/index.ts:23):
+```ts
+await app.listen({ port: config.port, host: "0.0.0.0" });
+```
+After:
+```ts
+await app.listen({ port: config.port, host: listenHost(process.env, config.nodeEnv) });
+```
+A laptop API stays private; the live container still answers nginx.
+
+#### The proof
+- Before: "Server listening at http://192.168.100.103:3000".
+- After: the test picks localhost for dev; the rebuilt container is healthy behind nginx.
+
+#### If the judges ask
+"Could this break the live site?"
+We set HOST in the compose file and rebuilt the API locally; nginx still reached it.
+
+Commit: 782ce36
+
+### N157 — One snapshot for reconciliation
+
+#### The idea
+The reconciliation report adds up eight figures. Like counting a till: all counts must be from the same moment.
+
+#### The problem
+Each figure was read separately, possibly at different moments.
+- A batch closing mid-report could show a false gap.
+
+#### The fix
+- query.ts: all eight reads in one read-only transaction with one snapshot.
+
+#### The code
+Before (apps/api/src/settlement/query.ts:315):
+```ts
+await Promise.all([ pool.query(...), pool.query(...), ... ])
+```
+After:
+```ts
+await snap.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY");
+results = await Promise.all([ snap.query(...), ... ]);
+```
+Every figure describes the same moment.
+
+#### The proof
+- Before: possible one-off false gaps (timing race).
+- After: reconciliation tests 19/19; full regression 0 failures.
+
+#### If the judges ask
+"Why no failing test first?"
+The race needs a batch to close between two reads; we cannot trigger it reliably, so the proof is by construction plus the full suite.
+
+Commit: 5170b9c
+
+### N158 — Refund summary counts each sale once
+
+#### The idea
+A summary table lists refunds per shop per day, with the original sale amount. Like a refund log next to the sales total.
+
+#### The problem
+My own earlier view added the sale amount once per refund.
+- Two refunds of one sale doubled the sale amount.
+
+#### The fix
+- New migration 0085: the sale amount is counted once per transaction per day.
+
+#### The code
+Before (db/migrations/0074_refund_reporting.sql:21):
+```sql
+SUM(t.captured_fils) AS original_captured_fils
+```
+After:
+```sql
+(SELECT COALESCE(SUM(t.captured_fils), 0) FROM day_transactions dt JOIN transactions t ON t.id = dt.transaction_id ...)
+```
+Each sale counts once, however many refunds it has.
+
+#### The proof
+- Before: 20000 for one 10000 sale with two refunds.
+- After: 10000.
+
+#### If the judges ask
+"Is anything still wrong with it?"
+Nothing refreshes the view on a schedule yet; that part is recorded as open.
+
+Commit: 797a8b2
+
+### N159 — Admin payouts send their notice
+
+#### The idea
+When a shop is paid, it gets a "you were paid" message. Like a bank text after a transfer.
+
+#### The problem
+Payouts started from the admin button sent no message at once.
+- Only the nightly job sent it, much later.
+
+#### The fix
+- server.go: after an admin run, the same notice step the nightly job uses runs at once.
+
+#### The code
+Before (apps/settlement/internal/internalapi/server.go:239): no notice step.
+After:
+```go
+if enqueued, nerr := settlement.EnqueuePayoutNotifications(r.Context(), pool); nerr != nil {
+```
+The shop hears about the payout right away.
+
+#### The proof
+- Before: 0 notices after an admin run.
+- After: 1 notice; all Go tests pass.
+
+#### If the judges ask
+"Could this send the notice twice?"
+No; the step skips batches already notified and runs under a lock (E30).
+
+Commit: ff78296
 
