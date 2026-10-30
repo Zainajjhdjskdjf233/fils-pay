@@ -243,7 +243,17 @@ export async function payPaymentLink(
   // capture route does (routes/transactions.ts). MK's note above ("applied for
   // both now, moved into capture.ts") was false: only that route called it.
   // Idempotent per capture event (its own count guard).
-  await applyCaptureDiscountAdjustment(pool, { merchantId: link.merchantId, transactionId: txnId });
+  try {
+    await applyCaptureDiscountAdjustment(pool, { merchantId: link.merchantId, transactionId: txnId });
+  } catch (err) {
+    // E131: the buyer WAS charged and the link IS paid (committed above);
+    // never turn that into a 500. The adjustment is idempotent per capture
+    // event (discountAdjustment.ts, E124), so a later re-run is safe.
+    console.error(
+      `payPaymentLink: discount adjustment failed for transaction ${txnId} (merchant ${link.merchantId}) — retry needed`,
+      err,
+    );
+  }
 
   return {
     statusCode: 200,

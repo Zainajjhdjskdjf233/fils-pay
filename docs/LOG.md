@@ -1,6 +1,6 @@
 # LOG
 Mode: Competition
-Updated: 05:17 PM (30 Oct 2026)
+Updated: 05:19 PM (30 Oct 2026)
 Summary: Errors 89/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
@@ -1051,7 +1051,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 ### E131 — [deep review] A discount error after a paid link gives the buyer a 500
 - Where: apps/api/src/paymentLinks/pay.ts:246 `await applyCaptureDiscountAdjustment(...)` runs after the link is finalized and COMMITTED, outside any try.
 - Error: if it throws, the buyer was charged and the link is paid, but the buyer sees 500 and may try another card.
-- Severity: medium · Status: open
+- Severity: medium · Status: partly fixed (see section 5, E131; durable retry open)
 
 ### E132 — [deep review] Reconciliation reads its six figures from different snapshots
 - Where: apps/api/src/settlement/query.ts:304 `Promise.all([...pool.query...])`: each query may use a different connection and moment.
@@ -2341,6 +2341,12 @@ ROLLBACK;
 - Changed: apps/api/src/payments/capture.ts:94: hashRequest({ transactionId, amountFils }) (was amountFils only). The idempotency key is (merchant, endpoint, key), so the transaction was the missing part.
 - Test: routes/transactions.test.ts testE129_sameCaptureKeyOnAnotherTransactionIs422 (the case FH asked for at :218). Before: B's capture returned A's cached 200 (A's id) and B stayed uncaptured. After: PASS (422 idempotency_key_reused, B still authorized); payment tests 85/85 incl. payment-link retries.
 - fix-reviewer: APPROVE (link retries replay: same txnId → same hash; also stops the discount adjustment running on B after A's replay). Known one-time deploy effect: a key completed before the deploy and retried after it gets 422 instead of a replay — nothing is captured twice; a retry needs a new key.
+- check.sh: OK.
+
+### E131 — 05:19 PM — a discount error after a paid link no longer gives the buyer a 500
+- Changed: apps/api/src/paymentLinks/pay.ts:246-256: applyCaptureDiscountAdjustment is wrapped in try/catch after the commit; on error it logs "discount adjustment failed for transaction … — retry needed" and still answers 200 paid (the card was charged).
+- Test: apps/api/src/paymentLinks/pay.e131.test.ts. Before: `Error: discount db down` (the route would answer 500). After: PASS; payment-link tests 29/29.
+- fix-reviewer: APPROVE, with a condition we accept: a missed adjustment is not recoverable today (a replay of the pay request gets 409 already_paid; nothing else re-runs it). So E131 is PARTLY fixed. Open follow-up: a durable retry — a job that re-runs applyCaptureDiscountAdjustment where adjustments < capture events (safe: the E124 count rule makes it idempotent).
 - check.sh: OK.
 
 ## 6. Deploy

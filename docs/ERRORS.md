@@ -113,7 +113,7 @@ Summary: 89 of 163 fixed.
 | E128 | [deep review] Suspended merchant keeps sessions and API keys | Open |
 | E129 | [deep review] Capture idempotency hash ignores the transaction id | Fixed |
 | E130 | [deep review] Failed link capture leaves the card authorization open | Open |
-| E131 | [deep review] Discount error after a paid link gives the buyer a 500 | Open |
+| E131 | [deep review] Discount error after a paid link gives the buyer a 500 | Partly fixed |
 | E139 | [coverage] Capture and the status recompute disagree on a refunded, partly captured transaction | Open |
 | E140 | [coverage] Balance adjustment: a huge deltaFils gives 500, and there is no upper limit | Fixed |
 | E141 | [coverage] Credit: a huge baseAmountFils with reverseFee gives 500 | Fixed |
