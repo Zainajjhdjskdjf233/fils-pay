@@ -74,6 +74,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:59 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- 8720dd6 fix(E62): reporting cursor read locked (FOR UPDATE) so concurrent passes cannot double count
 - 383d417 fix(E133): report filter JSON checked (object, UUID, status, real dates) before use: 400, not 500
 - 26856d3 fix(E45): export-summary requires a merchant login (second review item 29; re-rated High)
 - d97de16 fix(E121): credits and balance adjustments are paid through the daily batch (negative ones carry like refunds)
@@ -88,7 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:59 PM
 - d7d17b2 fix(E02): Docker stack within 1 vCPU/2 GB — Dockerfiles, compose limits, restarts, health checks, volumes, per-service DB roles
 - 0cf9a60 fix(E99,E105): one Idempotency-Key per capture/refund attempt; new key only after a definite 4xx
 - 850275f fix(E104): bulk KYC approval only approves under_review merchants; selection cleared on filter change
-- 0d04c29 fix(E102): merchant OTP verify re-issues the session cookie for 12 h; dashboard goes to login on 401
 
 ## 7. All errors
 ## High (39 of 40 fixed)
@@ -2879,5 +2879,5 @@ FOR UPDATE holds the bookmark row until the run commits.
 "Didn't the code already guard against this?"
 Only inside one process (a `running` flag). Catch-up and rebuild are separate processes, so the comment saying it was safe was false.
 
-Commit: PENDING_N71
+Commit: 8720dd6
 

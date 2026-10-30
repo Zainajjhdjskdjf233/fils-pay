@@ -426,4 +426,4 @@ Where: apps/web/src/pages/checkout/CheckoutPage.css:44 · Commit: b22520f
 
 The reporting worker keeps a bookmark of how far it has read. When two runs started at the same moment, both read the same bookmark and both added the same payments, so totals doubled. Now the bookmark is locked while one run works, and the other waits its turn. A test runs two at once and shows each payment counted once.
 
-Where: apps/reporting/src/consumer/cursor.ts:40 · Commit: PENDING_N71
+Where: apps/reporting/src/consumer/cursor.ts:40 · Commit: 8720dd6

@@ -2639,4 +2639,4 @@ FOR UPDATE holds the bookmark row until the run commits.
 "Didn't the code already guard against this?"
 Only inside one process (a `running` flag). Catch-up and rebuild are separate processes, so the comment saying it was safe was false.
 
-Commit: PENDING_N71
+Commit: 8720dd6
