@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 07:53 PM (30 Oct 2026)
-Summary: Errors 144/176 fixed (+11 partly: E50, E92, E101, E131, E145, E163, E47, E86, E94, E96, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 07:55 PM (30 Oct 2026)
+Summary: Errors 145/176 fixed (+11 partly: E50, E92, E101, E131, E145, E163, E47, E86, E94, E96, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -804,7 +804,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/payments/authorize.ts:51-55 → idempotency.ts:65-66, :118 (request_hash of the canonical request incl. card)
 - Error: offline brute force of PAN+CVV is small; storing CVV in any form breaks PCI DSS. Low only because the acquirer is simulated.
 - Proof: code read (security-review agent (12:59 PM); checked by me).
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E89)
 
 ### E90 — [found later] KYC download puts the raw upload filename into Content-Disposition
 - Where: apps/api/src/routes/kyc.ts:98, :115 `filename="${file.fileName}"`
@@ -2812,6 +2812,12 @@ ROLLBACK;
 - Changed: apps/api/src/admin/impersonation.ts lookupImpersonationGrant also requires admin_users.status = 'active' (FH's comment 'revoked_at gets set by the admin-disable trigger' is false: no such trigger exists). New endAllImpersonationsForAdmin(client, adminUserId, 'logout') ends live grants and writes one impersonation_end audit row each; apps/api/src/routes/adminAuth.ts /logout calls it in one transaction with revokeAdminSession.
 - Before: testE85_grantStopsOnAdminDisableOrLogout (admin.test.ts) → `disable: the grant must stop working (200)`. After: 401 after disable and after logout; the logout writes an audit row with reason 'logout'. Admin suites 48/48.
 - Second review (Copilot): not run — copilot not found (LOG line 1567). fix-reviewer: CHANGES NEEDED on my first version — the logout UPDATE wrote no audit row (grants that start but never end in the trail), ran outside the session-revoke transaction, and also stamped already-expired grants. Our answer: agree — all three fixed before committing. Known limit it noted: disabling an admin stops the grant (lookup check) but writes no ended_at or audit row.
+- check.sh (clean environment): OK. Needs a redeploy.
+
+### E89 — 07:55 PM — the authorize idempotency hash no longer covers the full card number or the CVV [found later]
+- Changed: apps/api/src/payments/authorize.ts: new authorizeRequestHash() hashes amount, card {last4, expiryMonth, expiryYear} and reference; authorizeTransaction uses it (the payment-link pay path calls authorizeTransaction, pay.ts:113, so it is covered too).
+- Before: apps/api/src/payments/authorize.e89.test.ts could not run (no such function); the stored request_hash was sha256 of canonical JSON including pan and cvv (idempotency.ts:65-66). After: changing the CVV does not change the hash; a different amount or last 4 still does. 1/1; payment suites 76/76.
+- Second review (Copilot): not run — copilot not found (LOG line 1567). fix-reviewer: APPROVE; nothing else stores or logs the card (transaction rows, saved responses, pay.ts logs); a different card with the same last4+expiry and the same key now replays the saved response (the key decides, as with Stripe); an older key retried after the deploy gets 422 once; rows stored before the fix still hold PAN+CVV hashes (residual: clear request_hash for old authorize rows with a migration, or let them age out). Our answer: agree; also moved the old docblock back onto authorizeTransaction as it suggested.
 - check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy

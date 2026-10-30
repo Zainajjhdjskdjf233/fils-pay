@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 144 of 176 fixed.
+Summary: 145 of 176 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -131,7 +131,7 @@ Summary: 144 of 176 fixed.
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-## Low (49 of 70 fixed)
+## Low (50 of 70 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -163,7 +163,7 @@ Summary: 144 of 176 fixed.
 | E86 | [found later] Dashboard dev proxy forwards /v1/admin; shared cookie jar | Partly fixed |
 | E87 | [found later] No anti-framing headers on dashboard and checkout | Fixed |
 | E88 | [found later] Read-only impersonation and API keys can write saved filters | Fixed |
-| E89 | [found later] Unsalted SHA-256 of card number and CVV stored | Open |
+| E89 | [found later] Unsalted SHA-256 of card number and CVV stored | Fixed |
 | E90 | [found later] KYC download puts the raw filename into a header | Fixed |
 | E94 | [found later] Settlement internal API: plain HTTP on all interfaces; weak token accepted | Partly fixed |
 | E95 | [found later] Internal settlement errors returned to admin browsers | Fixed |

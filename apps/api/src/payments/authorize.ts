@@ -35,6 +35,20 @@ export interface AuthorizeResult {
 }
 
 /**
+ * E89: the idempotency hash is stored in idempotency_keys. It must never be
+ * computed over the full card number or the CVV (PCI DSS: CVV is never stored
+ * in any form; an unsalted SHA-256 of a 16-digit PAN is brute-forceable).
+ * Last 4 digits + expiry still tell a retry from a different card.
+ */
+export function authorizeRequestHash(input: Pick<AuthorizeInput, "amountFils" | "card" | "reference">): string {
+  return hashRequest({
+    amountFils: input.amountFils,
+    card: { last4: input.card.pan.slice(-4), expiryMonth: input.card.expiryMonth, expiryYear: input.card.expiryYear },
+    reference: input.reference ?? null,
+  });
+}
+
+/**
  * `POST /v1/transactions` business logic. One `withTransaction`: claim
  * idempotency -> check merchant approval -> call the acquirer -> on
  * approval, insert the transaction + hold + 'authorized' event. A decline or
@@ -48,11 +62,7 @@ export async function authorizeTransaction(
   input: AuthorizeInput,
 ): Promise<AuthorizeResult> {
   const actor = input.actor ?? { type: "system" as const, id: null };
-  const requestHash = hashRequest({
-    amountFils: input.amountFils,
-    card: input.card,
-    reference: input.reference ?? null,
-  });
+  const requestHash = authorizeRequestHash(input);
 
   return withTransaction(pool, async (client) => {
     const claim = await claimIdempotencyKey(client, {
