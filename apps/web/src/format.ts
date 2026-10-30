@@ -26,15 +26,22 @@ export function dateTime(iso: string | null | undefined): string {
 
 /**
  * An `<input type="date">` value (YYYY-MM-DD) as a full ISO instant at the
- * UTC day boundary — what the `from`/`to` transaction filters take. No
+ * Bahrain day boundary (E76; was UTC) — what the `from`/`to` transaction filters take. No
  * timezone picker and no business-day conversion: those filters compare
  * `occurred_at` directly, so pretending otherwise here would invent a
  * precision the endpoint doesn't have.
  */
 // YA: UTC day boundary, NOT Bahrain. filters are 3h off vs settlement days. known.
 // fixed, uses bahrain time now — am
+// E76: YA was right and "fixed" was false. Now midnight in Bahrain (UTC+3, no
+// daylight saving), the same day rule as settlement; impossible dates → undefined.
 export function dayStartIso(dateValue: string): string | undefined {
-  return dateValue ? `${dateValue}T00:00:00.000Z` : undefined;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) return undefined;
+  const instant = new Date(`${dateValue}T00:00:00.000+03:00`);
+  if (Number.isNaN(instant.getTime())) return undefined;
+  // Reject roll-over dates such as 2026-02-30 (Date turns them into 2 March).
+  if (new Date(instant.getTime() + 3 * 3_600_000).toISOString().slice(0, 10) !== dateValue) return undefined;
+  return instant.toISOString();
 }
 
 /**

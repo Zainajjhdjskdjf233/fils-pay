@@ -26,6 +26,7 @@ const SEARCH_DEBOUNCE_MS = 300;
  * browser, which would both lie about the result count and break pagination.
  */
 // YA: from/to are UTC day starts, see dayStartIso
+// E76: now Bahrain day starts (format.ts dayStartIso).
 export function TransactionListPage() {
   const [statuses, setStatuses] = useState<TransactionStatus[]>([]);
   const [from, setFrom] = useState("");

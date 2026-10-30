@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 07:41 PM (30 Oct 2026)
-Summary: Errors 139/176 fixed (+9 partly: E50, E92, E131, E145, E163, E47, E86, E94, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 07:42 PM (30 Oct 2026)
+Summary: Errors 140/176 fixed (+9 partly: E50, E92, E131, E145, E163, E47, E86, E94, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -725,7 +725,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/web/src/format.ts:37 `${dateValue}T00:00:00.000Z`; false comment :35 "fixed, uses bahrain time now — am"
 - Error: 00:00-03:00 Bahrain activity shows under the previous day; the list disagrees with settlement batches (ADR-0003 daily rule, CASE-FILE midnight Bahrain).
 - Proof: code read (ADR check agent (12:58 PM); checked by me).
-- Severity: medium · Status: open
+- Severity: medium · Status: fixed (see section 5, E76)
 
 ### E77 — [found later] Float and toFixed on money in the batch detail page
 - Where: apps/web/src/pages/settlement/SettlementBatchDetailPage.tsx:84 `parseFloat((batch.grossFils / 10000).toFixed(2))`
@@ -2769,6 +2769,12 @@ ROLLBACK;
 - Before: apps/api/src/routes/authRateLimit.e146.test.ts (limit 5) — the 6th login from one IP was still 401. After: 429 with Retry-After; another IP 401; signup from the limited IP 429. Full regression on a fresh DB with the change: api 511/511, money 44/44, events 4/4, reporting 20/20, web 13/13, scripts 11/11, Go 83, failing 0.
 - Side effect (good): sessions.ip_address now stores the client address, not the nginx container's.
 - Second review (Copilot): not run — copilot not found (LOG line 1567). fix-reviewer: APPROVE; trustProxy safe here (only nginx is published; settlement on the internal network is trusted); nothing reads request.hostname/protocol; load shedding runs before the preHandler; suggested a hard memory cap and a higher default than 60 for a grader on one IP. Our answer: agree, both taken (120/min; clear the map if still over 10,000 after a sweep).
+- check.sh (clean environment): OK. Needs a redeploy.
+
+### E76 — 07:42 PM — the dashboard transaction date filter uses Bahrain days, like settlement
+- Changed: apps/web/src/format.ts dayStartIso: midnight at UTC+3 (e.g. 2026-09-12 → 2026-09-11T21:00:00.000Z); a malformed or roll-over date (2026-02-30) is not sent. The false comment ('fixed, uses bahrain time now — am') is kept with a correction; YA's note was right. Comment in TransactionListPage.tsx updated.
+- Test changed: apps/web/src/dashboard.test.ts 'dayStartIso converts a date input to a UTC day boundary' pinned the bug. Now it expects the Bahrain boundary and refuses 2026-02-30. Before: fail. After: web tests 13/13; web tsc clean.
+- The API's from/to stay instants (parseOptionalDate needs a zone; this sends Z), so no API change.
 - check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy
