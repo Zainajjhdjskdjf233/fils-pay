@@ -43,7 +43,8 @@ test("testE133_badReportFilterIs400", async () => {
     const res = await call(bad);
     assert.equal(res.statusCode, 400, `filter ${bad}: ${res.statusCode} ${res.body}`);
   }
-  for (const good of ["{}", '{"status":"captured"}', '{"from":"2026-03-01","to":"2026-04-01"}', '{"from":"2026-03-01T00:00:00+03:00"}']) {
+  // E170: partially_refunded is a valid status (0043:15); my E133 list left it out.
+  for (const good of ["{}", '{"status":"captured"}', '{"status":"partially_refunded"}', '{"from":"2026-03-01","to":"2026-04-01"}', '{"from":"2026-03-01T00:00:00+03:00"}']) {
     const res = await call(good);
     assert.equal(res.statusCode, 200, `filter ${good}: ${res.body}`);
   }

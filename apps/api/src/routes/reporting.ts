@@ -89,7 +89,8 @@ export async function reportingRoutes(app: FastifyInstance): Promise<void> {
   });
 }
 
-const REPORT_STATUSES = ["authorized", "captured", "partially_captured", "voided", "refunded", "chargeback"];
+// E170: partially_refunded too (0043:15); the E133 list left it out.
+const REPORT_STATUSES = ["authorized", "captured", "partially_captured", "voided", "partially_refunded", "refunded", "chargeback"];
 /**
  * E133 (second review, item 30): the parsed filter went straight into the
  * report query. Wrong shape, types, status or dates gave 500 from Postgres or

@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 06:18 PM (30 Oct 2026)
-Summary: Errors 97/175 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 06:19 PM (30 Oct 2026)
+Summary: Errors 98/175 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1277,7 +1277,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 ### E170 — [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded
 - Where: apps/api/src/routes/reporting.ts:92 REPORT_STATUSES lacks 'partially_refunded', which 0043:15 allows (my commit 383d417).
 - Proof: the second review (items 71, notes received 5:30 PM / 6:15 PM); checked by me in the code (06:18 PM).
-- Severity: medium · Status: open
+- Severity: medium · Status: fixed (see section 5, E170)
 
 ### E171 — [second review] No cap on saved filters per merchant; the list returns every row
 - Where: apps/api/src/reporting/savedFilters.ts (no count check; the comment at :45-46 claiming a cap is false; GET :48 unpaged).
@@ -2471,6 +2471,12 @@ ROLLBACK;
 - Test: no automated test for nginx config; proof on the local Docker stack: before `200 text/html` (index.html), after `{"status":"ok",…}` 200 application/json and `{"status":"ready"}`; / still serves the web app; /v1/admin still 404.
 - Live: needs a redeploy (ops/deploy.sh) after Zainab pushes.
 - Found by: the live end-to-end check (45 public + 29 logged-in checks; this was the only real failure).
+
+### E170 — 06:19 PM — the report filter accepts partially_refunded (regression from my E133 fix)
+- Changed: apps/api/src/routes/reporting.ts:92 REPORT_STATUSES adds 'partially_refunded' (0043:15 allows it; my E133 list, commit 383d417, left it out).
+- Test: routes/reporting.e133.test.ts now also expects {"status":"partially_refunded"} → 200. Before: 400. After: PASS; reporting tests pass.
+- Found by: the second review (item 71).
+- check.sh: OK.
 
 ## 6. Deploy
 
