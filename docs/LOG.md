@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 11:57 AM (30 Oct 2026)
-Summary: Errors 44/60 fixed (+2 partly: E13, E31; same count as docs/ERRORS.md) · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
+Updated: 11:59 AM (30 Oct 2026)
+Summary: Errors 45/60 fixed (+1 partly: E13; same count as docs/ERRORS.md) · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -361,7 +361,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: medium
 - Proposed fix: `SUM(te.amount_fils)`; add an index.
 - Expected result: multi-capture merchant total equals real captures.
-- Status: over-count fixed (see section 5); speed not measured
+- Status: fixed (over-count 0be550a; speed part see section 5)
 
 ### E32 — FP-240a: outgoing webhooks sign different bytes than they send
 - Where: apps/api/src/webhooks/sign.ts:36; webhooks/dispatcher.ts:158, :172; testSend.ts:57,62
@@ -1312,6 +1312,15 @@ ROLLBACK;
 - Decision (for Zainab to review): this replaces the earlier "leave rate source open" decision (E19, 23e2f73) — storing the bonus makes the old rate reproducible for new batches. Batches closed before 0080 have bonus 0 (same as before this fix). For a merchant that has fee_schedules rows, a rate change must be entered as a new schedule row; editing merchants.mdr_bps alone no longer changes its recalculation.
 - Regression: full-db-test.sh = baseline v3; Go 74 pass.
 - Actual result: recalculation with no rate change changes nothing.
+
+### E31 (speed part) — 11:59 AM — measured, and an index for the capture-time scan
+- Measured on a throwaway DB shaped like docs/perf/2026-07-settlement-summary-slow.md (409,140 events; one merchant with 41,380 June transactions × 3 partial captures; 20 other merchants):
+  - Over-count at full size: old query total 1,117,260,000 fils vs real 372,420,000 (3×) — fixed by 0be550a.
+  - Speed on this Mac (parallel): old 33-35 ms, new 33-34 ms — the 3.4 s in the doc came from the 0.5-vCPU host; not reproducible here.
+  - Serial plan (`max_parallel_workers_per_gather = 0`, closer to 0.5 vCPU): no index 65-67 ms (Seq Scan on transaction_events); with the new partial covering index 51-54 ms (Bitmap Index Scan).
+- Changed: db/migrations/0081_transaction_events_capture_time_idx.sql (partial index on occurred_at INCLUDE transaction_id, amount_fils for capture events).
+- Honest limit: about 20 % faster at this size; the main benefit is that the work is bounded by the date window instead of growing with all history. Not load-tested on the 0.5-vCPU limit (that comes with /deploy and the capacity test).
+- Regression: full-db-test.sh = baseline v3.
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)

@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 44 of 60 fixed.
+Summary: 45 of 60 fixed.
 
 ## High (25 of 27 fixed)
 
@@ -47,7 +47,7 @@ Summary: 44 of 60 fixed.
 | E51 | API and seed cannot start: built-in dev key is 34 bytes, check needs 32 | Fixed |
 | E52 | Every refund fails: code inserts reason = NULL, migration 0070 forbids NULL | Fixed |
 
-## Medium (18 of 21 fixed)
+## Medium (19 of 21 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -56,7 +56,7 @@ Summary: 44 of 60 fixed.
 | E24 | Lifetime payout estimate drifts (float32) | Fixed |
 | E25 | Platform volume counter overflows int32 | Fixed |
 | E27 | FP-201 (reopened): same acquirer callback stored twice | Fixed |
-| E31 | Reconciliation report query is slow and over-counts | Partly fixed |
+| E31 | Reconciliation report query is slow and over-counts | Fixed |
 | E32 | FP-240a: outgoing webhooks sign different bytes than they send | Fixed |
 | E33 | Math.random for OTP codes and payment link tokens | Fixed |
 | E34 | OTP attempt limit can be bypassed | Fixed |
