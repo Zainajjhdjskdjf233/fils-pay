@@ -71,13 +71,20 @@ export async function recordKycDocument(
   const sha256 = sha256Hex(input.buffer);
   const storageKey = join(input.merchantId, `${sha256}.${extensionFor(detected)}`);
   const fullPath = join(config.kycUploadDir, storageKey);
+  const mimeType = mimeTypeFor(detected);
+
+  // E147: decode first, so a broken image is refused (422) before anything is
+  // written to disk (it used to be written, then sharp threw → 500 + orphan).
+  let thumbnail: Awaited<ReturnType<typeof generateKycThumbnail>>;
+  try {
+    thumbnail = await generateKycThumbnail(input.buffer, detected);
+  } catch {
+    throw new UnprocessableEntityError("invalid_image", "the image could not be read");
+  }
+
   await mkdir(join(config.kycUploadDir, input.merchantId), { recursive: true });
   // written before the db insert, a failed insert leaves an orphan in ./data/kyc — am
   await writeFile(fullPath, input.buffer);
-
-  const mimeType = mimeTypeFor(detected);
-
-  const thumbnail = await generateKycThumbnail(input.buffer, detected);
   let thumbnailStorageKey: string | null = null;
   if (thumbnail) {
     thumbnailStorageKey = join(input.merchantId, `${sha256}.thumb.jpg`);

@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 06:31 PM (30 Oct 2026)
-Summary: Errors 107/175 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 06:32 PM (30 Oct 2026)
+Summary: Errors 108/175 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1145,7 +1145,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/onboarding/kyc.ts:76 writes the file, :80 runs sharp, :87 inserts the row.
 - Error: `FF D8 FF` + 100 bytes named id.jpg passes the magic check, sharp throws → 500, the file stays in /data/kyc with no DB row.
 - Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
-- Severity: medium · Status: open
+- Severity: medium · Status: fixed (see section 5, E147)
 
 ### E148 — [coverage] No limit on KYC uploads per merchant: the shared disk can be filled
 - Where: apps/api/src/routes/kyc.ts:38-77; onboarding/kyc.ts:71-76.
@@ -2550,6 +2550,13 @@ ROLLBACK;
 - Test: apps/api/src/routes/adminSettlement.e173.test.ts (4 cases). Before: `run-batch {"date":"2026-02-30"}: 502` (reached the settlement call). After: PASS.
 - Existing test adjusted: admin.test.ts "run-batch: a failing call…" used a random merchant id; it now uses a real merchant (it tests the failure path, not merchants). admin tests pass.
 - Found by: the second review (items 84, 87, 88).
+- check.sh: OK.
+
+### E147 — 06:32 PM — a broken image upload is refused (422) before anything is written to disk
+- Changed: apps/api/src/onboarding/kyc.ts: the thumbnail (sharp decode) runs before mkdir/writeFile; a decode error → 422 invalid_image (was: original written, then sharp threw → 500 and an orphan file). An over-limit image still gets no thumbnail and is stored (E137).
+- Decision (Zainab to review): refuse a broken image instead of storing it without a thumbnail — a reviewer cannot open it either. Risk noted by the planner: sharp may refuse slightly truncated phone JPEGs that viewers still open.
+- Still open (recorded): an orphan file remains if the DB insert fails after writeFile (comment at kyc.ts:75).
+- Test: apps/api/src/onboarding/kyc.e147.test.ts (FF D8 FF + 100 bytes). Before: raw sharp error, not 422. After: PASS, no file left; onboarding and app tests pass.
 - check.sh: OK.
 
 ## 6. Deploy
