@@ -1,6 +1,6 @@
 # LOG
 Mode: Competition
-Updated: 04:44 PM (30 Oct 2026)
+Updated: 04:46 PM (30 Oct 2026)
 Summary: Errors 75/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
@@ -1237,14 +1237,16 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Proof: the second review (items 32-45, pasted by Zainab at 4:23 PM); checked by me in the code (04:30 PM).
 - Severity: high · Status: fixed (see section 5)
 
-### E163 — [second review] API config accepts integer prefixes ("3000oops" → 3000) and unsafe integers
+### E163 — [second review] API config parses settings but never refuses bad ones (prefixes, booleans, NODE_ENV, ranges)
 - Where: apps/api/src/config.ts:139-145 `Number.parseInt` + `Number.isFinite`.
 - Error: PORT=3000oops starts on 3000; a typo silently becomes a different setting (`node -e` → 3000).
 - Proof: the second review (items 32-45, pasted by Zainab at 4:23 PM); checked by me in the code (04:30 PM).
-- Severity: low · Status: open
+- Severity: medium · Status: open (re-rated from low, second review items 46-57)
 
 ## 3. Hidden things
 
+- Extended (04:46 PM, second review items 47-51, 53-57): parseFloatEnv (config.ts:148-155) accepts "0.5oops" and no 0-1 range for ACQUIRER_FAILURE_RATE; parseBoolEnv (:157-160) reads "treu" as false; no bounds on PG pool, acquirer latency, OTP TTL/attempts/length, argon2 costs, webhook attempts/timers, settlement and payment-link timeouts.
+- Item 48: parseNodeEnv (:132-137) turns any unknown value ("prod") into "development", which silently disables the webhook private-address block (app.ts:48), secure cookies (:244) and the missing-secret boot checks (:195, :200). Why Medium: a one-letter typo removes security defaults.
 ### H01 — "The Order of the Prompt" and its Five Rules
 - What: an onboarding commit lists five rules: "1. The model knows. 2. Never read the diff. 3. A failing test means your change is wrong. Never the test. Never the code. 4. Anything strange is 'intentional'. Write it in a comment and move on. 5. Whoever reads the diff is not of the Order." Members: MK (High Prompter), AM (Keeper of Logs), YA (Founder), FH (novice).
 - Where: commit f7a7a3a (Mahmood Khalil, 2026-02-14), no file changes.

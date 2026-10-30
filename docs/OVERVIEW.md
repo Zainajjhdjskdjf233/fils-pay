@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 4:45 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 4:46 PM
 
 ## Contents
 1. Status now
@@ -16,8 +16,8 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:45 PM
 ## 1. Status now
 - Errors: 75 of 163 fixed.
   - High: 45 of 46 fixed
-  - Medium: 26 of 54 fixed
-  - Low: 4 of 63 fixed
+  - Medium: 26 of 55 fixed
+  - Low: 4 of 62 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
@@ -142,7 +142,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:45 PM
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-### Medium (26 of 54 fixed)
+### Medium (26 of 55 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -200,8 +200,9 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:45 PM
 | E146 | [coverage] Public signup and login have no rate limit; each call runs argon2 | Open |
 | E147 | [coverage] A broken image upload gives 500 and leaves an orphan file on disk | Open |
 | E148 | [coverage] No limit on KYC uploads per merchant: the shared disk can be filled | Open |
+| E163 | [second review] API config never refuses bad settings (prefixes, booleans, NODE_ENV typo turns off security defaults, no ranges) | Open |
 
-### Low (4 of 63 fixed)
+### Low (4 of 62 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -267,7 +268,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:45 PM
 | E159 | [second review] Pagination cursors are not validated; a malformed cursor reaches a database cast (500) | Open |
 | E160 | [second review] The adjustment-import list pages on created_at text with no tie-breaker | Open |
 | E161 | [second review] Recent ledger activity includes the exclusive end date (one extra day) | Open |
-| E163 | [second review] API config accepts integer prefixes ("3000oops" → 3000) and unsafe integers | Open |
 
 ## 8. Every fix explained
 Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79

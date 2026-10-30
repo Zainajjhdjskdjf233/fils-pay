@@ -9,7 +9,7 @@ Judge notes J26 and J27). Entries from it carry the tag **[second review]**.
 
 | | Count |
 |---|---|
-| Items in the second review | 45 (24 + 7 + 14 later) |
+| Items in the second review | 57 (24 + 7 + 14 + 12 later) |
 | Already in our list (matched to an entry) | 14 |
 | Real and new, recorded as [second review] | 10 (E110-E116, E125-E127) |
 | Not real | 0 |
@@ -129,3 +129,19 @@ changes are in a separate copy, not in this fork. Only the findings are used her
 Totals for 32-45: 5 new (E159-E163; one High), 1 extension (E126), 7 already ours, 1 disagreement (36).
 Across all 45 items: 16 entries new to us (E110-E116, E125-E127, E133, E159-E163), plus item 29, which
 showed the real root cause of our E45.
+
+## Items 46-57 (final notes, checked 04:46 PM)
+
+| # | Item (shortened) | Checked in the code | Our entry |
+|---|---|---|---|
+| 46 | Reporting consumer could skip a late-committing outbox event | Already fixed: our cursor is (txid, id) below pg_snapshot_xmin (apps/reporting/src/consumer/cursor.ts, commit of E42) | E42 (fixed) |
+| 47 | Failure rate parsed with parseFloat, no 0-1 range | Real: apps/api/src/config.ts:148-155 | E163 (extended) |
+| 48 | Unknown NODE_ENV silently becomes "development" | Real: config.ts:132-137. Same root cause as E163, more impact: a typo like "prod" turns off the webhook private-address block (app.ts:48), secure cookies (config.ts:244) and the missing-secret checks (:195, :200). Related to E37 only by history (E37's fix no longer depends on NODE_ENV). | E163 (extended, re-rated Medium) |
+| 49 | Booleans: anything but "true"/"1" is false | Real: config.ts:157-160 | E163 (extended) |
+| 50 | Pool bounds not checked | Real: config.ts:209, :215 (parseIntEnv only) | E163 (extended) |
+| 51 | Acquirer latency range not checked | Real: same parser, no range | E163 (extended) |
+| 52 | Inbound acquirer signature not constant-time | Already fixed: apps/api/src/webhooks/inboundVerify.ts:49 uses timingSafeEqual (602aff0) | E08 (fixed) |
+| 53-57 | OTP, argon2, webhook attempts, webhook timers, settlement/payment-link timeouts not range-checked | Real: config.ts parseIntEnv everywhere, no bounds | E163 (extended) |
+
+Totals for 46-57: 0 new entries; 10 items extend E163 (one root cause: config values are parsed but never range-checked or refused), 2 already fixed (E42, E08).
+Across all 57 items: 16 entries new to us (unchanged: E110-E116, E125-E127, E133, E159-E163).
