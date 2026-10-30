@@ -210,4 +210,4 @@ Where: apps/api/src/acquirer/callbacks.ts:50 · Commit: 8fd0c90
 
 When a payment was collected in two parts, the settlement summary counted the full payment once for each part, so 10 BD showed as 20 BD. We now add up the amount of each part instead. A test that collects 4 BD and then 6 BD now shows 10 BD.
 
-Where: apps/api/src/settlement/query.ts:408 · Commit: PENDING_N35
+Where: apps/api/src/settlement/query.ts:408 · Commit: 0be550a
