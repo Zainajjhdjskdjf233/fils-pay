@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 07:02 PM (30 Oct 2026)
-Summary: Errors 120/175 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 2/2 done (F01 done; F02 live, /healthz at the edge waits for the redeploy) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d27ddf0; later fixes need a redeploy, LOG §6) · CHECKPOINT reached
+Updated: 07:03 PM (30 Oct 2026)
+Summary: Errors 121/175 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 2/2 done (F01 done; F02 live, /healthz at the edge waits for the redeploy) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d27ddf0; later fixes need a redeploy, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -825,7 +825,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: scripts/lib/sqlFilter.ts:8,13,17,21,30 (`continue` on null/undefined; `DELETE FROM ${table} ${clause}`)
 - Error: `buildDelete("holds", { id: undefined })` → `DELETE FROM holds`; keys/table are not quoted (injection if they ever come from input). E12 covered empty arrays only.
 - Proof: agent ran it (scratchpad/sqlf.ts): `{"text":"DELETE FROM holds","values":[]}`.
-- Severity: medium · Status: open
+- Severity: medium · Status: fixed (see section 5, E93)
 
 ### E94 — [found later] Settlement internal API: plain HTTP on all interfaces; token strength not checked
 - Where: apps/settlement/internal/internalapi/server.go:135 (binds "":8091); apps/api/src/config.ts:185-187 (only empty token rejected); docs say the token is "dev-token" (ARCHITECTURE.md:90, ops/README.md:61)
@@ -2642,6 +2642,11 @@ ROLLBACK;
 - Before: testE59_unknownOutcomeIs400AndStoresNothing — a correctly signed callback with outcome 'approved_by_magic' was accepted and stored. After: 400 and 0 notes. Callback suites 18/18.
 - Small single check: no fix-reviewer.
 - check.sh (clean environment): OK. Needs a redeploy.
+
+### E93 — 07:03 PM — sqlFilter refuses a DELETE with no WHERE and refuses table/column names that are not plain identifiers
+- Changed: scripts/lib/sqlFilter.ts: assertIdentifier() (/^[a-z_][a-z0-9_]*$/) on the table and every filter key; buildDelete throws if the WHERE clause ends up empty (filters that are all null/undefined, or {}). E12 had covered empty arrays only.
+- Before: scripts/lib/sqlFilter.e93.test.ts failed — buildDelete('holds', { id: undefined }) gave 'DELETE FROM holds' (same as the agent's run in §2), and pasted names were accepted. After: all refused; the normal case still builds 'DELETE FROM holds WHERE id = ANY($1::uuid[])'. Unit 3/3; expire_holds DB tests 4/4 (its only caller, scripts/expire_holds.ts:25, always passes an array).
+- check.sh (clean environment): OK. Script code: no redeploy needed (scripts are never run on the live server).
 
 ## 6. Deploy
 
