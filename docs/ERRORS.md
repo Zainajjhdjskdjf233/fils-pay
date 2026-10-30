@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 98 of 175 fixed.
+Summary: 99 of 175 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -131,7 +131,7 @@ Summary: 98 of 175 fixed.
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Open |
 
-## Low (18 of 69 fixed)
+## Low (19 of 69 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -199,7 +199,7 @@ Summary: 98 of 175 fixed.
 | E161 | [second review] Recent ledger activity includes the exclusive end date (one extra day) | Fixed |
 | E164 | [found later] /healthz and /readyz on the public port return the web page | Fixed |
 | E166 | [second review] Payment-link create with amount 0 gives a DB error (500) | Open |
-| E169 | [second review] Saved-filter POST accepts an array filter and a whitespace-only name | Open |
+| E169 | [second review] Saved-filter POST accepts an array filter and a whitespace-only name | Fixed |
 | E172 | [second review] Webhook archive/replay date ranges take any `new Date` (rollover, zone-less, numbers) | Open |
 | E173 | [second review] Admin run-batch and MDR recalc: dates checked by regex only, a reversed range is a silent no-op, a missing merchant gives 500 | Open |
 | E174 | [second review] Payment-link expiresAt rolls over (2026-02-30) or is read zone-less | Open |

@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 06:19 PM (30 Oct 2026)
-Summary: Errors 98/175 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 06:20 PM (30 Oct 2026)
+Summary: Errors 99/175 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1272,7 +1272,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 ### E169 — [second review] Saved-filter POST accepts an array filter and a whitespace-only name
 - Where: apps/api/src/routes/reporting.ts:59 (name truthy only), :62 (`typeof filter !== "object"` lets [] through).
 - Proof: the second review (items 69, 70, notes received 5:30 PM / 6:15 PM); checked by me in the code (06:18 PM).
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E169)
 
 ### E170 — [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded
 - Where: apps/api/src/routes/reporting.ts:92 REPORT_STATUSES lacks 'partially_refunded', which 0043:15 allows (my commit 383d417).
@@ -2476,6 +2476,12 @@ ROLLBACK;
 - Changed: apps/api/src/routes/reporting.ts:92 REPORT_STATUSES adds 'partially_refunded' (0043:15 allows it; my E133 list, commit 383d417, left it out).
 - Test: routes/reporting.e133.test.ts now also expects {"status":"partially_refunded"} → 200. Before: 400. After: PASS; reporting tests pass.
 - Found by: the second review (item 71).
+- check.sh: OK.
+
+### E169 — 06:20 PM — saved-filter POST refuses an array filter and a blank name
+- Changed: apps/api/src/routes/reporting.ts saved-filters POST: name must be a non-blank string (stored trimmed); filter must be a JSON object, not an array.
+- Test: apps/api/src/routes/savedFilters.e169.test.ts. Before: fail (array filter and "   " name stored). After: PASS; saved-filter and reporting tests pass.
+- Found by: the second review (items 69, 70).
 - check.sh: OK.
 
 ## 6. Deploy

@@ -56,16 +56,17 @@ export async function reportingRoutes(app: FastifyInstance): Promise<void> {
     { preHandler: requireMerchantAuth },
     async (request, reply) => {
       const { name, filter } = request.body ?? {};
-      if (!name || typeof name !== "string") {
+      // E169: a real name (not only spaces) and a JSON object (not an array).
+      if (typeof name !== "string" || name.trim() === "") {
         throw new BadRequestError("invalid_request", "name is required");
       }
-      if (!filter || typeof filter !== "object") {
-        throw new BadRequestError("invalid_request", "filter is required");
+      if (!filter || typeof filter !== "object" || Array.isArray(filter)) {
+        throw new BadRequestError("invalid_request", "filter is required and must be a JSON object");
       }
 
       const saved = await createSavedFilter(app.db, {
         merchantId: request.merchantAuth!.merchantId,
-        name,
+        name: name.trim(),
         filter,
       });
       reply.code(201).send(saved);
