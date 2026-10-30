@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
 Updated: 06:20 PM (30 Oct 2026)
-Summary: Errors 99/175 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Summary: Errors 100/175 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1257,7 +1257,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 ### E166 — [second review] Payment-link create with amount 0 gives a DB error (500)
 - Where: apps/api/src/paymentLinks/create.ts:36-38 passes toFils(0); the INSERT hits CHECK amount_fils > 0 (0020:31).
 - Proof: the second review (items 60, notes received 5:30 PM / 6:15 PM); checked by me in the code (06:18 PM).
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E166)
 
 ### E167 — [second review] Merchant OTP promotion keeps the pending session token (session fixation); the admin half is E47
 - Where: apps/api/src/auth/sessions.ts:57 promotes the row without a new token_hash.
@@ -2482,6 +2482,12 @@ ROLLBACK;
 - Changed: apps/api/src/routes/reporting.ts saved-filters POST: name must be a non-blank string (stored trimmed); filter must be a JSON object, not an array.
 - Test: apps/api/src/routes/savedFilters.e169.test.ts. Before: fail (array filter and "   " name stored). After: PASS; saved-filter and reporting tests pass.
 - Found by: the second review (items 69, 70).
+- check.sh: OK.
+
+### E166 — 06:20 PM — payment-link create refuses amount 0
+- Changed: apps/api/src/paymentLinks/create.ts: amountFils <= 0 → 400 invalid_amount (0 passed toFils and hit CHECK amount_fils > 0, 0020:31 → 500).
+- Test: apps/api/src/routes/paymentLinkCreate.e166.test.ts. Before: 500 (CHECK, 23514). After: PASS; payment-link tests pass.
+- Found by: the second review (item 60).
 - check.sh: OK.
 
 ## 6. Deploy
