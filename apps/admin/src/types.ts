@@ -119,6 +119,9 @@ export interface AdminWebhookEndpointSummary {
 export interface MerchantBalance {
   merchantId: string;
   cachedPayableFils: number;
+  /** E74: authoritative merchant_payable balance from the ledger, and cache − ledger. */
+  ledgerPayableFils: number;
+  driftFils: number;
   lastSettlementBatchId: string | null;
   updatedAt: string;
 }

@@ -1801,3 +1801,25 @@ test("testE63_rebuildMovesTheWorkerCursorPastWhatItCounted", async () => {
   );
   assert.equal(cur.rows[0]?.past, true, "the worker will not count the same event again");
 });
+
+// E74 [found later], decided: the incremental balance cache and the ledger
+// rebuild measure different things, so the cached figure can drift. The admin
+// merchant page now also returns the authoritative ledger balance and the drift.
+test("testE74_merchantDetailShowsTheLedgerBalanceAndTheDrift", async () => {
+  const admin = await signedInAdmin("support", "e74");
+  const { merchantId } = await createMerchant("e74");
+  const group = randomUUID();
+  await pool.query(
+    `INSERT INTO ledger_entries (entry_group_id, merchant_id, account_id, direction, amount_fils, occurred_at, description) VALUES
+       ($1, $2, 'platform_cash', 'debit', 7000, now(), 'e74 test'),
+       ($1, $2, 'merchant_payable', 'credit', 7000, now(), 'e74 test')`,
+    [group, merchantId],
+  );
+  await pool.query(`INSERT INTO merchant_balances (merchant_id, cached_payable_fils) VALUES ($1, 9999)`, [merchantId]);
+  const res = await app.inject({ method: "GET", url: `/v1/admin/merchants/${merchantId}`, headers: { cookie: admin.cookie } });
+  assert.equal(res.statusCode, 200, res.body);
+  const b = (res.json() as { balance: { cachedPayableFils: number; ledgerPayableFils?: number; driftFils?: number } }).balance;
+  assert.equal(b.ledgerPayableFils, 7000, "the ledger is authoritative");
+  assert.equal(b.cachedPayableFils, 9999);
+  assert.equal(b.driftFils, 2999, "cache minus ledger, so staff can see it");
+});

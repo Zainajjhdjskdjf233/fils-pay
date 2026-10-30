@@ -196,7 +196,7 @@ export interface AdminMerchantDetail {
   }>;
   apiKeys: ApiKeySummary[];
   webhookEndpoints: WebhookEndpointSummary[];
-  balance: { cachedPayableFils: number; lastSettlementBatchId: string | null; updatedAt: Date } | null;
+  balance: { cachedPayableFils: number; ledgerPayableFils: number; driftFils: number; lastSettlementBatchId: string | null; updatedAt: Date } | null;
   currentFeeSchedule: CurrentFeeScheduleDisplay | null;
   recentSettlementBatches: Array<{
     id: string;
@@ -262,6 +262,15 @@ export async function getMerchantDetailForAdmin(
     [merchantId],
   );
 
+  // E74 (decided): the authoritative balance is the ledger (E18); the cache
+  // is an incremental shortcut that can drift. Both are shown, with the drift.
+  const ledgerResult = await pool.query<{ net: string }>(
+    `SELECT COALESCE(SUM(CASE WHEN direction = 'credit' THEN amount_fils ELSE -amount_fils END), 0)::text AS net
+       FROM ledger_entries WHERE merchant_id = $1 AND account_id = 'merchant_payable'`,
+    [merchantId],
+  );
+  const ledgerPayableFils = Number(ledgerResult.rows[0]?.net ?? 0);
+
   const batchesResult = await pool.query<{
     id: string;
     batch_date: string;
@@ -305,6 +314,8 @@ export async function getMerchantDetailForAdmin(
     balance: balanceRow
       ? {
           cachedPayableFils: Number(balanceRow.cached_payable_fils),
+          ledgerPayableFils,
+          driftFils: Number(balanceRow.cached_payable_fils) - ledgerPayableFils,
           lastSettlementBatchId: balanceRow.last_settlement_batch_id,
           updatedAt: balanceRow.updated_at,
         }

@@ -302,9 +302,15 @@ export function MerchantDetailPage() {
       <h2>Balance</h2>
       {detail.balance ? (
         <p>
-          Cached payable: <strong>{bhd(detail.balance.cachedPayableFils)}</strong> (updated{" "}
-          {new Date(detail.balance.updatedAt).toLocaleString()}). The ledger remains authoritative;
-          this figure is a cache, rebuildable from Settlement ops.
+          {/* E74: the ledger figure is authoritative; the cache can drift. */}
+          Payable (ledger, authoritative): <strong>{bhd(detail.balance.ledgerPayableFils)}</strong>
+          <br />
+          Cached payable: {bhd(detail.balance.cachedPayableFils)} (updated{" "}
+          {new Date(detail.balance.updatedAt).toLocaleString()})
+          {detail.balance.driftFils !== 0 ? (
+            <span className="admin-error"> — cache differs from the ledger by {bhd(detail.balance.driftFils)}</span>
+          ) : null}
+          . The cache is rebuildable from Settlement ops.
         </p>
       ) : (
         <p className="admin-muted">No cached balance row yet.</p>

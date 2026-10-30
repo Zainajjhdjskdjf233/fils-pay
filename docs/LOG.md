@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 09:20 PM (30 Oct 2026)
-Summary: Errors 167/178 fixed (+3 partly: E50, E94, E178; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 09:25 PM (30 Oct 2026)
+Summary: Errors 168/178 fixed (+3 partly: E50, E94, E178; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -718,8 +718,9 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/settlement/internal/balances/cache.go:25-35 + batch.go (cache moves by net at close/payout) vs ledger/rebuild.go:110-113 (full merchant_payable incl. unbatched captures), button since E18
 - Error: after a rebuild, closing unbatched captures adds them again; the admin balance drifts (display only; payouts use net_payout_fils).
 - Proof: code read (ADR check agent (12:58 PM); checked by me).
-- Severity: medium · Status: open — for Zainab to review (08:16 PM)
+- Severity: medium · Status: fixed (see section 5, E74)
 - What needs deciding: the incremental cache moves by each batch's net at close and payout (balances/cache.go:25-45), while the rebuild sets it to the full merchant_payable ledger sum, including captures not yet in a batch (ledger/rebuild.go:110-113). After a rebuild, closing those captures adds them a second time. Options: (a) the rebuild computes only batched money (exclude ledger groups without a settlement batch) — matches the incremental meaning; (b) the incremental path also moves at capture time — matches the ledger meaning, more writes. Display only: payouts use net_payout_fils. Not changed tonight.
+- Decision (Claude, Zainab approved deciding without review): the ledger merchant_payable balance is the authoritative balance (as E18 already decided for the rebuild); the admin merchant page now shows it computed at read time, next to the cache and the drift — Why: no payout reads the cache (payouts use net_payout_fils), so the only harm was a misleading figure; showing the ledger fixes what staff see without touching any money path — Alternative: redefine the cache: move it at capture/refund/adjustment time to follow the ledger, or make the rebuild count only batched money (both change write paths in two languages)
 
 ### E75 — [found later] The March sweep posts the opposite legs from ADR-0002 and charges merchants for the residue
 - Where: scripts/reconcile_march.ts:97-98 (debit merchant_payable / credit scheme_rounding_residue) vs ADR-0002 (credit card_scheme_clearing / debit scheme_rounding_residue)
@@ -3011,6 +3012,12 @@ ROLLBACK;
 - Live permissions: filspay_api has UPDATE on the cursor table through the default grants (ops/postgres/01-roles.sh:25), which this lock mode needs.
 - check.sh (clean environment): OK. Needs a redeploy.
 
+### E74 — 09:25 PM — admin sees the authoritative ledger balance and the cache drift
+- Changed: apps/api/src/admin/merchants.ts merchant detail: balance gains ledgerPayableFils (sum of merchant_payable credits − debits in ledger_entries) and driftFils (cache − ledger). apps/admin MerchantDetailPage.tsx shows 'Payable (ledger, authoritative)' first, then the cache, with the drift in red when it is not 0; types.ts updated.
+- Before: testE74_merchantDetailShowsTheLedgerBalanceAndTheDrift (admin.test.ts; ledger 7000, cache 9999) — the detail had no ledger figure. After: ledger 7000, cache 9999, drift 2999. Admin suites 90/90; api and admin tsc clean.
+- Not changed (decision): the incremental cache path itself (balances/cache.go) and the rebuild (ledger/rebuild.go, E18).
+- check.sh (clean environment): OK. Needs a redeploy.
+
 ## 6. Deploy
 
 ### Official submission rules (04:28 PM, from Zainab; they override older plans)
@@ -3322,3 +3329,4 @@ Zainab asked for speed without losing safety. Two read-only agents now plan ahea
 - Judge note (09:16 PM): E82 — staff could quietly obtain a full-power merchant key; now they can only cut a key off, and the shop issues its own.
 - Judge note (09:17 PM): E58 — a comment claimed identities could mix; a test proves they do not, so nothing was changed and the test stays as a guard.
 - Judge note (09:20 PM): E63 — the rebuild and the worker could both count the same payment; now the rebuild hands the worker an exact starting point.
+- Judge note (09:25 PM): E74 — the cached balance could silently disagree with the ledger; staff now see the ledger figure first and any drift in red.
