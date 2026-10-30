@@ -36,6 +36,7 @@ export function TransactionDetailPage() {
   const [state, setState] = useState<LoadState>({ kind: "loading" });
   const [events, setEvents] = useState<TransactionEventDto[]>([]);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [captureOpen, setCaptureOpen] = useState(false);
   const [captureAmount, setCaptureAmount] = useState("");
@@ -69,9 +70,18 @@ export function TransactionDetailPage() {
 
   async function handleCapture(event: React.FormEvent): Promise<void> {
     event.preventDefault();
-    if (!id) return;
+    if (!id || state.kind !== "loaded") return;
+    const outstanding = state.txn.amountFils - state.txn.capturedFils;
+    const typed = captureAmount.trim();
+    if (typed !== "" && (!/^\d+$/.test(typed) || Number(typed) <= 0)) {
+      setActionError("Enter a whole number of fils greater than 0, or leave it blank to capture everything.");
+      return;
+    }
+    const captureFils = typed === "" ? outstanding : Number(typed);
+    if (!window.confirm(`Capture ${bhd(captureFils)}? The card will be charged this amount.`)) return;
     setSubmitting(true);
     setActionError(null);
+    setNotice(null);
     try {
       const trimmed = captureAmount.trim();
       // Left blank, `amountFils` is omitted entirely and capture.ts captures
@@ -85,6 +95,7 @@ export function TransactionDetailPage() {
       setCaptureOpen(false);
       setCaptureAmount("");
       setCaptureKey(null);
+      setNotice(`Captured ${bhd(captureFils)}.`);
       // Refetch rather than patch: a capture wrote a new transaction_events
       // row server-side, so the timeline is stale, not merely shorter.
       await load();
@@ -99,17 +110,20 @@ export function TransactionDetailPage() {
   /** Only offered while status is authorized. */
   async function handleVoid(): Promise<void> {
     if (!id) return;
-    if (!window.confirm("Void this authorization? The held funds are released and cannot be captured afterwards.")) {
+    const held = state.kind === "loaded" ? ` of ${bhd(state.txn.amountFils)}` : "";
+    if (!window.confirm(`Void this authorization${held}? The held funds are released and cannot be captured afterwards.`)) {
       return;
     }
     setSubmitting(true);
     setActionError(null);
+    setNotice(null);
     try {
       // An already-voided transaction also answers `200` with the voided row —
       // indistinguishable from a first void on the wire, and correctly so:
       // both mean "now voided".
       await voidTransaction(id);
       await load();
+      setNotice("Authorization voided. The held funds are released.");
     } catch (err) {
       setActionError(describeError(err));
     } finally {
@@ -118,7 +132,12 @@ export function TransactionDetailPage() {
   }
 
   if (state.kind === "loading") {
-    return <p>Loading...</p>;
+    return (
+      <section>
+        <h1>Transaction</h1>
+        <p className="dash-loading">Loading transaction…</p>
+      </section>
+    );
   }
   if (state.kind === "not_found") {
     return (
@@ -135,7 +154,8 @@ export function TransactionDetailPage() {
     return (
       <section>
         <h1>Transaction</h1>
-        <p className="dash-error">{state.message}</p>
+        <p className="dash-error" role="alert">{state.message}</p>
+        <p><Link to="/dashboard/transactions">Back to transactions</Link></p>
       </section>
     );
   }
@@ -146,10 +166,15 @@ export function TransactionDetailPage() {
 
   return (
     <section>
-      <h1>Transaction</h1>
+      <p><Link to="/dashboard/transactions">← Transactions</Link></p>
+      <h1>
+        Transaction {bhd(txn.amountFils)}
+        {txn.reference ? <span className="dash-muted"> · {txn.reference}</span> : null}
+      </h1>
       <p className="dash-muted">
-        <code>{txn.id}</code>
+        ID <code>{txn.id}</code>
       </p>
+      {notice ? <p className="dash-notice" role="status">{notice}</p> : null}
 
       <dl className="dash-dl">
         <dt>Status</dt>
@@ -187,21 +212,29 @@ export function TransactionDetailPage() {
       <RequireRole allow={["owner", "finance"]}>
         {capturable || voidable ? (
           <div className="dash-actions">
-            {actionError ? <p className="dash-error">{actionError}</p> : null}
+            {actionError ? <p className="dash-error" role="alert">{actionError}</p> : null}
 
             {capturable ? (
               captureOpen ? (
                 <form className="dash-form dash-form-inline" onSubmit={(e) => void handleCapture(e)}>
                   <label>
-                    Amount in fils (blank captures everything outstanding)
+                    Amount in fils (leave blank to capture everything outstanding)
                     <input
                       type="number"
                       min={1}
                       step={1}
+                      autoFocus
                       value={captureAmount}
                       onChange={(e) => setCaptureAmount(e.target.value)}
                     />
                   </label>
+                  <span className="dash-muted">
+                    {captureAmount.trim() === ""
+                      ? `Captures ${bhd(txn.amountFils - txn.capturedFils)}`
+                      : /^\d+$/.test(captureAmount.trim())
+                        ? `= ${bhd(Number(captureAmount.trim()))}`
+                        : "Whole fils only (1000 fils = 1.000 BHD)"}
+                  </span>
                   <button type="submit" className="dash-button" disabled={submitting}>
                     {submitting ? "Capturing..." : "Capture"}
                   </button>
@@ -218,8 +251,8 @@ export function TransactionDetailPage() {
                   </button>
                 </form>
               ) : (
-                <button type="button" className="dash-button" onClick={() => setCaptureOpen(true)}>
-                  Capture
+                <button type="button" className="dash-button" disabled={submitting} onClick={() => setCaptureOpen(true)}>
+                  Capture…
                 </button>
               )
             ) : null}
@@ -227,11 +260,11 @@ export function TransactionDetailPage() {
             {voidable ? (
               <button
                 type="button"
-                className="dash-button"
+                className="dash-button dash-button-danger"
                 disabled={submitting}
                 onClick={() => void handleVoid()}
               >
-                Void
+                {submitting ? "Working…" : "Void"}
               </button>
             ) : null}
           </div>
@@ -239,7 +272,7 @@ export function TransactionDetailPage() {
       </RequireRole>
 
       {/* F01f: refunds (owner/finance, same as the API). */}
-      <RefundDrawer txn={txn} onRefunded={load} />
+      <RefundDrawer txn={txn} onRefunded={load} onSuccess={(message) => { setActionError(null); setNotice(message); }} />
 
       <h2>Event timeline</h2>
       <table className="dash-table">
@@ -257,7 +290,7 @@ export function TransactionDetailPage() {
           {events.map((event) => (
             <tr key={event.id}>
               <td>{dateTime(event.occurredAt)}</td>
-              <td>{event.eventType}</td>
+              <td>{statusLabel(event.eventType)}</td>
               <td className="dash-num">{event.amountFils === null ? "—" : bhd(event.amountFils)}</td>
               <td>
                 {event.actorType}
@@ -271,7 +304,7 @@ export function TransactionDetailPage() {
           ))}
           {events.length === 0 ? (
             <tr>
-              <td colSpan={4}>No events recorded.</td>
+              <td colSpan={4} className="dash-empty">No events recorded yet.</td>
             </tr>
           ) : null}
         </tbody>

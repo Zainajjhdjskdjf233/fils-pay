@@ -1,3 +1,4 @@
+import { formatBhd, toFils } from "@filspay/money";
 // YA (Mar): parked until the refunds API exists — FP-212
 // MK: drawer is done, just uncomment + add the route. 30 min job
 // FH: claude review: posts to /v1/refunds but initiateMerchantRefund expects /v1/merchants/:id/refunds,
@@ -33,9 +34,11 @@ interface RefundResponse {
 interface RefundDrawerProps {
   txn: TransactionDto;
   onRefunded: () => Promise<void>;
+  /** UX: told the result in words after a refund succeeds. */
+  onSuccess?: (message: string) => void;
 }
 
-export function RefundDrawer({ txn, onRefunded }: RefundDrawerProps) {
+export function RefundDrawer({ txn, onRefunded, onSuccess }: RefundDrawerProps) {
   const { me } = useDashboardAuth();
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
@@ -70,7 +73,8 @@ export function RefundDrawer({ txn, onRefunded }: RefundDrawerProps) {
       setError(parsed.error);
       return;
     }
-    if (!window.confirm(`Refund ${bhd(parsed.fils)}? The money goes back to the cardholder and cannot be recalled.`)) {
+    const left = remainingFils - parsed.fils;
+    if (!window.confirm(`Refund ${bhd(parsed.fils)} to the cardholder?\n\n${left === 0 ? "This refunds the whole payment." : `${bhd(left)} will still be refundable.`}\nThe money goes back to the card and cannot be recalled.`)) {
       return;
     }
 
@@ -88,6 +92,11 @@ export function RefundDrawer({ txn, onRefunded }: RefundDrawerProps) {
         body: JSON.stringify(body),
       });
       closeForm();
+      onSuccess?.(
+        parsed.fils === remainingFils
+          ? `Refunded ${bhd(parsed.fils)}. The payment is now fully refunded.`
+          : `Refunded ${bhd(parsed.fils)}. ${bhd(remainingFils - parsed.fils)} is still refundable.`,
+      );
       // Refetch rather than patch: the refund wrote a new transaction_events
       // row server-side, so the timeline is stale, not merely shorter.
       await onRefunded();
@@ -106,14 +115,15 @@ export function RefundDrawer({ txn, onRefunded }: RefundDrawerProps) {
   return (
     <RequireRole allow={["owner", "finance"]}>
       <div className="dash-actions">
-        {error ? <p className="dash-error">{error}</p> : null}
+        {error ? <p className="dash-error" role="alert">{error}</p> : null}
         {open ? (
           <form className="dash-form dash-form-inline" onSubmit={(e) => void handleRefund(e)}>
             <label>
-              Amount (BD)
+              Amount (BHD)
               <input
                 inputMode="decimal"
                 placeholder="1.250"
+                autoFocus
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 required
@@ -124,10 +134,18 @@ export function RefundDrawer({ txn, onRefunded }: RefundDrawerProps) {
               <input maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} />
             </label>
             <p className="dash-muted">
-              Captured {bhd(txn.capturedFils)} · refunded {bhd(txn.refundedFils)} · still refundable {bhd(remainingFils)}
+              Captured {bhd(txn.capturedFils)} · refunded {bhd(txn.refundedFils)} · still refundable {bhd(remainingFils)}{" "}
+              <button
+                type="button"
+                className="dash-button"
+                disabled={submitting}
+                onClick={() => setAmount(formatBhd(toFils(remainingFils)))}
+              >
+                Use full amount
+              </button>
             </p>
-            <button type="submit" className="dash-button" disabled={submitting}>
-              {submitting ? "Refunding..." : "Refund"}
+            <button type="submit" className="dash-button dash-button-primary" disabled={submitting}>
+              {submitting ? "Refunding…" : "Refund"}
             </button>
             <button type="button" className="dash-button" disabled={submitting} onClick={closeForm}>
               Cancel
@@ -135,7 +153,7 @@ export function RefundDrawer({ txn, onRefunded }: RefundDrawerProps) {
           </form>
         ) : (
           <button type="button" className="dash-button" onClick={openForm}>
-            Refund
+            Refund…
           </button>
         )}
       </div>

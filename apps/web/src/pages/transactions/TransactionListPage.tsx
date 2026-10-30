@@ -101,7 +101,7 @@ export function TransactionListPage() {
               checked={statuses.includes(status)}
               onChange={() => toggleStatus(status)}
             />
-            {status}
+            {statusLabel(status)}
           </label>
         ))}
       </fieldset>
@@ -117,7 +117,7 @@ export function TransactionListPage() {
               `occurred_at < to` — labelled rather than quietly shifted by a
               day here, which would make this page and the API disagree about
               what a filter means. */}
-          To (exclusive)
+          To (not included)
           <input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
         </label>
         <label>
@@ -131,9 +131,9 @@ export function TransactionListPage() {
         </label>
       </fieldset>
 
-      {error ? <p className="dash-error">{error}</p> : null}
+      {error ? <p className="dash-error" role="alert">{error}</p> : null}
 
-      <p>{pluralize(transactions.length, "transaction")} loaded</p>
+      {!loading ? <p className="dash-muted">Showing {pluralize(transactions.length, "transaction")}. Click a date to open a transaction.</p> : null}
 
       <table className="dash-table">
         <thead>
@@ -165,13 +165,13 @@ export function TransactionListPage() {
           ))}
           {transactions.length === 0 && !loading ? (
             <tr>
-              <td colSpan={6}>No transactions match these filters.</td>
+              <td colSpan={6} className="dash-empty">No transactions match these filters. Clear the dates or the search to see more.</td>
             </tr>
           ) : null}
         </tbody>
       </table>
 
-      {loading ? <p>Loading...</p> : null}
+      {loading ? <p className="dash-loading">Loading…</p> : null}
 
       <Pagination nextCursor={nextCursor} loading={loading} onLoadMore={() => void load(nextCursor)} />
     </section>
