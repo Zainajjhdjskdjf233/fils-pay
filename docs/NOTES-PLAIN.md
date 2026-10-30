@@ -721,3 +721,33 @@ Where: apps/api/src/onboarding/kyc.ts · Commit: 09c7707
 The same token problem as N117 existed for staff in the admin console. A staff member had reported it and it was left open. Now staff also get a new token after the code. A test proves the old token is refused.
 
 Where: apps/api/src/adminAuth/sessions.ts · Commit: e8c9454
+
+## N121 — The real error comes first
+
+When a database step failed and the undo also failed, the undo's error hid the real one. The broken connection was also reused. Now the real error is kept and the broken connection is thrown away. A test with a fake failing connection proves it.
+
+Where: apps/api/src/db/withTransaction.ts · Commit: 86818c4
+
+## N122 — Safe file names in downloads
+
+The file name a shop typed went straight into the download header. A quote or line break could change the header or crash the server. Now only safe letters go in, and the full name is encoded. A test proves no line break or extra quote gets through.
+
+Where: apps/api/src/lib/contentDisposition.ts · Commit: ceacc85
+
+## N123 — Viewing as a shop is read-only
+
+Staff who view the dashboard as a shop could still save filters in the shop's name. Now saving is refused for them, and reading still works. A test proves the save gets 403 and nothing is stored.
+
+Where: apps/api/src/routes/reporting.ts:59 · Commit: 25046a4
+
+## N124 — No control characters in reasons
+
+A hidden NUL character in a staff reason crashed the server, and line breaks made fake lines in exports. Now such text is refused with a clear message. The server also turns any database "bad character" error into 400. Tests prove both.
+
+Where: apps/api/src/lib/queryParsing.ts · Commit: 3617361
+
+## N125 — No import skipped between pages
+
+The admin list of imports used only the time as a bookmark between pages. Two imports at the same time meant one was never shown. Now the bookmark is time plus id. A test with three same-time imports proves all are shown.
+
+Where: apps/api/src/admin/adjustmentImport.ts · Commit: 8b391fe

@@ -4248,3 +4248,172 @@ The pre-login admin token stops working.
 Their login helpers kept the old cookie; now they take the new one, as a browser does.
 
 Commit: e8c9454
+
+## N121 — The real error comes first
+
+### The idea
+Database work runs in a transaction: all steps happen, or none. If a step fails, we undo with ROLLBACK, like tearing up a half-written cheque.
+
+### The problem
+If the undo itself failed, its error replaced the real one.
+- The log showed "connection terminated", not the real cause.
+- The broken connection went back to the pool for reuse.
+
+### The fix
+- withTransaction.ts: catch the ROLLBACK error, keep the real error, and tell the pool to throw the connection away.
+
+### The code
+Before (apps/api/src/db/withTransaction.ts:34):
+```ts
+await client.query("ROLLBACK");
+throw err;
+```
+After:
+```ts
+try { await client.query("ROLLBACK"); } catch (rollbackErr) { broken = ...; }
+throw err;
+// finally: client.release(broken);
+```
+The caller sees the true error. A broken connection is destroyed.
+
+### The proof
+- Before: the caller got "connection terminated".
+- After: the caller gets the real error; release gets an Error.
+
+### If the judges ask
+"Why not trust MK's comment that release still runs?"
+It does run, but without the error the pool keeps a dead connection, and the real cause is lost.
+
+Commit: 86818c4
+
+## N122 — Safe file names in downloads
+
+### The idea
+When staff download a KYC file, a header tells the browser its name. It is like the label on an envelope.
+
+### The problem
+The name the shop typed went into the header as it was.
+- A quote could add extra header parts.
+- A line break could make the server crash (500).
+
+### The fix
+- New contentDisposition.ts: keep only safe letters in the plain name; put the full name in an encoded part.
+- kyc.ts: both downloads use it.
+
+### The code
+Before (apps/api/src/routes/kyc.ts:104):
+```ts
+reply.header("Content-Disposition", `inline; filename="${file.fileName}"`);
+```
+After:
+```ts
+reply.header("Content-Disposition", inlineContentDisposition(file.fileName));
+```
+The header can no longer carry quotes or line breaks from the shop.
+
+### The proof
+- Before: a name with a quote and CR LF stayed in the header.
+- After: no CR LF, only our two quotes; Arabic names kept in the encoded part.
+
+### If the judges ask
+"Why not reject such names at upload?"
+Old rows already hold them; fixing the header protects old and new names.
+
+Commit: ceacc85
+
+## N123 — Viewing as a shop is read-only
+
+### The idea
+Support staff can view the dashboard as a shop to help it. Like a guest key that opens doors but cannot move furniture.
+
+### The problem
+That view could still save report filters in the shop's name.
+
+### The fix
+- reporting.ts: saving a filter calls the existing "is this a real writer?" check; staff get 403.
+
+### The code
+Before (apps/api/src/routes/reporting.ts:57): no writer check.
+After:
+```ts
+requireMerchantWriterActor(request.merchantAuth!);
+```
+Staff viewing as a shop are refused; the shop itself is not.
+
+### The proof
+- Before: 201, a filter created.
+- After: 403, no row; reading still 200.
+
+### If the judges ask
+"API keys can still save filters. Why?"
+The code treats an owner-issued key as full shop power by design, and a filter moves no money; this is a decision for review.
+
+Commit: 25046a4
+
+## N124 — No control characters in reasons
+
+### The idea
+Staff write a short reason when they change a balance or give a credit. It is like a note on a receipt.
+
+### The problem
+Hidden characters were accepted.
+- A NUL byte made the server crash (500).
+- A line break wrote fake lines into audit exports.
+
+### The fix
+- queryParsing.ts: one helper that finds control characters.
+- Credit memo and balance reason refuse them (400).
+- errorHandler.ts: the database "bad character" errors become 400 everywhere.
+
+### The code
+Before (apps/api/src/routes/adminBalanceAdjustments.ts:41): only "not empty" was checked.
+After:
+```ts
+if (hasControlChars(source.reason)) {
+  throw new BadRequestError("invalid_request", "reason must not contain control characters or line breaks");
+}
+```
+Bad text is stopped before the database.
+
+### The proof
+- Before: reason with NUL → 500.
+- After: NUL, CR LF, tab → 400; normal text still works.
+
+### If the judges ask
+"Why two layers?"
+The check gives a clear message; the handler catches any other text field we did not list.
+
+Commit: 3617361
+
+## N125 — No import skipped between pages
+
+### The idea
+The admin list of CSV imports shows pages of rows. Like reading a book: each page should start where the last one ended.
+
+### The problem
+The bookmark was only the time, compared as text.
+- Two imports at the same time: one was skipped.
+
+### The fix
+- adjustmentImport.ts: the bookmark is time plus id, compared as real times.
+
+### The code
+Before (apps/api/src/admin/adjustmentImport.ts:175):
+```sql
+WHERE created_at::text < $1 ORDER BY created_at DESC
+```
+After:
+```sql
+WHERE (created_at, id) < ($1::timestamptz, $2::uuid) ORDER BY created_at DESC, id DESC
+```
+The id breaks ties, so every import appears once.
+
+### The proof
+- Before: 3 imports at one time, pages of 2: one missing.
+- After: all 3 shown once.
+
+### If the judges ask
+"What happens to an old bookmark?"
+It gets a clear 400 once; the admin page then starts from page one.
+
+Commit: 8b391fe
