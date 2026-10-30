@@ -1063,4 +1063,4 @@ A status clean-up now only changes statuses, nothing else.
 "How does a test shop go live now?"
 Through an explicit go-live step, not as a side effect. That choice is marked for Zainab to review.
 
-Commit: PENDING_N28
+Commit: 41c17e8

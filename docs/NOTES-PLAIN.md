@@ -168,4 +168,4 @@ Where: apps/settlement/internal/settlement/recalculate_mdr.go:67 · Commit: 23e2
 
 The group chat said test shops kept showing up in the real settlement run, and it was true. An admin tool for tidying payment statuses also switched test shops to live, because it used a count that was always zero. Live shops get paid for real, so this could send real money for fake sales. Now the tool only tidies statuses and never touches the test flag, and a test confirms a test shop stays a test shop.
 
-Where: apps/api/src/routes/adminMerchantsRecompute.ts:31 · Commit: PENDING_N28
+Where: apps/api/src/routes/adminMerchantsRecompute.ts:31 · Commit: 41c17e8
