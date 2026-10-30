@@ -1,3 +1,4 @@
+import { label } from "../../lib/format.js";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { getMerchant, listMerchants } from "../../api/merchants.js";
@@ -122,7 +123,7 @@ export function WebhookReplayPage() {
       <section>
         <h1>Webhook replay</h1>
         <p className="admin-muted">Pick the merchant whose endpoint needs a replay.</p>
-        {error ? <p className="admin-error">{error}</p> : null}
+        {error ? <p className="admin-error" role="alert">{error}</p> : null}
         <form className="admin-form admin-form-inline" onSubmit={(e) => void handleSearch(e)}>
           <label>
             Search merchants
@@ -133,7 +134,7 @@ export function WebhookReplayPage() {
               placeholder="Display name, merchant id, or contact email"
             />
           </label>
-          <button type="submit">Search</button>
+          <button type="submit" className="admin-button-primary">Search</button>
         </form>
         <ul>
           {candidates.map((merchant) => (
@@ -166,7 +167,7 @@ export function WebhookReplayPage() {
         )}
       </p>
 
-      {error ? <p className="admin-error">{error}</p> : null}
+      {error ? <p className="admin-error" role="alert">{error}</p> : null}
 
       {detail && endpoints.length === 0 ? (
         <p className="admin-muted">This merchant has no webhook endpoints registered.</p>
@@ -213,7 +214,7 @@ export function WebhookReplayPage() {
                 checked={statuses.includes(status)}
                 onChange={() => toggleStatus(status)}
               />
-              {status}
+              {label(status)}
             </label>
           ))}
           <p className="admin-muted">
@@ -222,13 +223,13 @@ export function WebhookReplayPage() {
             receiver already accepted.
           </p>
         </fieldset>
-        <button type="submit" disabled={busy || !endpointId}>
-          {busy ? "Replaying..." : "Replay batch"}
+        <button type="submit" className="admin-button-primary" disabled={busy || !endpointId}>
+          {busy ? "Replaying…" : "Replay batch"}
         </button>
       </form>
 
       {result ? (
-        <div className="admin-notice">
+        <div className="admin-notice" role="status">
           <p>
             Matched {result.matchedCount} deliver{result.matchedCount === 1 ? "y" : "ies"}; queued{" "}
             {(result.replayedDeliveryIds ?? []).length} replay
