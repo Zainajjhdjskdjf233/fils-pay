@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 11:04 AM (30 Oct 2026)
-Summary: Errors 24/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
+Updated: 11:06 AM (30 Oct 2026)
+Summary: Errors 25/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -315,7 +315,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: high (case file chat claim "Test merchants keep showing up in the real settlement run" is TRUE, but through this admin tool)
 - Proposed fix: never clear `test_mode` here; skip chargeback rows.
 - Expected result: test merchant stays test after recompute.
-- Status: open
+- Status: fixed (see section 5)
 
 ### E27 — FP-201 (reopened): same acquirer callback stored twice
 - Where: apps/api/src/acquirer/callbacks.ts:37-50; routes/acquirerCallbacks.ts:76; migration 0051
@@ -1124,6 +1124,14 @@ ROLLBACK;
 - Checked and false: YA's comment at recalculate_mdr.go:184 "a fee decrease still debits merchant_payable" — the next lines swap the accounts when diff < 0 (:186-188), so a decrease credits the shop.
 - Review: one-line filter → no fix-reviewer; Copilot CLI not installed.
 - Actual result: matches expected (paid batches unchanged after recalculation).
+
+### E26 — 11:06 AM — "recompute statuses" no longer turns test merchants live
+- Changed: apps/api/src/routes/adminMerchantsRecompute.ts: the route no longer calls `reconcileSandboxFlag`; `flagsUpdated` is always `[]` (response and audit shape unchanged). apps/api/src/admin/transactionStatusRecompute.ts:29 also skips `chargeback` rows. admin/merchantFlags.ts now unused; not deleted.
+- Decision (for Zainab to review): a status backfill never changes test_mode; going live stays a separate, explicit action — Why: the flag decision used a count that was always 0, and moving a merchant into real settlement is not a side effect a backfill should have — Alternative: fix the count (include authorized rows) and keep auto-clearing (still turns a test merchant live whenever it has no open authorizations).
+- Test: apps/api/src/routes/adminMerchantsRecompute.e26.test.ts (through the real admin route, finance role). Before: `a status backfill must not turn a test merchant live — actual: false, expected: true`. After: PASS (test_mode stays true; chargeback row stays chargeback).
+- Regression: full-db-test.sh = baseline (5 known failures).
+- Review: small removal + filter, admin-only route → no fix-reviewer; Copilot CLI not installed.
+- Actual result: matches expected (test merchant stays test after recompute).
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)

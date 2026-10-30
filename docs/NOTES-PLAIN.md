@@ -163,3 +163,9 @@ Where: apps/settlement/internal/internalapi/server.go:270 · Commit: b15f944
 The tool that recalculates fees after a rate change also changed batches that had already been paid out, which should never happen. It picked every batch that was "not open", and that included "paid" ones. Now it only picks batches that are closed but not yet paid. A test shows a paid batch stays exactly the same while an unpaid one is still updated.
 
 Where: apps/settlement/internal/settlement/recalculate_mdr.go:67 · Commit: 23e2f73
+
+## N28 — The admin status tool no longer turns test shops live
+
+The group chat said test shops kept showing up in the real settlement run, and it was true. An admin tool for tidying payment statuses also switched test shops to live, because it used a count that was always zero. Live shops get paid for real, so this could send real money for fake sales. Now the tool only tidies statuses and never touches the test flag, and a test confirms a test shop stays a test shop.
+
+Where: apps/api/src/routes/adminMerchantsRecompute.ts:31 · Commit: PENDING_N28

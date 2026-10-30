@@ -1028,3 +1028,39 @@ AND status = 'closed' -- E19: never a paid batch ('<> open' included paid)
 Not yet. That part (fee schedules and volume tier) is still open and linked to E20. We fixed the part the settlement team said must never happen.
 
 Commit: 23e2f73
+
+## N28 — The admin status tool no longer turns test shops live
+
+### The idea
+Test shops (test_mode) are fake shops for trying things out. Settlement skips them, so no real money is paid. It is like a practice till that is never counted.
+
+### The problem
+An admin tool that tidies payment statuses also changed the test flag.
+- It switched test_mode off when a shop had "no open authorizations".
+- That count was always 0, because the tool never looked at authorized payments.
+- So every test shop it touched went live and joined the real settlement run.
+
+### The fix
+- adminMerchantsRecompute.ts: the tool no longer touches the test flag at all.
+- transactionStatusRecompute.ts: it also leaves chargeback payments alone.
+
+### The code
+Before (apps/api/src/routes/adminMerchantsRecompute.ts:27):
+```ts
+const flagsUpdated = await reconcileSandboxFlag(client, request.params.id, recompute);
+```
+After:
+```ts
+const flagsUpdated: string[] = [];
+```
+A status clean-up now only changes statuses, nothing else.
+
+### The proof
+- Before: after the tool ran, the test shop had test_mode = false.
+- After: test_mode stays true, and the chargeback stays a chargeback.
+
+### If the judges ask
+"How does a test shop go live now?"
+Through an explicit go-live step, not as a side effect. That choice is marked for Zainab to review.
+
+Commit: PENDING_N28
