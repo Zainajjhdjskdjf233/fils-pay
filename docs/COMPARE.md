@@ -9,7 +9,7 @@ Judge notes J26 and J27). Entries from it carry the tag **[second review]**.
 
 | | Count |
 |---|---|
-| Items in the second review | 31 (24 + 7 later) |
+| Items in the second review | 45 (24 + 7 + 14 later) |
 | Already in our list (matched to an entry) | 14 |
 | Real and new, recorded as [second review] | 10 (E110-E116, E125-E127) |
 | Not real | 0 |
@@ -102,3 +102,30 @@ approves the account kind. We made the two suspense accounts `asset` (commit bb9
 because `chart_of_accounts.kind` only allows asset, liability or revenue
 (0007_ledger_double_entry.sql:7-11). Recorded as a Decision for Zainab to review
 (LOG section 5, E01).
+
+## Items 32-45 (pasted 30 Oct 2026, 4:23 PM)
+
+Every claim was checked in the code before it was recorded (04:30 PM). The second
+review's notes say its test suites could not be run (notes, line 5), and its code
+changes are in a separate copy, not in this fork. Only the findings are used here.
+
+| # | Item (shortened) | Checked in the code | Our entry | Level |
+|---|---|---|---|---|
+| 32 | Malformed pagination cursors reach database casts | Real: six decoders check only a separator and non-empty parts (transactions/query.ts:53-67 and five more) | **New: E159** | Low |
+| 33 | Adjustment-import list compares timestamp text, orders by created_at only | Real: adjustmentImport.ts:173, :179 (MK's own FP-198 note at :155) | **New: E160** | Low |
+| 34 | Top-links limit accepts "10garbage" | Real; same root cause as E126 — analytics.ts:122 added to E126 | E126 (extended) | Low |
+| 35 | Recent-ledger analytics includes the exclusive end date | Real: analytics/query.ts:312 BETWEEN; the route says `to` is exclusive (analytics.ts:63) | **New: E161** | Low |
+| 36 | Promotional-discount parsing uses float math and hundredths | **Disagree:** `parsePromotionalDiscountFils` has no callers (grep finds only its definition in payments/discountAdjustment.ts). It is already in E79 (dead helpers): no money impact today. | E79 (dead code) | — |
+| 37 | Settlement summary multiplied cumulative captures by event count | Already fixed | E31 | — |
+| 38 | Reconciliation used the current rate for old events | Already fixed | E44 | — |
+| 39 | Reconciliation fee estimate used floats and no tier bonus | Already fixed | E44 | — |
+| 40 | Adjustment CSV silently ignores extra columns | Real, and worse than its title: `1,000.000` posts **1 BD** with reason "000.000" (run with the real parser). A wrong amount posted silently is money wrong. | **New: E162** | **High** |
+| 41 | Webhook delivery followed redirects | Already fixed | E36 | — |
+| 42 | Missing reporting rollup crashed the batch | Already fixed | E41 | — |
+| 43 | Payment-link captures skipped negotiated discounts | Already fixed | E50 | — |
+| 44 | Reporting worker accepted invalid integer config | Already recorded | E97 | — |
+| 45 | API config accepts "3000oops" | Real: config.ts:139-145 | **New: E163** | Low |
+
+Totals for 32-45: 5 new (E159-E163; one High), 1 extension (E126), 7 already ours, 1 disagreement (36).
+Across all 45 items: 16 entries new to us (E110-E116, E125-E127, E133, E159-E163), plus item 29, which
+showed the real root cause of our E45.

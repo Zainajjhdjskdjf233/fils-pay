@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 4:28 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 4:31 PM
 
 ## Contents
 1. Status now
@@ -14,10 +14,10 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:28 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 69 of 158 fixed.
-  - High: 41 of 45 fixed
+- Errors: 69 of 163 fixed.
+  - High: 41 of 46 fixed
   - Medium: 25 of 54 fixed
-  - Low: 3 of 59 fixed
+  - Low: 3 of 63 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
@@ -27,7 +27,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:28 PM
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 69 of 158 fixed.
+- 🔄 Fix: 69 of 163 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -91,7 +91,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:28 PM
 - a3975a9 fix(E117): OTP guess limit per user across logins; older codes and pending sessions end at login
 
 ## 7. All errors
-## High (41 of 45 fixed)
+## High (41 of 46 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -140,6 +140,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:28 PM
 | E136 | [coverage] Any admin role, including support, can resend all of a merchant's past webhooks, again and again | Fixed |
 | E137 | [coverage] KYC thumbnail: a 1 MB PNG decompression bomb can push the API past its 512 MB limit | Open |
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Open |
+| E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Open |
 
 ### Medium (25 of 54 fixed)
 
@@ -200,7 +201,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:28 PM
 | E147 | [coverage] A broken image upload gives 500 and leaves an orphan file on disk | Open |
 | E148 | [coverage] No limit on KYC uploads per merchant: the shared disk can be filled | Open |
 
-### Low (3 of 59 fixed)
+### Low (3 of 63 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -263,6 +264,10 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:28 PM
 | E156 | [coverage] timingSafeEqualHex accepts extra characters after a valid digest | Open |
 | E157 | [coverage] Several files in one KYC request: earlier ones are silently dropped; "one file enforced" comment is false | Open |
 | E158 | [coverage] Adjustment import has no row cap; one long transaction can outlive the 60 s proxy timeout | Open |
+| E159 | [second review] Pagination cursors are not validated; a malformed cursor reaches a database cast (500) | Open |
+| E160 | [second review] The adjustment-import list pages on created_at text with no tie-breaker | Open |
+| E161 | [second review] Recent ledger activity includes the exclusive end date (one extra day) | Open |
+| E163 | [second review] API config accepts integer prefixes ("3000oops" → 3000) and unsafe integers | Open |
 
 ## 8. Every fix explained
 Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75

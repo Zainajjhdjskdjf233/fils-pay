@@ -13,9 +13,9 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 69 of 158 fixed.
+Summary: 69 of 163 fixed.
 
-## High (41 of 45 fixed)
+## High (41 of 46 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -64,6 +64,7 @@ Summary: 69 of 158 fixed.
 | E136 | [coverage] Any admin role, including support, can resend all of a merchant's past webhooks, again and again | Fixed |
 | E137 | [coverage] KYC thumbnail: a 1 MB PNG decompression bomb can push the API past its 512 MB limit | Open |
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Open |
+| E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Open |
 
 ## Medium (25 of 54 fixed)
 
@@ -124,7 +125,7 @@ Summary: 69 of 158 fixed.
 | E147 | [coverage] A broken image upload gives 500 and leaves an orphan file on disk | Open |
 | E148 | [coverage] No limit on KYC uploads per merchant: the shared disk can be filled | Open |
 
-## Low (3 of 59 fixed)
+## Low (3 of 63 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -187,3 +188,7 @@ Summary: 69 of 158 fixed.
 | E156 | [coverage] timingSafeEqualHex accepts extra characters after a valid digest | Open |
 | E157 | [coverage] Several files in one KYC request: earlier ones are silently dropped; "one file enforced" comment is false | Open |
 | E158 | [coverage] Adjustment import has no row cap; one long transaction can outlive the 60 s proxy timeout | Open |
+| E159 | [second review] Pagination cursors are not validated; a malformed cursor reaches a database cast (500) | Open |
+| E160 | [second review] The adjustment-import list pages on created_at text with no tie-breaker | Open |
+| E161 | [second review] Recent ledger activity includes the exclusive end date (one extra day) | Open |
+| E163 | [second review] API config accepts integer prefixes ("3000oops" → 3000) and unsafe integers | Open |

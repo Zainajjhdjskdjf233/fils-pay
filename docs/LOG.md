@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 04:28 PM (30 Oct 2026)
-Summary: Errors 69/158 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 04:30 PM (30 Oct 2026)
+Summary: Errors 69/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -989,6 +989,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Proof: the second review (items i-k, pasted by Zainab, 2:50 PM); checked by me in the code.
 - Severity: low · Status: open
 
+- Also (04:30 PM, second review item 34): routes/analytics.ts:122 top-links `Number.parseInt(request.query.limit, 10)` ("10garbage" → 10).
 ### E127 — [second review] Settlement date filters accept impossible or malformed dates
 - Where: apps/api/src/routes/settlement.ts:59-66 (reconciliation/summary only check presence) and :48-49 (list)
 - Error: `from=2026-02-30` rolls over in JS (`…T00:00:00+03:00`) or fails in Postgres (`::date`) → wrong window or 500.
@@ -1210,6 +1211,36 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/admin/adjustmentCsvParsing.ts:26-57; admin/adjustmentImport.ts:97-109; nginx proxy_read_timeout 60 s.
 - Error: ~20,000 rows in 1 MiB → the console shows 504 while the import commits (estimate, not timed).
 - Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
+- Severity: low · Status: open
+
+### E159 — [second review] Pagination cursors are not validated; a malformed cursor reaches a database cast (500)
+- Where: Six decoders check only for a separator and non-empty parts: apps/api/src/transactions/query.ts:53-67, paymentLinks/query.ts, webhooks/deliveries.ts, settlement/query.ts, admin/merchants.ts, admin/credits.ts; the parts go into SQL casts (e.g. transactions/query.ts:123).
+- Error: A cursor such as base64url("abc|def") → `::timestamptz` / `::uuid` cast error → 500 instead of a 400 or page one.
+- Proof: the second review (items 32-45, pasted by Zainab at 4:23 PM); checked by me in the code (04:30 PM).
+- Severity: low · Status: open
+
+### E160 — [second review] The adjustment-import list pages on created_at text with no tie-breaker
+- Where: apps/api/src/admin/adjustmentImport.ts:173 `created_at::text < $1`, :179 `ORDER BY created_at DESC` only (MK's own comment at :155 names FP-198).
+- Error: Two imports with the same created_at at a page boundary: one is skipped; text order also depends on the session time zone.
+- Proof: the second review (items 32-45, pasted by Zainab at 4:23 PM); checked by me in the code (04:30 PM).
+- Severity: low · Status: open
+
+### E161 — [second review] Recent ledger activity includes the exclusive end date (one extra day)
+- Where: apps/api/src/analytics/query.ts:312 `BETWEEN $2::date AND $3::date`; the route defines `to` as exclusive (routes/analytics.ts:63; query.ts:112).
+- Error: from=2026-10-01, to=2026-10-02 shows two days of ledger lines instead of one.
+- Proof: the second review (items 32-45, pasted by Zainab at 4:23 PM); checked by me in the code (04:30 PM).
+- Severity: low · Status: open
+
+### E162 — [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently
+- Where: apps/api/src/admin/adjustmentCsvParsing.ts:37-45: the header check reads only cells 0-1, each row takes cells[0..2] and drops the rest.
+- Error: `<merchant>,1,000.000,refund for March` → amount "1" (1,000 fils), reason "000.000", the real reason lost (run with the real parser: `{"amount":"1","reason":"000.000"} → fils: 1000`). Under the E119 50 BD cap the 1 BD posts quietly instead of 1,000 BD being refused.
+- Proof: the second review (items 32-45, pasted by Zainab at 4:23 PM); checked by me in the code (04:30 PM).
+- Severity: high · Status: open
+
+### E163 — [second review] API config accepts integer prefixes ("3000oops" → 3000) and unsafe integers
+- Where: apps/api/src/config.ts:139-145 `Number.parseInt` + `Number.isFinite`.
+- Error: PORT=3000oops starts on 3000; a typo silently becomes a different setting (`node -e` → 3000).
+- Proof: the second review (items 32-45, pasted by Zainab at 4:23 PM); checked by me in the code (04:30 PM).
 - Severity: low · Status: open
 
 ## 3. Hidden things
