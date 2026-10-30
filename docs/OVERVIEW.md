@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 2:44 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 2:47 PM
 
 ## Contents
 1. Status now
@@ -14,8 +14,8 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:44 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 55 of 117 fixed.
-  - High: 31 of 32 fixed
+- Errors: 56 of 118 fixed.
+  - High: 32 of 33 fixed
   - Medium: 22 of 39 fixed
   - Low: 2 of 46 fixed
 - Missing feature (refunds, F01): done
@@ -27,7 +27,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:44 PM
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 55 of 117 fixed.
+- 🔄 Fix: 56 of 118 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ⬜ UI and UX, before/after screenshots
@@ -91,7 +91,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:44 PM
 - 44adee8 fix(E41): missing rollup row no longer crashes the reporting pass
 
 ## 7. All errors
-## High (31 of 32 fixed)
+## High (32 of 33 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -127,6 +127,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:44 PM
 | E102 | [found later] Merchant dashboard logs out after 10 minutes and does not notice | Fixed |
 | E104 | [found later] Bulk Approve KYC approves hidden merchants; server checks no status | Fixed |
 | E117 | [deep review] OTP guess limit was per code, not per user (brute-forceable) | Fixed |
+| E118 | [deep review] Running a batch for today strands that day's later captures | Fixed |
 
 ### Medium (22 of 39 fixed)
 
@@ -224,7 +225,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:44 PM
 | E116 | [found by teammate] Writer actor does not reject impersonation (defence in depth) | Open |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61
 
 ### N01 — Database setup stopped halfway
 
@@ -2450,4 +2451,38 @@ The guess budget belongs to the person, not to each code.
 By the "deep review lens" we learned from our teammate's review: asking what happens across many requests, not just one.
 
 Commit: a3975a9
+
+### N61 — A day can only be closed after it has ended
+
+#### The idea
+Each night the settlement closes the day that just finished. A closed day is final.
+
+#### The problem
+Admins could close "today" (or a future day) with the Run batch button.
+- The day was marked closed at, say, 10 AM.
+- Payments after 10 AM belonged to a closed day, so no batch ever picked them up: the shop was never paid for them.
+
+#### The fix
+- batch.go: refuse to close a day whose Bahrain midnight has not passed yet.
+- server.go: answer 400 "business_day_not_over".
+
+#### The code
+Before (apps/settlement/internal/settlement/batch.go:61): no check.
+After:
+```go
+if time.Now().Before(end) {
+    return BatchResult{}, ErrBusinessDayNotOver
+}
+```
+end is the next Bahrain midnight for that day.
+
+#### The proof
+- Before: run-batch for today → 200 (day closed early).
+- After: 400; no batch created; yesterday still closes.
+
+#### If the judges ask
+"Why in CloseBatch and not in the button?"
+The button, the internal API and the command-line tool all end in CloseBatch, so one check protects them all.
+
+Commit: PENDING_N61
 

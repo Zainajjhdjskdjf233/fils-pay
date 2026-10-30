@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 02:44 PM (30 Oct 2026)
-Summary: Errors 55/117 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 02:47 PM (30 Oct 2026)
+Summary: Errors 56/118 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -969,6 +969,12 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Proof: deep-review agent (auth, 2:41 PM); confirmed by me in the code; red test below.
 - Severity: high · Status: fixed (see section 5)
 
+### E118 — [deep review] Running a batch for today (or a future date) strands that day's later captures
+- Where: apps/settlement/internal/internalapi/server.go:221 and apps/api/src/routes/admin.ts:118 (format check only), CLI cmd/settlement/main.go:104; batch.go:94 (closed batch → later CloseBatch is a no-op) and :154-155 (only unbatched events inside the day's window).
+- Error: the admin "Run batch" for today at 10 AM closes the day; captures after that are never batched or paid, silently. Lens rules 3 and 4.
+- Proof: deep-review agent (settlement, 2:45 PM); confirmed by me; red tests below.
+- Severity: high · Status: fixed (see section 5)
+
 ## 3. Hidden things
 
 ### H01 — "The Order of the Prompt" and its Five Rules
@@ -1802,6 +1808,11 @@ ROLLBACK;
 - Decision (for Zainab to review): 10 guesses per user per 15 minutes, then login refused until the window passes — Why: a real user rarely mistypes 10 codes; an attacker now needs years, not hours — Alternative: email/notify on lockout, or progressive delay.
 - Regression: full-db-test.sh = baseline v3 (admin and merchant suites log in many times; nothing hit the limit).
 - Actual result: one live code per user; a fixed per-user guess budget.
+
+### E118 — 02:47 PM — a business day can only be closed after it has ended
+- Changed: apps/settlement/internal/settlement/batch.go: `ErrBusinessDayNotOver`; CloseBatch returns it when `time.Now()` is before the day's Bahrain window end (one check covers the admin button, the internal API, the CLI and the daemon). internalapi/server.go: that error → 400 `business_day_not_over` (was 500 or a silent early close).
+- Test: settlement/batch_e118_test.go (today and today+3 refused, no batch row created, yesterday closes); internalapi/runbatch_e118_test.go. Before: `status = 200, want 400`. After: PASS; all Go packages pass.
+- Actual result: closing today is refused; nothing is stranded.
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04) — not yet. Local Docker stack done (01:48 PM, see section 5 E02).

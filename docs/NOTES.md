@@ -2226,3 +2226,37 @@ The guess budget belongs to the person, not to each code.
 By the "deep review lens" we learned from our teammate's review: asking what happens across many requests, not just one.
 
 Commit: a3975a9
+
+## N61 — A day can only be closed after it has ended
+
+### The idea
+Each night the settlement closes the day that just finished. A closed day is final.
+
+### The problem
+Admins could close "today" (or a future day) with the Run batch button.
+- The day was marked closed at, say, 10 AM.
+- Payments after 10 AM belonged to a closed day, so no batch ever picked them up: the shop was never paid for them.
+
+### The fix
+- batch.go: refuse to close a day whose Bahrain midnight has not passed yet.
+- server.go: answer 400 "business_day_not_over".
+
+### The code
+Before (apps/settlement/internal/settlement/batch.go:61): no check.
+After:
+```go
+if time.Now().Before(end) {
+    return BatchResult{}, ErrBusinessDayNotOver
+}
+```
+end is the next Bahrain midnight for that day.
+
+### The proof
+- Before: run-batch for today → 200 (day closed early).
+- After: 400; no batch created; yesterday still closes.
+
+### If the judges ask
+"Why in CloseBatch and not in the button?"
+The button, the internal API and the command-line tool all end in CloseBatch, so one check protects them all.
+
+Commit: PENDING_N61
