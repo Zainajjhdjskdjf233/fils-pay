@@ -1709,3 +1709,33 @@ test("testE88_impersonationCannotWriteSavedFilters", async () => {
   const read = await app.inject({ method: "GET", url: "/v1/reporting/saved-filters", headers: { cookie: impCookie } });
   assert.equal(read.statusCode, 200, "reading stays allowed");
 });
+
+// E85 [found later]: an impersonation grant must stop when its admin is
+// disabled or logs out (it kept working until expiry; the "admin-disable
+// trigger" in the code comment does not exist).
+test("testE85_grantStopsOnAdminDisableOrLogout", async () => {
+  for (const how of ["disable", "logout"] as const) {
+    const admin = await signedInAdmin("support", `e85-${how}`);
+    const { merchantId } = await createMerchant(`e85-${how}`);
+    const startRes = await app.inject({ method: "POST", url: `/v1/admin/merchants/${merchantId}/impersonate`, headers: { cookie: admin.cookie } });
+    assert.equal(startRes.statusCode, 201, startRes.body);
+    const impCookie = parseCookie(startRes.headers["set-cookie"], config.impersonationCookieName);
+    assert.equal((await app.inject({ method: "GET", url: "/v1/transactions", headers: { cookie: impCookie } })).statusCode, 200);
+    if (how === "disable") {
+      await pool.query(`UPDATE admin_users SET status = 'disabled' WHERE id = $1`, [admin.id]);
+    } else {
+      const out = await app.inject({ method: "POST", url: "/v1/admin/auth/logout", headers: { cookie: admin.cookie } });
+      assert.equal(out.statusCode, 204, out.body);
+    }
+    const after = await app.inject({ method: "GET", url: "/v1/transactions", headers: { cookie: impCookie } });
+    assert.equal(after.statusCode, 401, `${how}: the grant must stop working (${after.statusCode})`);
+    if (how === "logout") {
+      // fix-reviewer: the audit trail shows the grant ended, and why.
+      const audit = await pool.query(
+        `SELECT 1 FROM admin_audit_log WHERE admin_user_id = $1 AND action = 'impersonation_end' AND metadata->>'reason' = 'logout'`,
+        [admin.id],
+      );
+      assert.equal(audit.rowCount, 1);
+    }
+  }
+});

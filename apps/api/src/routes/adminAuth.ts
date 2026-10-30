@@ -11,6 +11,7 @@ import {
   type AdminRole,
 } from "../adminAuth/sessions.js";
 import { withTransaction } from "../db/withTransaction.js";
+import { endAllImpersonationsForAdmin } from "../admin/impersonation.js";
 import { BadRequestError, GoneError, TooManyRequestsError, UnauthorizedError } from "../lib/errors.js";
 
 /**
@@ -238,7 +239,12 @@ export async function adminAuthRoutes(app: FastifyInstance): Promise<void> {
       if (!auth) {
         throw new UnauthorizedError("unauthenticated");
       }
-      await revokeAdminSession(app.db, auth.adminSessionId);
+      // E85: logging out also ends this admin's live impersonation grants
+      // (with audit rows), in one transaction with the session revoke.
+      await withTransaction(app.db, async (client) => {
+        await revokeAdminSession(client, auth.adminSessionId);
+        await endAllImpersonationsForAdmin(client, auth.adminUserId, "logout");
+      });
       reply.setCookie(app.config.adminCookieName, "", {
         httpOnly: true,
         path: "/",

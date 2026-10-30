@@ -1,4 +1,4 @@
-import type { Pool } from "pg";
+import type { Pool, PoolClient } from "pg";
 import { insertAdminAuditLog } from "../adminAudit/log.js";
 import { withTransaction } from "../db/withTransaction.js";
 import { randomToken, sha256Hex } from "../lib/crypto.js";
@@ -75,6 +75,34 @@ export async function endImpersonation(
   });
 }
 
+/**
+ * E85: ends every live grant of one admin (on logout), with one
+ * impersonation_end audit row per grant, inside the caller's transaction.
+ */
+export async function endAllImpersonationsForAdmin(
+  client: PoolClient,
+  adminUserId: string,
+  reason: "logout",
+): Promise<number> {
+  const ended = await client.query<{ id: string; merchant_id: string }>(
+    `UPDATE admin_impersonation_grants
+        SET ended_at = now()
+      WHERE admin_user_id = $1 AND ended_at IS NULL AND revoked_at IS NULL AND expires_at > now()
+    RETURNING id, merchant_id`,
+    [adminUserId],
+  );
+  for (const row of ended.rows) {
+    await insertAdminAuditLog(client, {
+      adminUserId,
+      action: "impersonation_end",
+      targetType: "merchant",
+      targetId: row.merchant_id,
+      metadata: { grantId: row.id, reason },
+    });
+  }
+  return ended.rows.length;
+}
+
 /** The merchant plane's own role vocabulary (`merchant_users.role`). */
 export type ImpersonationMerchantRole = "owner" | "finance" | "support";
 
@@ -121,7 +149,8 @@ export async function lookupImpersonationGrant(
       WHERE g.token_hash = $1
         AND g.revoked_at IS NULL
         AND g.ended_at IS NULL
-        AND g.expires_at > now()`,
+        AND g.expires_at > now()
+        AND au.status = 'active'`, // E85: no "admin-disable trigger" exists (FH's note above is false)
     [tokenHash],
   );
   const row = result.rows[0];

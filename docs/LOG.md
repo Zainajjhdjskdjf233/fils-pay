@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 07:52 PM (30 Oct 2026)
-Summary: Errors 143/176 fixed (+11 partly: E50, E92, E101, E131, E145, E163, E47, E86, E94, E96, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 07:53 PM (30 Oct 2026)
+Summary: Errors 144/176 fixed (+11 partly: E50, E92, E101, E131, E145, E163, E47, E86, E94, E96, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -780,7 +780,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/admin/impersonation.ts:105-127 (no `au.status = 'active'`); false comment :106 "revoked_at gets set by the admin-disable trigger" (only trigger in db/ is 0021 webhook notify); admin logout routes/adminAuth.ts:221-238 leaves the grant
 - Error: a disabled/logged-out staff member keeps read access until expiry (15 min).
 - Proof: code read (security-review agent (12:59 PM); checked by me).
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E85)
 
 ### E86 — [found later] Dashboard dev proxy also forwards /v1/admin; both UIs share one cookie jar
 - Where: apps/web/vite.config.ts:12 (`/v1` incl. /v1/admin, E61); cookies ignore ports on localhost
@@ -2806,6 +2806,12 @@ ROLLBACK;
 - Changed: apps/reporting/src/consumer/applyEvent.ts validatePayload: amountCapturedFils / amountFils must be a positive safe integer (was any safe integer).
 - Before: apps/reporting/src/consumer/applyEvent.e96.test.ts — -5 and 0 passed validation. After: PoisonEventError before any query (parked by E53/E98). Reporting consumer suites 19/19.
 - Still open: settlement trend rows are written under payload.merchantId and amounts, not re-read from the batch (applyEvent.ts:93-118).
+- check.sh (clean environment): OK. Needs a redeploy.
+
+### E85 — 07:53 PM — an impersonation grant stops when its admin is disabled or logs out
+- Changed: apps/api/src/admin/impersonation.ts lookupImpersonationGrant also requires admin_users.status = 'active' (FH's comment 'revoked_at gets set by the admin-disable trigger' is false: no such trigger exists). New endAllImpersonationsForAdmin(client, adminUserId, 'logout') ends live grants and writes one impersonation_end audit row each; apps/api/src/routes/adminAuth.ts /logout calls it in one transaction with revokeAdminSession.
+- Before: testE85_grantStopsOnAdminDisableOrLogout (admin.test.ts) → `disable: the grant must stop working (200)`. After: 401 after disable and after logout; the logout writes an audit row with reason 'logout'. Admin suites 48/48.
+- Second review (Copilot): not run — copilot not found (LOG line 1567). fix-reviewer: CHANGES NEEDED on my first version — the logout UPDATE wrote no audit row (grants that start but never end in the trail), ran outside the session-revoke transaction, and also stamped already-expired grants. Our answer: agree — all three fixed before committing. Known limit it noted: disabling an admin stops the grant (lookup check) but writes no ended_at or audit row.
 - check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy
