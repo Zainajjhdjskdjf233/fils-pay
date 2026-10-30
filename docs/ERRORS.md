@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 54 of 109 fixed.
+Summary: 54 of 116 fixed.
 
 ## High (30 of 31 fixed)
 
@@ -95,7 +95,7 @@ Summary: 54 of 109 fixed.
 | E105 | [found later] Refund drawer keeps its key after a definite 4xx (my F01f bug) | Fixed |
 | E106 | [found later] Reconciliation and batch pages leave out refund parts | Open |
 
-## Low (2 of 39 fixed)
+## Low (2 of 46 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -138,3 +138,10 @@ Summary: 54 of 109 fixed.
 | E107 | [found later] Expired payment links shown as active with Cancel | Open |
 | E108 | [found later] List pages can append rows from an old filter (suspected) | Open |
 | E109 | [found later] Small admin/checkout display bugs | Open |
+| E110 | [found by teammate] Streaming CSV export pages on occurred_at only (unused code) | Open |
+| E111 | [found by teammate] CSV quoting ignores carriage returns | Open |
+| E112 | [found by teammate] Invalid date filters reach the DB (500 instead of 400) | Open |
+| E113 | [found by teammate] Session promotion after OTP updates by id only (defence in depth) | Open |
+| E114 | [found by teammate] Concurrent OTP resends can rotate the challenge twice | Open |
+| E115 | [found by teammate] Impossible dates like 2026-02-30 are accepted | Open |
+| E116 | [found by teammate] Writer actor does not reject impersonation (defence in depth) | Open |

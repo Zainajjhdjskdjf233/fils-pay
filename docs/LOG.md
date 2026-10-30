@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 02:20 PM (30 Oct 2026)
-Summary: Errors 54/109 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 02:35 PM (30 Oct 2026)
+Summary: Errors 54/116 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -919,6 +919,48 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: admin CreditsPage.tsx:59-68 (loadMore double-click duplicates); AdjustmentImportPage.tsx:71 ("posting X" uses the sum of absolute values); CheckoutPage.tsx:118 (raw UTC paidAt); WebhookReplayPage (old result kept on merchant change)
 - Error: cosmetic / confusing.
 - Proof: code read (web/admin bug-hunt agent (1:10 PM); checked by me).
+- Severity: low · Status: open
+
+### E110 — [found by teammate] Streaming CSV export pages on occurred_at only (skips equal timestamps)
+- Where: apps/api/src/transactions/exportCsv.ts:89 (`occurred_at > $5`, cursor = last occurred_at)
+- Error: rows sharing the boundary timestamp are skipped. The function is unused today (E39 chose a row cap; I noted this bug in E39's decision but made no entry).
+- Proof: Lulwa's review with another AI tool (pasted by Zainab, 2:30 PM); checked by me in the code.
+- Severity: low · Status: open
+
+### E111 — [found by teammate] CSV quoting ignores carriage returns
+- Where: apps/api/src/transactions/exportCsv.ts:22 (quotes only on `,` `"` `\n`)
+- Error: a reference containing \r breaks the row in some CSV readers.
+- Proof: Lulwa's review with another AI tool (pasted by Zainab, 2:30 PM); checked by me in the code.
+- Severity: low · Status: open
+
+### E112 — [found by teammate] Invalid date filters reach the database in transaction list and export
+- Where: apps/api/src/routes/transactions.ts:148,166 (`new Date(q.from)` with no validation)
+- Error: `from=garbage` → Invalid Date → Postgres error → 500 instead of 400 (same family as E57).
+- Proof: Lulwa's review with another AI tool (pasted by Zainab, 2:30 PM); checked by me in the code.
+- Severity: low · Status: open
+
+### E113 — [found by teammate] Session promotion after OTP updates by id only
+- Where: apps/api/src/auth/sessions.ts:58 and adminAuth/sessions.ts:73 (`UPDATE … WHERE id = $1`)
+- Error: does not re-check pending/not revoked/not expired. Revoked sessions stay excluded by the live_sessions view (0058); an expired pending session could be revived in the window, and only with the correct OTP — defence in depth.
+- Proof: Lulwa's review with another AI tool (pasted by Zainab, 2:30 PM); checked by me in the code.
+- Severity: low · Status: open
+
+### E114 — [found by teammate] Concurrent OTP resends can rotate the challenge more than once
+- Where: apps/api/src/routes/auth.ts:248 (30 s throttle checked outside the transaction)
+- Error: two resends at once both pass and issue two codes; attempt counts still carry over (E34), so the guess budget is not reset.
+- Proof: Lulwa's review with another AI tool (pasted by Zainab, 2:30 PM); checked by me in the code.
+- Severity: low · Status: open
+
+### E115 — [found by teammate] Impossible calendar dates like 2026-02-30 are accepted
+- Where: apps/api/src/routes/analytics.ts:25 (`DATE_RE.test && !isNaN(Date.parse(v))`; comment says it "rejects 2026-02-30") and the transactions filters
+- Error: `Date.parse("2026-02-30")` rolls over to 2 March (node: Mon Mar 02 2026), so a bad date silently becomes another date.
+- Proof: Lulwa's review with another AI tool (pasted by Zainab, 2:30 PM); checked by me in the code.
+- Severity: low · Status: open
+
+### E116 — [found by teammate] requireMerchantWriterActor does not reject admin impersonation
+- Where: apps/api/src/auth/requireMerchantAuth.ts:129-134 (impersonation recorded as merchant_session)
+- Error: defence in depth on top of E10/E35: every route using it today also requires owner/finance (paymentLinks.ts:77,101; webhooks.ts:58-165; transactions; refunds), and impersonation is "support", so it is not reachable now.
+- Proof: Lulwa's review with another AI tool (pasted by Zainab, 2:30 PM); checked by me in the code.
 - Severity: low · Status: open
 
 ## 3. Hidden things
@@ -1938,4 +1980,9 @@ How we got it:
 - What happened: since 10:52 AM: E14, E17, E15, E16, E18, E19, E26, E29, E30, E20, E22, E24, E25, E27, E31, E32, E33, E34, E35, E36, E37, E39, E41, E53, E42, E44, E60 fixed; E50 partly; E58 not reproduced (guard test); F01f + new E61 fixed. Left: E02/F02 (Docker), E13 (Docker + human secret rotation), E50 formula (business decision). Instead of idling until 1:30 PM, the requested plan (E02 compose with limits, load shedding, checkout load test) is presented now; no Docker work started.
 - Reviews this block: fix-reviewer found real problems in E29 (twice), E34, E36 and E42 — each proven with a new red test or reasoning, fixed, and recorded (J22, J23).
 - Proof: git log 01eee15..HEAD; docs/ERRORS.md Summary 46 of 61.
+
+### J26 — 02:35 PM — two AI tools found different bugs
+- What happened: Lulwa reviewed the code with a different AI tool and sent 19 items; the 8 items pasted to me were checked one by one in the code. 7 are real and new (E110-E116, all Low), 1 was already fixed (her (f) = our E34). None overlapped the 48 entries from our own second bug hunt (E62-E109) or our High findings.
+- Why it matters: each tool has blind spots — ours went deep on money and concurrency paths (e.g. E73, E99, E104), hers on input validation and session edge cases (dates, CSV quoting, OTP races). Neither list alone is complete; checking every claim in the code before recording it kept false positives out (her (d) and (h) are real but much weaker than they sound, and I recorded them as Low with the reason).
+- Proof: docs/COMPARE.md; LOG entries E110-E116.
 
