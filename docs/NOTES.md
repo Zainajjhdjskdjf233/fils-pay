@@ -2000,4 +2000,4 @@ Every cut fil is now on the books, so the clearing account ties to the scheme fi
 "Who pays for the leftover fils?"
 The ADR says the platform holds them in a suspense account for finance to clear monthly. The old March script charged the merchants instead (E75); that choice is marked for Zainab.
 
-Commit: PENDING_N54
+Commit: 184c0b2
