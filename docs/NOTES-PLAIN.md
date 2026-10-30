@@ -475,3 +475,33 @@ Where: apps/api/src/admin/creditRequestValidation.ts · Commit: f078974
 Downloading transactions builds the whole file in memory, and four big downloads at once crashed the server, even with our earlier row limit. Now only one runs at a time and the next one is told to retry. A test starts two at once and shows one runs and one is asked to wait.
 
 Where: apps/api/src/transactions/exportCsv.ts · Commit: e7b8b1b
+
+## N80 — The dashboard shows refunds in settlement
+
+The settlement pages showed only gross, fee and net, so with refunds the numbers on screen did not add up. Now they show refunds and the fee returned. Screenshots after a full and a partial refund show the sums match.
+
+Where: apps/web/src/pages/settlement/SettlementBatchDetailPage.tsx · Commit: 5a998e4
+
+## N81 — Bad requests get 4xx, not 500
+
+Broken JSON, very large bodies and badly formed ids made the server answer "internal error". Now these get a clear "bad request" answer. A test sends each kind and checks the status.
+
+Where: apps/api/src/plugins/errorHandler.ts · Commit: 9d35e0f
+
+## N82 — Impossible dates are refused in analytics
+
+Analytics turned a date like 30 February into 2 March without saying so. Now such dates are refused. A test shows impossible dates get 400 and a real leap day still works.
+
+Where: apps/api/src/routes/analytics.ts · Commit: 8f2cf8a
+
+## N83 — Date filters mean the same thing on every server
+
+Date filters accepted nonsense, rolled impossible dates over, and read times without a zone in the server's local time. Now dates must be real and times must say their zone. A test checks bad and good filters.
+
+Where: apps/api/src/routes/transactions.ts · Commit: 173bdda
+
+## N84 — limit must be a whole number
+
+The page-size setting accepted text like "10abc" as 10 and "abc" as an error. Now it must be a whole number. A test checks eight routes.
+
+Where: apps/api/src/lib/queryParsing.ts · Commit: PENDING_N84

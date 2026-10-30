@@ -1,3 +1,4 @@
+import { parseLimit } from "../lib/queryParsing.js";
 import type { FastifyInstance } from "fastify";
 import { requireAdminRole, requireAdminSession } from "../adminAuth/middleware.js";
 import { insertAdminAuditLog } from "../adminAudit/log.js";
@@ -97,7 +98,7 @@ export async function adminMerchantRoutes(app: FastifyInstance): Promise<void> {
           : Array.isArray(q.onboardingStatus)
             ? q.onboardingStatus
             : [q.onboardingStatus];
-      const limit = q.limit !== undefined ? Number.parseInt(q.limit, 10) : undefined;
+      const limit = parseLimit(q.limit) /* E126 */;
 
       return listMerchantsForAdmin(app.db, {
         q: q.q ?? null,

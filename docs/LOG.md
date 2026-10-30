@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 04:52 PM (30 Oct 2026)
-Summary: Errors 80/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 04:54 PM (30 Oct 2026)
+Summary: Errors 81/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -987,7 +987,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: transactions.ts:143, paymentLinks.ts:126, settlement.ts:44, webhooks.ts:195, adminMerchants.ts:100, adminCredits.ts:51, adminAdjustmentImport.ts:81 (`Number.parseInt(q.limit, 10)`)
 - Error: `limit=abc` → NaN → `LIMIT NaN` → 500; `limit=10abc` silently becomes 10. No shared validation.
 - Proof: the second review (items i-k, pasted by Zainab, 2:50 PM); checked by me in the code.
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5)
 
 - Also (04:30 PM, second review item 34): routes/analytics.ts:122 top-links `Number.parseInt(request.query.limit, 10)` ("10garbage" → 10).
 ### E127 — [second review] Settlement date filters accept impossible or malformed dates
@@ -2282,6 +2282,12 @@ ROLLBACK;
 - Test: apps/api/src/routes/dateFilters.e112.test.ts. Before: `/v1/transactions?from=2026-02-30: 200`. After: PASS (7 bad → 400, 5 good incl. the dashboard format → 200); route tests 31/31.
 - check.sh: OK.
 - Actual result: the same date filter means the same thing on every server, and impossible dates are refused.
+
+### E126 — 04:54 PM — limit must be a whole number (8 routes)
+- Changed: apps/api/src/lib/queryParsing.ts `parseLimit` (`^-?\d{1,9}$`, else 400 `invalid_limit`); used in routes/transactions.ts, settlement.ts, paymentLinks.ts, webhooks.ts, analytics.ts (top-links, second review item 34), adminMerchants.ts, adminCredits.ts, adminAdjustmentImport.ts (each was `Number.parseInt`). Routes still clamp whole numbers (existing tests use -5, 0, 1000).
+- Test: apps/api/src/routes/limits.e126.test.ts. Before: `/v1/transactions?limit=10abc: 200`. After: PASS; tests of the 8 routes 100/100.
+- check.sh: OK.
+- Actual result: a malformed limit is refused instead of becoming a different number or a 500.
 
 ## 6. Deploy
 

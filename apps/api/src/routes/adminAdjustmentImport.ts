@@ -1,3 +1,4 @@
+import { parseLimit } from "../lib/queryParsing.js";
 import type { FastifyInstance } from "fastify";
 import { requireAdminRole, requireAdminSession } from "../adminAuth/middleware.js";
 import {
@@ -78,7 +79,7 @@ export async function adminAdjustmentImportRoutes(app: FastifyInstance): Promise
     "/",
     { preHandler: [requireAdminSession] },
     async (request) => {
-      const limit = request.query.limit !== undefined ? Number.parseInt(request.query.limit, 10) : undefined;
+      const limit = parseLimit(request.query.limit) /* E126 */;
       return listAdjustmentImports(app.db, {
         limit: Number.isFinite(limit) ? limit : undefined,
         cursor: request.query.cursor ?? null,

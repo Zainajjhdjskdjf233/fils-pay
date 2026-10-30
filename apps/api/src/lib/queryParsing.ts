@@ -33,3 +33,13 @@ export function requireBusinessDate(v: unknown, name: string): string {
   }
   return v;
 }
+
+/** E126: `limit` must be a whole number ("abc" became NaN → LIMIT NaN → 500;
+ *  "10abc" silently became 10). Callers still clamp it to their own range. */
+export function parseLimit(v: unknown): number | undefined {
+  if (v === undefined) return undefined;
+  if (typeof v !== "string" || !/^-?\d{1,9}$/.test(v)) {
+    throw new BadRequestError("invalid_limit", "limit must be a whole number");
+  }
+  return Number(v);
+}

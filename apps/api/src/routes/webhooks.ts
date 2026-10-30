@@ -1,3 +1,4 @@
+import { parseLimit } from "../lib/queryParsing.js";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import {
   requireMerchantAuth,
@@ -192,7 +193,7 @@ export async function webhookEndpointRoutes(app: FastifyInstance): Promise<void>
 
       const q = request.query;
       const status = q.status === undefined ? undefined : Array.isArray(q.status) ? q.status : [q.status];
-      const limit = q.limit !== undefined ? Number.parseInt(q.limit, 10) : undefined;
+      const limit = parseLimit(q.limit) /* E126 */;
 
       const result = await listWebhookDeliveries(app.db, {
         merchantId: request.params.merchantId,

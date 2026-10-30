@@ -1,4 +1,4 @@
-import { parseOptionalDate } from "../lib/queryParsing.js";
+import { parseOptionalDate, parseLimit } from "../lib/queryParsing.js";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { toFils } from "@filspay/money";
 import { requireApiKey } from "../apiKeys/verify.js";
@@ -146,7 +146,7 @@ export async function transactionRoutes(app: FastifyInstance): Promise<void> {
     async (request) => {
       const q = request.query;
       const status = q.status === undefined ? undefined : Array.isArray(q.status) ? q.status : [q.status];
-      const limit = q.limit !== undefined ? Number.parseInt(q.limit, 10) : undefined;
+      const limit = parseLimit(q.limit) /* E126 */;
 
       return listTransactions(app.db, {
         merchantId: request.merchantAuth!.merchantId,

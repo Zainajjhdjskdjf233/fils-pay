@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 4:46 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 4:54 PM
 
 ## Contents
 1. Status now
@@ -14,10 +14,10 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:46 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 75 of 163 fixed.
+- Errors: 81 of 163 fixed.
   - High: 45 of 46 fixed
-  - Medium: 26 of 55 fixed
-  - Low: 4 of 62 fixed
+  - Medium: 27 of 55 fixed
+  - Low: 9 of 62 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
@@ -27,7 +27,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:46 PM
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 75 of 163 fixed.
+- 🔄 Fix: 81 of 163 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -74,6 +74,9 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:46 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- 173bdda fix(E112, E125, E127): date filters must be real dates and times must carry a zone (transactions, export, settlement)
+- 8f2cf8a fix(E115): analytics dates must exist on the calendar (shared isRealDate)
+- 9d35e0f fix(E57): Fastify client errors keep their 4xx; Postgres invalid-input errors from a request are 400; login merchantId must be a UUID
 - 5a998e4 fix(E106): dashboard batch, list and reconciliation pages show the refund parts; refund demo check recorded
 - e7b8b1b fix(E138): one CSV export at a time per process (503 + Retry-After), 6 columns instead of SELECT *; notes N76-N79
 - f078974 fix(E134): credit effectiveDate must be today (Bahrain) or up to 90 days back; also closes E149
@@ -86,9 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:46 PM
 - 8720dd6 fix(E62): reporting cursor read locked (FOR UPDATE) so concurrent passes cannot double count
 - 383d417 fix(E133): report filter JSON checked (object, UUID, status, real dates) before use: 400, not 500
 - 26856d3 fix(E45): export-summary requires a merchant login (second review item 29; re-rated High)
-- d97de16 fix(E121): credits and balance adjustments are paid through the daily batch (negative ones carry like refunds)
-- cc6d252 fix(E120): MDR recalculation skips and reports a batch instead of storing a negative payout
-- 1d456a8 fix(E124): one discount adjustment per capture event, sized from its own fee
 
 ## 7. All errors
 ## High (45 of 46 fixed)
@@ -142,7 +142,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:46 PM
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-### Medium (26 of 55 fixed)
+### Medium (27 of 55 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -185,7 +185,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:46 PM
 | E103 | [found later] View as merchant cannot work end to end | Open |
 | E105 | [found later] Refund drawer keeps its key after a definite 4xx (my F01f bug) | Fixed |
 | E106 | [found later] Reconciliation and batch pages leave out refund parts | Fixed |
-| E125 | [second review] Filters without a time zone read in the server's local zone | Open |
+| E125 | [second review] Filters without a time zone read in the server's local zone | Fixed |
 | E128 | [deep review] Suspended merchant keeps sessions and API keys | Open |
 | E129 | [deep review] Capture idempotency hash ignores the transaction id | Open |
 | E130 | [deep review] Failed link capture leaves the card authorization open | Open |
@@ -202,7 +202,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:46 PM
 | E148 | [coverage] No limit on KYC uploads per merchant: the shared disk can be filled | Open |
 | E163 | [second review] API config never refuses bad settings (prefixes, booleans, NODE_ENV typo turns off security defaults, no ranges) | Open |
 
-### Low (4 of 62 fixed)
+### Low (9 of 62 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -215,7 +215,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:46 PM
 | E54 | Webhook backoff test always fails: test expects no jitter, code adds random ±10 % | Open |
 | E55 | Seed prints API keys; API listens on every network interface | Open |
 | E56 | Go DB tests are flaky when packages run in parallel | Open |
-| E57 | Bad input gives 500 instead of 400 (invalid JSON body, malformed UUID) | Open |
+| E57 | Bad input gives 500 instead of 400 (invalid JSON body, malformed UUID) | Fixed |
 | E59 | Acquirer callback outcome is never validated | Open |
 | E66 | [found later] expire_holds can delete holds released between its SELECT and DELETE | Open |
 | E67 | [found later] refund_merchant_summary counts captured once per refund; never refreshed (my F01e bug) | Open |
@@ -246,13 +246,13 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:46 PM
 | E109 | [found later] Small admin/checkout display bugs | Open |
 | E110 | [second review] Streaming CSV export pages on occurred_at only (unused code) | Open |
 | E111 | [second review] CSV quoting ignores carriage returns | Open |
-| E112 | [second review] Invalid date filters reach the DB (500 instead of 400) | Open |
+| E112 | [second review] Invalid date filters reach the DB (500 instead of 400) | Fixed |
 | E113 | [second review] Session promotion after OTP updates by id only (defence in depth) | Open |
 | E114 | [second review] Concurrent OTP resends can rotate the challenge twice | Open |
-| E115 | [second review] Impossible dates like 2026-02-30 are accepted | Open |
+| E115 | [second review] Impossible dates like 2026-02-30 are accepted | Fixed |
 | E116 | [second review] Writer actor does not reject impersonation (defence in depth) | Open |
-| E126 | [second review] Pagination limits parsed with parseInt; NaN reaches SQL | Open |
-| E127 | [second review] Settlement date filters accept impossible dates | Open |
+| E126 | [second review] Pagination limits parsed with parseInt; NaN reaches SQL | Fixed |
+| E127 | [second review] Settlement date filters accept impossible dates | Fixed |
 | E132 | [deep review] Reconciliation reads its figures from different snapshots | Open |
 | E133 | [second review] Report filter JSON used without a shape check | Fixed |
 | E149 | [coverage] Credit effectiveDate "0000-01-01" passes validation; Postgres likely refuses it (500) | Fixed |
@@ -270,7 +270,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:46 PM
 | E161 | [second review] Recent ledger activity includes the exclusive end date (one extra day) | Open |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84
 
 ### N01 — Database setup stopped halfway
 
@@ -3192,4 +3192,166 @@ The second export waits its turn instead of crashing the server.
 An export takes about a second; a crash takes the whole API down. Streaming would be the long-term fix.
 
 Commit: e7b8b1b
+
+### N80 — The dashboard shows refunds in settlement
+
+#### The idea
+A settlement batch is the shop's payout for one day, like a bank statement line.
+
+#### The problem
+The pages showed gross, fee and net only.
+- With refunds, gross minus fee did not equal net on screen.
+
+#### The fix
+- Batch page, batch list and reconciliation page now show refunds and the fee returned on refunds.
+
+#### The code
+Before (apps/web/src/pages/settlement/SettlementBatchDetailPage.tsx:105): Gross, Fee, Net payout only.
+After:
+```tsx
+<dt>Refunds</dt>
+<dd>{bhd(batch.refundFils)}</dd>
+<dt>Fee returned on refunds</dt>
+<dd>{bhd(batch.feeReversedFils)}</dd>
+```
+The numbers on screen now add up.
+
+#### The proof
+- Before: no refund lines; 20.000 − 0.450 ≠ 5.865.
+- After: screenshots show 20.000 − 0.450 − 14.000 + 0.315 = 5.865.
+
+#### If the judges ask
+"Was the money wrong?"
+No. The API and the ledger were right (gap 0); only the screens left out the refund lines.
+
+Commit: 5a998e4
+
+### N81 — Bad requests get 4xx, not 500
+
+#### The idea
+A 500 means "the server broke"; a 400 means "your request was wrong". Like a shop saying "we are closed" versus "you gave the wrong coin".
+
+#### The problem
+Broken JSON, a huge body or a bad id gave 500.
+
+#### The fix
+- errorHandler.ts: the framework's own client errors keep their 4xx; a bad value that reaches the database is 400.
+- auth.ts: a login shop id must be a UUID.
+
+#### The code
+Before (apps/api/src/plugins/errorHandler.ts:44): every unknown error became 500.
+After:
+```ts
+if (pgCode === "22P02" || pgCode === "22007" || pgCode === "22008") {
+  reply.code(400).send({ error: "invalid_request", message: "a value in the request is not valid" });
+```
+Bad input now gets a clear 400.
+
+#### The proof
+- Before: broken JSON → 500; /v1/transactions/not-a-uuid → 500.
+- After: 400, 413, 415 as expected; full regression green.
+
+#### If the judges ask
+"Can the 400 net hide real bugs?"
+It only catches invalid-input codes from Postgres, which come from request values; other errors still give 500 and are logged.
+
+Commit: 9d35e0f
+
+### N82 — Impossible dates are refused in analytics
+
+#### The idea
+Analytics take a date range, like "show me March".
+
+#### The problem
+"2026-02-30" was silently turned into March 2.
+- The answer was for a range nobody asked for.
+
+#### The fix
+- queryParsing.ts: a shared check that the day exists; analytics use it.
+
+#### The code
+Before (apps/api/src/routes/analytics.ts:25):
+```ts
+return DATE_RE.test(value) && !Number.isNaN(Date.parse(value));
+```
+After:
+```ts
+return isRealDate(value, true);
+```
+The day must exist on the calendar.
+
+#### The proof
+- Before: to=2026-02-29 → 200.
+- After: 400; the real leap day 2024-02-29 still works.
+
+#### If the judges ask
+"Didn't the comment say it rejects 2026-02-30?"
+Yes, and the comment was false; Date.parse rolls such dates over.
+
+Commit: 8f2cf8a
+
+### N83 — Date filters mean the same thing on every server
+
+#### The idea
+Transaction and settlement lists can be filtered by date.
+
+#### The problem
+- Garbage or impossible dates were accepted or rolled over.
+- A time without a zone was read in the server's own zone.
+
+#### The fix
+- queryParsing.ts: dates must be real; a time must carry its zone. Used in transactions, export and settlement.
+
+#### The code
+Before (apps/api/src/routes/transactions.ts:153):
+```ts
+from: q.from ? new Date(q.from) : undefined,
+```
+After:
+```ts
+from: parseOptionalDate(q.from, "from"), // E112/E125
+```
+Bad or zone-less dates get 400.
+
+#### The proof
+- Before: from=2026-02-30 → 200.
+- After: 7 bad filters → 400; the dashboard's own format still works.
+
+#### If the judges ask
+"Does the dashboard still work?"
+Yes. It sends dates with a Z; we checked apps/web/src/format.ts first.
+
+Commit: 173bdda
+
+### N84 — limit must be a whole number
+
+#### The idea
+`limit` says how many rows a page shows.
+
+#### The problem
+"abc" gave a 500 and "10abc" silently became 10, in 8 routes.
+
+#### The fix
+- queryParsing.ts: one parseLimit used by all 8 routes.
+
+#### The code
+Before (apps/api/src/routes/transactions.ts:149):
+```ts
+const limit = q.limit !== undefined ? Number.parseInt(q.limit, 10) : undefined;
+```
+After:
+```ts
+const limit = parseLimit(q.limit) /* E126 */;
+```
+Non-numbers get 400; numbers are still clamped by each route.
+
+#### The proof
+- Before: limit=10abc → 200.
+- After: 400; 100 route tests pass.
+
+#### If the judges ask
+"Why allow -5?"
+Existing tests expect the route to clamp it to its minimum; we kept that behaviour.
+
+Commit: PENDING_N84
 

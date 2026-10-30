@@ -1,3 +1,4 @@
+import { parseLimit } from "../lib/queryParsing.js";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import {
   requireMerchantAuth,
@@ -124,7 +125,7 @@ export async function paymentLinkMerchantRoutes(app: FastifyInstance): Promise<v
       assertOwnMerchant(request);
       const q = request.query;
       const status = q.status === undefined ? undefined : Array.isArray(q.status) ? q.status : [q.status];
-      const limit = q.limit !== undefined ? Number.parseInt(q.limit, 10) : undefined;
+      const limit = parseLimit(q.limit) /* E126 */;
 
       return listPaymentLinks(app.db, app.config, {
         merchantId: request.params.merchantId,

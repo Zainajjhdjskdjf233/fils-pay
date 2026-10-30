@@ -1,3 +1,4 @@
+import { parseLimit } from "../lib/queryParsing.js";
 import type { FastifyInstance } from "fastify";
 import { requireAdminRole, requireAdminSession } from "../adminAuth/middleware.js";
 import {
@@ -48,7 +49,7 @@ export async function adminCreditRoutes(app: FastifyInstance): Promise<void> {
         if (q.merchantId !== undefined) {
           assertUuidParam(q.merchantId, "merchant_not_found");
         }
-        const limit = q.limit !== undefined ? Number.parseInt(q.limit, 10) : undefined;
+        const limit = parseLimit(q.limit) /* E126 */;
 
         return listCreditRequests(app.db, {
           status: q.status,
