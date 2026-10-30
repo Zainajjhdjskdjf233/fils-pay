@@ -736,4 +736,4 @@ Waiting refunds now lower "pending". Refunds that a batch took from another day 
 "Why does reconciliation need two refund numbers?"
 A refund can wait a day before a batch takes it. So one day has the refund in the ledger but not in a batch, and the next day has it in a batch but not in the ledger. One number covers each side.
 
-Commit: PENDING_N19
+Commit: 9afd98d
