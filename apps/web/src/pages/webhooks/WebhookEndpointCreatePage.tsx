@@ -67,10 +67,10 @@ export function WebhookEndpointCreatePage() {
             <code className="dash-secret">{created.secret}</code>{" "}
             <button
               type="button"
-              className="dash-button"
+              className="dash-button dash-button-primary"
               onClick={() => void handleCopy(created.secret)}
             >
-              {copied ? "Copied" : "Copy secret"}
+              {copied ? "Copied ✓" : "Copy secret"}
             </button>
           </p>
         </div>
@@ -112,12 +112,17 @@ export function WebhookEndpointCreatePage() {
             type="url"
             required
             placeholder="https://example.com/filspay/webhooks"
+            autoFocus
+            aria-describedby="url-hint"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
           />
         </label>
-        <button type="submit" className="dash-button" disabled={submitting}>
-          {submitting ? "Creating..." : "Create endpoint"}
+        <p id="url-hint" className="dash-muted dash-hint">
+          A full https:// address on your server. FilsPay shows the signing secret once after you create it.
+        </p>
+        <button type="submit" className="dash-button dash-button-primary" disabled={submitting}>
+          {submitting ? "Creating…" : "Create endpoint"}
         </button>
       </form>
 
