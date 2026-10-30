@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 04:06 PM (30 Oct 2026)
-Summary: Errors 66/133 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 04:07 PM (30 Oct 2026)
+Summary: Errors 67/133 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -716,7 +716,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: scripts/reconcile_march.ts:97-98 (debit merchant_payable / credit scheme_rounding_residue) vs ADR-0002 (credit card_scheme_clearing / debit scheme_rounding_residue)
 - Error: merchants pay the platform's rounding loss; who bears the residue is a finance decision (for Zainab). Overlaps E72 (residue base).
 - Proof: code read (ADR check agent (12:58 PM); checked by me).
-- Severity: medium · Status: open
+- Severity: medium · Status: fixed (see section 5)
 
 ### E76 — [found later] Dashboard transaction date filter uses UTC days, not Bahrain days
 - Where: apps/web/src/format.ts:37 `${dateValue}T00:00:00.000Z`; false comment :35 "fixed, uses bahrain time now — am"
@@ -1983,6 +1983,14 @@ ROLLBACK;
 - Regression: same as baseline v3 (api 446/447, the known E54 test; Go 80 pass).
 - Limits: trend rows written before this fix stay 'closed' until one reporting rebuild; zero-payout batches never get settlement.paid (payout_notify.go:84), so they still show 'closed'.
 - Actual result: a paid batch shows as paid in the dashboard's payout trends.
+
+### E75 — 04:07 PM — the March sweep posts the ADR-0002 legs
+- Changed: scripts/reconcile_march.ts:97: credit card_scheme_clearing / debit scheme_rounding_residue (ADR-0002 lines 29-30, the same legs CloseBatch posts since E73). It debited merchant_payable, so every run took the residue from the shops. The E16 run-once guard (merchant + account + description check, advisory lock) is unchanged and still finds past runs.
+- Planner: read-only agent (scratchpad/plans/E75.md); claims checked against the ADR and the code. Correction from the planner: the run-once guard came from E16, not E21.
+- Test: scripts/reconcile_march.e75.test.ts. Before: actual `[{merchant_payable, debit, 12}, {scheme_rounding_residue, credit, 12}]`. After: PASS; sweep tests 6/6.
+- Regression: same as baseline v3 (api 446/447, the known E54 test; scripts 10/10; Go 80 pass).
+- Not changed (finance decision, for Zainab to review): rows already posted by past runs stay. Read-only query to list them, and to count runs per merchant (Item 02 asks whether it ran more than once), is in scratchpad/plans/E75.md section 5 (`BEGIN TRANSACTION READ ONLY ... ROLLBACK`).
+- Actual result: running the sweep no longer charges merchants.
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04) — not yet. Local Docker stack done (01:48 PM, see section 5 E02).

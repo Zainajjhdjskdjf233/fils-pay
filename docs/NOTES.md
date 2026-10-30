@@ -2677,3 +2677,39 @@ The worker now picks up the paid event, and applySettlementPaid updates the row.
 They update after one reporting rebuild. Zero-payout batches never get a paid event, so they stay closed; this is recorded.
 
 Commit: d4df731
+
+## N73 — The March sweep no longer takes money from shops
+
+### The idea
+The scheme file drops tiny fractions of a fil. A sweep moves those leftovers to a "rounding" account, like sweeping crumbs into one jar.
+
+### The problem
+The sweep took the crumbs from the shops' balances.
+- It debited merchant_payable instead of card_scheme_clearing.
+- Every run lowered what shops were owed.
+
+### The fix
+- reconcile_march.ts: post the two legs ADR-0002 names, the same ones the daily close already uses.
+
+### The code
+Before (scripts/reconcile_march.ts:97):
+```ts
+VALUES ($1, $2, 'merchant_payable', 'debit', $3, $4, $5),
+       ($1, $2, 'scheme_rounding_residue', 'credit', $3, $4, $5)
+```
+After:
+```ts
+VALUES ($1, $2, 'card_scheme_clearing', 'credit', $3, $4, $5),
+       ($1, $2, 'scheme_rounding_residue', 'debit', $3, $4, $5)
+```
+The leftover now leaves the clearing account, not the shop's balance.
+
+### The proof
+- Before: the test saw a merchant_payable debit of 12 fils.
+- After: credit clearing 12, debit residue 12; no merchant_payable row.
+
+### If the judges ask
+"What about the runs that already happened?"
+They stay until finance decides. A read-only query lists them and shows how many times the sweep ran for each shop.
+
+Commit: PENDING_N73

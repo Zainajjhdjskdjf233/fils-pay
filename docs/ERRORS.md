@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 66 of 133 fixed.
+Summary: 67 of 133 fixed.
 
 ## High (39 of 40 fixed)
 
@@ -60,7 +60,7 @@ Summary: 66 of 133 fixed.
 | E124 | [deep review] Capture replay credits the wrong discount (twice after a zero-discount capture) | Fixed |
 | E45 | [second review] /v1/reporting/export-summary had no login check (always 500) | Fixed |
 
-## Medium (24 of 44 fixed)
+## Medium (25 of 44 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -91,7 +91,7 @@ Summary: 66 of 133 fixed.
 | E64 | [found later] Payout trends never show "paid" (settlement.paid not consumed) | Fixed |
 | E65 | [found later] The seed wipes real tables (incl. admin audit log) with no environment check | Open |
 | E74 | [found later] Balance cache and ledger rebuild measure different things (drift after rebuild) | Open |
-| E75 | [found later] March sweep posts the opposite legs from ADR-0002, charging merchants | Open |
+| E75 | [found later] March sweep posts the opposite legs from ADR-0002, charging merchants | Fixed |
 | E76 | [found later] Dashboard date filter uses UTC days, not Bahrain days | Open |
 | E82 | [found later] Admin "rotate API key" hands staff a full-power merchant key | Open |
 | E83 | [found later] Legal name and CR number editable after KYC approval, no re-review | Open |

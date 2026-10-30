@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 4:06 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 4:07 PM
 
 ## Contents
 1. Status now
@@ -14,20 +14,20 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:06 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 66 of 133 fixed.
+- Errors: 67 of 133 fixed.
   - High: 39 of 40 fixed
-  - Medium: 24 of 44 fixed
+  - Medium: 25 of 44 fixed
   - Low: 3 of 49 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
 - Dilmune Cloud: not yet
-- Decisions waiting for Zainab: 24 (search "for Zainab to review" in LOG.md)
+- Decisions waiting for Zainab: 25 (search "for Zainab to review" in LOG.md)
 - Fork: needs a push (VS Code: Git: Push to... → mine)
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 66 of 133 fixed.
+- 🔄 Fix: 67 of 133 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -136,7 +136,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:06 PM
 | E124 | [deep review] Capture replay credits the wrong discount (twice after a zero-discount capture) | Fixed |
 | E45 | [second review] /v1/reporting/export-summary had no login check (always 500) | Fixed |
 
-### Medium (24 of 44 fixed)
+### Medium (25 of 44 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -167,7 +167,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:06 PM
 | E64 | [found later] Payout trends never show "paid" (settlement.paid not consumed) | Fixed |
 | E65 | [found later] The seed wipes real tables (incl. admin audit log) with no environment check | Open |
 | E74 | [found later] Balance cache and ledger rebuild measure different things (drift after rebuild) | Open |
-| E75 | [found later] March sweep posts the opposite legs from ADR-0002, charging merchants | Open |
+| E75 | [found later] March sweep posts the opposite legs from ADR-0002, charging merchants | Fixed |
 | E76 | [found later] Dashboard date filter uses UTC days, not Bahrain days | Open |
 | E82 | [found later] Admin "rotate API key" hands staff a full-power merchant key | Open |
 | E83 | [found later] Legal name and CR number editable after KYC approval, no re-review | Open |
@@ -240,7 +240,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:06 PM
 | E133 | [second review] Report filter JSON used without a shape check | Fixed |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73
 
 ### N01 — Database setup stopped halfway
 
@@ -2917,4 +2917,40 @@ The worker now picks up the paid event, and applySettlementPaid updates the row.
 They update after one reporting rebuild. Zero-payout batches never get a paid event, so they stay closed; this is recorded.
 
 Commit: d4df731
+
+### N73 — The March sweep no longer takes money from shops
+
+#### The idea
+The scheme file drops tiny fractions of a fil. A sweep moves those leftovers to a "rounding" account, like sweeping crumbs into one jar.
+
+#### The problem
+The sweep took the crumbs from the shops' balances.
+- It debited merchant_payable instead of card_scheme_clearing.
+- Every run lowered what shops were owed.
+
+#### The fix
+- reconcile_march.ts: post the two legs ADR-0002 names, the same ones the daily close already uses.
+
+#### The code
+Before (scripts/reconcile_march.ts:97):
+```ts
+VALUES ($1, $2, 'merchant_payable', 'debit', $3, $4, $5),
+       ($1, $2, 'scheme_rounding_residue', 'credit', $3, $4, $5)
+```
+After:
+```ts
+VALUES ($1, $2, 'card_scheme_clearing', 'credit', $3, $4, $5),
+       ($1, $2, 'scheme_rounding_residue', 'debit', $3, $4, $5)
+```
+The leftover now leaves the clearing account, not the shop's balance.
+
+#### The proof
+- Before: the test saw a merchant_payable debit of 12 fils.
+- After: credit clearing 12, debit residue 12; no merchant_payable row.
+
+#### If the judges ask
+"What about the runs that already happened?"
+They stay until finance decides. A read-only query lists them and shows how many times the sweep ran for each shop.
+
+Commit: PENDING_N73
 
