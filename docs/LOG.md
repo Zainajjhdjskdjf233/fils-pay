@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 08:16 PM (30 Oct 2026)
-Summary: Errors 154/176 fixed (+10 partly: E50, E92, E131, E145, E163, E48, E67, E78, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 08:18 PM (30 Oct 2026)
+Summary: Errors 155/176 fixed (+10 partly: E50, E92, E131, E145, E163, E48, E67, E78, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -600,7 +600,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Proof: 12:41 AM, 3 parallel runs → 1 failing package; 3 runs with `-p 1` → 0 failing (command output in ACTIONS.md).
 - Severity: low (test-only)
 - Proposed fix: done in our tooling: `go test -p 1` in .claude/check.sh and full-db-test.sh. A real fix would give each test its own merchant ids.
-- Status: open (workaround in test tooling)
+- Status: fixed (see section 5, E56)
 
 ### E57 — [found later] Bad input gives 500 instead of 400 (invalid JSON body, malformed UUID)
 - Where: apps/api/src/routes/auth.ts:60 (merchantId passed straight to a uuid column); the app's error handler (apps/api/src/app.ts) maps Fastify's body-parse error to 500
@@ -2887,6 +2887,11 @@ ROLLBACK;
 - Proof: db/seed/selfVerify.integration.test.ts on a fresh migrated DB (filspay_seed_201607_30531): 1/1, including its reseed-and-compare-checksum assertion. No separate failing test (dev seed only).
 - Two entries in one commit: both are lines in the same seed file.
 - check.sh (clean environment): OK. No redeploy needed (dev tool).
+
+### E56 — 08:18 PM — Go DB tests no longer collide when packages run in parallel
+- Changed: new testmain_e56_test.go in internal/internalapi, internal/ledger, internal/settlement and internal/splits (the four packages whose tests use the DB): a TestMain holds pg_advisory_lock(hashtext('filspay-go-db-tests')) for the whole package run, so packages take turns on the shared database without needing -p 1. Without DATABASE_URL nothing changes.
+- Before: 12:41 AM, 3 parallel runs of go test ./... → 1 failing package (`diff.CachedBefore = 25000, want 888888`, LOG E56). After: 3 parallel runs (no -p 1) → 0 failing lines; go vet clean. check.sh keeps -p 1.
+- check.sh (clean environment): OK. Test-only change.
 
 ## 6. Deploy
 
