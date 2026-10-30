@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 04:35 PM (30 Oct 2026)
-Summary: Errors 70/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 04:36 PM (30 Oct 2026)
+Summary: Errors 71/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1235,7 +1235,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/admin/adjustmentCsvParsing.ts:37-45: the header check reads only cells 0-1, each row takes cells[0..2] and drops the rest.
 - Error: `<merchant>,1,000.000,refund for March` → amount "1" (1,000 fils), reason "000.000", the real reason lost (run with the real parser: `{"amount":"1","reason":"000.000"} → fils: 1000`). Under the E119 50 BD cap the 1 BD posts quietly instead of 1,000 BD being refused.
 - Proof: the second review (items 32-45, pasted by Zainab at 4:23 PM); checked by me in the code (04:30 PM).
-- Severity: high · Status: open
+- Severity: high · Status: fixed (see section 5)
 
 ### E163 — [second review] API config accepts integer prefixes ("3000oops" → 3000) and unsafe integers
 - Where: apps/api/src/config.ts:139-145 `Number.parseInt` + `Number.isFinite`.
@@ -2225,6 +2225,13 @@ ROLLBACK;
 - fix-reviewer: CHANGES NEEDED on my first version, which answered 422 `image_too_large`: it would refuse real 48 MP phone photos (8000x6000) and leave the saved original as an orphan (E147). Our answer: agree; changed to "no thumbnail" (`null`). Queue cannot jam (`run.catch(() => undefined)`); the error match works on sharp 0.33.5.
 - Regression: full suite same as baseline v3 on the first version (api 448/449, the known E54 test; Go 80); after the change, the thumbnail, onboarding and upload tests 22/22 and check.sh OK.
 - Actual result: an upload can no longer push the API past its memory limit through image decoding.
+
+### E162 — 04:36 PM — the adjustment CSV refuses rows with extra columns
+- Changed: apps/api/src/admin/adjustmentCsvParsing.ts:47: a row with more than 3 cells → 400 `invalid_csv_row` (a comma inside an amount or reason; the format has no quoting); the header must be exactly `merchantId,amount,reason`.
+- Test: apps/api/src/admin/adjustmentCsvParsing.e162.test.ts. Before: `Missing expected exception` (`1,000.000` parsed as amount "1"). After: PASS; import tests 37/37 (parser, E21, E22, E119, route).
+- fix-reviewer: APPROVE (parse runs before the E22 hash and the E119 cap, so a refused file writes nothing; admin page placeholder and docs/ADMIN.md:65-66 use the same header). Accepted side effects: a 2-column header and a trailing comma are now refused.
+- check.sh: OK.
+- Actual result: a finance upload can no longer post the wrong amount by a thousands comma.
 
 ## 6. Deploy
 

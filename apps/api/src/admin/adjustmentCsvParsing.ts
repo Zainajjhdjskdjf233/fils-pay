@@ -34,13 +34,19 @@ export function parseAdjustmentCsv(csvContent: string): ParsedAdjustmentCsvRow[]
   }
 
   const header = (lines[0] as string).split(",").map((cell) => cell.trim().toLowerCase());
-  if (header[0] !== "merchantid" || header[1] !== "amount") {
+  // E162: exactly these three columns (the format has no quoting).
+  if (header.length !== 3 || header[0] !== "merchantid" || header[1] !== "amount" || header[2] !== "reason") {
     throw new BadRequestError("invalid_csv_header", "the CSV header must be merchantId,amount,reason");
   }
 
   const rows: ParsedAdjustmentCsvRow[] = [];
   for (let i = 1; i < lines.length; i++) {
     const cells = (lines[i] as string).split(",").map((cell) => cell.trim());
+    // E162: more than three cells means a comma inside a value ("1,000.000"
+    // or a reason). It used to be cut down silently: "1,000.000" posted 1 BD.
+    if (cells.length > 3) {
+      throw new BadRequestError("invalid_csv_row", `row ${i} has more than 3 columns; amounts and reasons may not contain commas`);
+    }
     const merchantId = cells[0] ?? "";
     const amount = cells[1] ?? "";
     if (merchantId === "" || amount === "") {
