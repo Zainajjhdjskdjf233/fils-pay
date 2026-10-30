@@ -294,4 +294,4 @@ Where: apps/api/src/auth/requireMerchantAuth.e58.test.ts · Commit: d69c07f
 
 When the platform is big enough, shops get a small fee discount, and the daily close applies it. The fee recalculation tool did not know about the discount or the shop's scheduled rate, so even with no rate change it raised fees. Now each day's batch remembers the discount it got, and the tool uses the same rate rules as the daily close. A test shows a recalculation with no rate change now changes nothing.
 
-Where: apps/settlement/internal/settlement/recalculate_mdr.go:169 · Commit: PENDING_N49
+Where: apps/settlement/internal/settlement/recalculate_mdr.go:169 · Commit: 376bc49

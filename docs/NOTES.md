@@ -1829,4 +1829,4 @@ The same rate the daily close used, so "no change" really means no change.
 "What about batches closed before this change?"
 They have a saved discount of 0, which is what the old recalculation already assumed, so nothing gets worse for them.
 
-Commit: PENDING_N49
+Commit: 376bc49
