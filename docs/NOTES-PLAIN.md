@@ -427,3 +427,9 @@ Where: apps/web/src/pages/checkout/CheckoutPage.css:44 · Commit: b22520f
 The reporting worker keeps a bookmark of how far it has read. When two runs started at the same moment, both read the same bookmark and both added the same payments, so totals doubled. Now the bookmark is locked while one run works, and the other waits its turn. A test runs two at once and shows each payment counted once.
 
 Where: apps/reporting/src/consumer/cursor.ts:40 · Commit: 8720dd6
+
+## N72 — Paid batches now show as "paid" in payout trends
+
+When a shop was paid, the system sent a "paid" message, but the reporting part never listened for it, so the dashboard showed every batch as only "closed". Now the reporting worker reads that message and marks the batch as paid. A test closes a batch, pays it, and checks the dashboard data says "paid".
+
+Where: apps/reporting/src/consumer/applyEvent.ts:187 · Commit: PENDING_N72

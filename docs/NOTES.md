@@ -2640,3 +2640,40 @@ FOR UPDATE holds the bookmark row until the run commits.
 Only inside one process (a `running` flag). Catch-up and rebuild are separate processes, so the comment saying it was safe was false.
 
 Commit: 8720dd6
+
+## N72 — Paid batches now show as "paid" in payout trends
+
+### The idea
+The dashboard shows each payout batch with a status, like a parcel tracker: closed, then paid.
+
+### The problem
+The "paid" message was sent but nobody read it.
+- Every batch stayed "closed" in the trends, even after the money left.
+
+### The fix
+- runConsumerPass.ts: the reporting worker now reads settlement.paid events.
+- applyEvent.ts: a new handler marks the trend row paid, using the batch row as the source of truth.
+
+### The code
+Before (apps/reporting/src/consumer/runConsumerPass.ts:12):
+```ts
+  "refund.succeeded", // F01e: applyEvent has the matching case
+];
+```
+After:
+```ts
+  "refund.succeeded", // F01e: applyEvent has the matching case
+  "settlement.paid", // E64: marks the payout trend row paid (applyEvent has the case)
+];
+```
+The worker now picks up the paid event, and applySettlementPaid updates the row.
+
+### The proof
+- Before: status 'closed' after payout.
+- After: status 'paid' with a paid time; all 18 reporting tests pass.
+
+### If the judges ask
+"What about old rows?"
+They update after one reporting rebuild. Zero-payout batches never get a paid event, so they stay closed; this is recorded.
+
+Commit: PENDING_N72

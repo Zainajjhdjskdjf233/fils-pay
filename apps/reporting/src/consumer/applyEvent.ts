@@ -178,12 +178,34 @@ async function applyRefundSucceeded(client: PoolClient, row: OutboxEventRow): Pr
 }
 
 /**
+ * E64: settlement.paid (payout_notify.go) was never consumed, so a payout
+ * trend row kept the 'closed' status it got at batch_closed forever. The
+ * payload has no paid_at, so status and paid_at are read from the batch row,
+ * as applyBatchClosed does. Only moves a row forward to 'paid'; a missing
+ * trend row is a no-op (batch_closed is always applied first).
+ */
+async function applySettlementPaid(client: PoolClient, row: OutboxEventRow): Promise<void> {
+  const payload = row.payload as { merchantId: string; batchId?: unknown };
+  if (typeof payload.batchId !== "string" || !UUID_RE.test(payload.batchId)) {
+    throw new PoisonEventError(`settlement.paid ${String(row.id)}: missing or invalid batchId`);
+  }
+  await client.query(
+    `UPDATE merchant_payout_trends t
+        SET status = sb.status, paid_at = sb.paid_at, last_updated_at = now()
+       FROM settlement_batches sb
+      WHERE sb.id = $2 AND t.settlement_batch_id = sb.id AND t.merchant_id = $1
+        AND sb.status = 'paid'`,
+    [payload.merchantId, payload.batchId],
+  );
+}
+
+/**
  * Dispatches one outbox_events row to the applier for its event_type. The
  * `default` branch exists only so a future EventType addition not yet
  * wired into this switch fails loudly (a thrown error rolls back the whole
  * pass, per runConsumerPass's transactional discipline) rather than
  * silently dropping the event — runConsumerPass's own SELECT already
- * filters to the four types handled below, so this branch should never
+ * filters to the types handled below, so this branch should never
  * actually run against real data.
  */
 /** E53: an event whose payload cannot be applied (bad data, not a DB outage). */
@@ -194,7 +216,7 @@ export class PoisonEventError extends Error {
   }
 }
 
-const REPORTED_TYPES = new Set(["transaction.captured", "transaction.voided", "settlement.batch_closed", "refund.succeeded"]);
+const REPORTED_TYPES = new Set(["transaction.captured", "transaction.voided", "settlement.batch_closed", "refund.succeeded", "settlement.paid"]);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** E53: check the fields every applier relies on before touching the DB. */
@@ -221,6 +243,8 @@ export async function applyEvent(client: PoolClient, row: OutboxEventRow): Promi
       return applyBatchClosed(client, row);
     case "refund.succeeded":
       return applyRefundSucceeded(client, row);
+    case "settlement.paid":
+      return applySettlementPaid(client, row);
     default:
       throw new Error(`applyEvent: unhandled event_type ${row.event_type}`);
   }

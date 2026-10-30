@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 03:59 PM (30 Oct 2026)
-Summary: Errors 65/133 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 04:02 PM (30 Oct 2026)
+Summary: Errors 66/133 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -658,7 +658,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/reporting/src/consumer/runConsumerPass.ts REPORTING_EVENT_TYPES (no `settlement.paid`); applyEvent.ts:93-118 copies status/paid_at only at batch_closed time (always closed/NULL).
 - Error: /v1/analytics payout trends show every batch closed and unpaid forever; rebuild.test.ts hides it by inserting the batch as 'paid' first.
 - Proof: `grep -rn "settlement.paid" apps/reporting/src` → nothing (second bug hunt, bug-hunter agent (12:55 PM); checked by me in the code).
-- Severity: medium · Status: open
+- Severity: medium · Status: fixed (see section 5)
 
 ### E65 — [found later] The seed wipes real tables (incl. admin audit log) with no environment check
 - Where: db/seed/generate.ts:212 `TRUNCATE TABLE … RESTART IDENTITY CASCADE`; comment :209-210 "safe to run against a shared/staging database" is false; no NODE_ENV/database-name guard (grep finds none); selfVerify.ts:100 runs generate() twice.
@@ -1975,6 +1975,14 @@ ROLLBACK;
 - Regression: same as baseline v3 (api 446/447, the known E54 test; reporting 17/17; Go 80 pass).
 - False comments (section 3 evidence): runConsumerPass.ts:15-19 and cursor.ts:26 ("the `running` flag guards it": it guards one process only), cursor.ts:44 ("only one writer"), catchUp.ts:17.
 - Actual result: concurrent passes no longer double count.
+
+### E64 — 04:02 PM — payout trends show "paid" (settlement.paid consumed)
+- Changed: apps/reporting/src/consumer/runConsumerPass.ts:13 adds "settlement.paid" to REPORTING_EVENT_TYPES; apps/reporting/src/consumer/applyEvent.ts:187 new applySettlementPaid (reads status and paid_at from settlement_batches, only moves a trend row forward to 'paid'; a bad batchId is a PoisonEventError, E53 style) and its switch case; "settlement.paid" added to REPORTED_TYPES. Both files must change together (a type without a case would fail every pass).
+- Planner: read-only agent (scratchpad/plans/E64.md); claims checked in the code (payout_notify.go:103 enqueues the event; nothing consumed it).
+- Test: apps/reporting/src/consumer/runConsumerPass.e64.test.ts (two passes: close time, then payout). Before: `'closed' !== 'paid'`. After: PASS; reporting 18/18.
+- Regression: same as baseline v3 (api 446/447, the known E54 test; Go 80 pass).
+- Limits: trend rows written before this fix stay 'closed' until one reporting rebuild; zero-payout batches never get settlement.paid (payout_notify.go:84), so they still show 'closed'.
+- Actual result: a paid batch shows as paid in the dashboard's payout trends.
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04) — not yet. Local Docker stack done (01:48 PM, see section 5 E02).

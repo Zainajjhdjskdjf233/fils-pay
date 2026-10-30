@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 3:59 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 4:02 PM
 
 ## Contents
 1. Status now
@@ -14,20 +14,20 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:59 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 65 of 133 fixed.
+- Errors: 66 of 133 fixed.
   - High: 39 of 40 fixed
-  - Medium: 23 of 44 fixed
+  - Medium: 24 of 44 fixed
   - Low: 3 of 49 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
 - Dilmune Cloud: not yet
 - Decisions waiting for Zainab: 24 (search "for Zainab to review" in LOG.md)
-- Fork: needs a push (VS Code: Git: Push to... → mine)
+- Fork: up to date
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 65 of 133 fixed.
+- 🔄 Fix: 66 of 133 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -136,7 +136,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:59 PM
 | E124 | [deep review] Capture replay credits the wrong discount (twice after a zero-discount capture) | Fixed |
 | E45 | [second review] /v1/reporting/export-summary had no login check (always 500) | Fixed |
 
-### Medium (23 of 44 fixed)
+### Medium (24 of 44 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -164,7 +164,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:59 PM
 | E61 | Dashboard and admin console cannot reach the API from their own origin (no CORS, no proxy) | Fixed |
 | E62 | [found later] Two reporting passes at the same time count every event twice | Fixed |
 | E63 | [found later] Admin reporting rebuild double-counts events the worker has not reached | Open |
-| E64 | [found later] Payout trends never show "paid" (settlement.paid not consumed) | Open |
+| E64 | [found later] Payout trends never show "paid" (settlement.paid not consumed) | Fixed |
 | E65 | [found later] The seed wipes real tables (incl. admin audit log) with no environment check | Open |
 | E74 | [found later] Balance cache and ledger rebuild measure different things (drift after rebuild) | Open |
 | E75 | [found later] March sweep posts the opposite legs from ADR-0002, charging merchants | Open |
@@ -240,7 +240,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:59 PM
 | E133 | [second review] Report filter JSON used without a shape check | Fixed |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72
 
 ### N01 — Database setup stopped halfway
 
@@ -2880,4 +2880,41 @@ FOR UPDATE holds the bookmark row until the run commits.
 Only inside one process (a `running` flag). Catch-up and rebuild are separate processes, so the comment saying it was safe was false.
 
 Commit: 8720dd6
+
+### N72 — Paid batches now show as "paid" in payout trends
+
+#### The idea
+The dashboard shows each payout batch with a status, like a parcel tracker: closed, then paid.
+
+#### The problem
+The "paid" message was sent but nobody read it.
+- Every batch stayed "closed" in the trends, even after the money left.
+
+#### The fix
+- runConsumerPass.ts: the reporting worker now reads settlement.paid events.
+- applyEvent.ts: a new handler marks the trend row paid, using the batch row as the source of truth.
+
+#### The code
+Before (apps/reporting/src/consumer/runConsumerPass.ts:12):
+```ts
+  "refund.succeeded", // F01e: applyEvent has the matching case
+];
+```
+After:
+```ts
+  "refund.succeeded", // F01e: applyEvent has the matching case
+  "settlement.paid", // E64: marks the payout trend row paid (applyEvent has the case)
+];
+```
+The worker now picks up the paid event, and applySettlementPaid updates the row.
+
+#### The proof
+- Before: status 'closed' after payout.
+- After: status 'paid' with a paid time; all 18 reporting tests pass.
+
+#### If the judges ask
+"What about old rows?"
+They update after one reporting rebuild. Zero-payout batches never get a paid event, so they stay closed; this is recorded.
+
+Commit: PENDING_N72
 

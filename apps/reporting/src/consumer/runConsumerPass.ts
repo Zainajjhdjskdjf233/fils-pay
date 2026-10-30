@@ -10,6 +10,7 @@ export const REPORTING_EVENT_TYPES: readonly EventType[] = [
   "transaction.voided",
   "settlement.batch_closed",
   "refund.succeeded", // F01e: applyEvent has the matching case
+  "settlement.paid", // E64: marks the payout trend row paid (applyEvent has the case)
 ];
 
 /**
