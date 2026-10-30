@@ -915,4 +915,4 @@ Whole numbers subtract exactly, at any size.
 "Why did nobody notice?"
 Small batches are exact in float32. Only big batches (above about 16,777 BD) drift, and only by a few fils.
 
-Commit: PENDING_N24
+Commit: 2db05e0

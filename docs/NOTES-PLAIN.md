@@ -144,4 +144,4 @@ Where: apps/settlement/internal/splits/allocate.go:110 · Commit: 2327ed9
 
 The daily payout was calculated with a kind of decimal number that only keeps about 7 exact digits. For big shops, the result was off by a few fils. We now subtract the fee from the sales as whole fils, which is always exact. A test with a 135,000 BD day now gives the exact right payout.
 
-Where: apps/settlement/internal/settlement/payable.go:11 · Commit: PENDING_N24
+Where: apps/settlement/internal/settlement/payable.go:11 · Commit: 2db05e0
