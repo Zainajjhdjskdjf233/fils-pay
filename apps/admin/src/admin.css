@@ -300,3 +300,4 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   .admin-table { display: block; overflow-x: auto; }
 }
 @media (prefers-reduced-motion: reduce) { .admin-loading::before { animation: none; } }
+.admin-sticky-msg { position: sticky; top: 0; z-index: 5; }

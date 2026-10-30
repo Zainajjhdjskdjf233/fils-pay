@@ -1,4 +1,4 @@
-import { bahrainDate } from "../../lib/format.js";
+import { bahrainDate, label } from "../../lib/format.js";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { listMerchants } from "../../api/merchants.js";
@@ -130,7 +130,7 @@ export function MerchantListPage() {
             onChange={(e) => setQuery(e.target.value)}
           />
         </label>
-        <button type="submit">Search</button>
+        <button type="submit" className="admin-button-primary" disabled={loading}>{loading ? "Searching…" : "Search"}</button>
       </form>
 
       <fieldset className="admin-filters">
@@ -142,20 +142,27 @@ export function MerchantListPage() {
               checked={statuses.includes(status)}
               onChange={() => toggleStatus(status)}
             />
-            {status}
+            {label(status)}
           </label>
         ))}
       </fieldset>
 
-      {error ? <p className="admin-error">{error}</p> : null}
-      {bulkNotice ? <p className="admin-muted">{bulkNotice}</p> : null}
+      {error ? <p className="admin-error" role="alert">{error}</p> : null}
+      {bulkNotice ? <p className="admin-notice" role="status">{bulkNotice}</p> : null}
 
       {selectedIds.size > 0 ? (
         <div className="admin-form admin-form-inline">
           <span>{selectedIds.size} selected</span>
           <RequireRole allow={["finance", "super_admin"]}>
-            <button type="button" disabled={bulkBusy} onClick={() => void approveSelected()}>
-              Bulk approve KYC
+            <button
+              type="button"
+              className="admin-button-primary"
+              disabled={bulkBusy}
+              onClick={() => {
+                if (window.confirm(`Approve KYC for ${selectedIds.size} selected merchant(s)? Only merchants under review are approved.`)) void approveSelected();
+              }}
+            >
+              {bulkBusy ? "Approving…" : "Bulk approve KYC"}
             </button>
           </RequireRole>
           <button type="button" disabled={bulkBusy} onClick={() => setSelectedIds(new Set())}>
@@ -202,27 +209,27 @@ export function MerchantListPage() {
                   <code>{merchant.id}</code>
                 </div>
               </td>
-              <td>{merchant.status}</td>
-              <td>{merchant.onboardingStatus}</td>
-              <td>{merchant.kycPassed ? "passed" : "not passed"}</td>
+              <td>{label(merchant.status)}</td>
+              <td>{label(merchant.onboardingStatus)}</td>
+              <td>{merchant.kycPassed ? "Passed" : "Not passed"}</td>
               <td>{(merchant.mdrBps / 100).toFixed(2)}%</td>
-              <td>{merchant.testMode ? "test" : "live"}</td>
+              <td>{merchant.testMode ? "Test" : "Live"}</td>
               <td>{bahrainDate(merchant.createdAt)}</td>
             </tr>
           ))}
           {merchants.length === 0 && !loading ? (
             <tr>
-              <td colSpan={8}>No merchants match this search.</td>
+              <td colSpan={8} className="admin-empty">No merchants match this search. Clear the search or the status filter.</td>
             </tr>
           ) : null}
         </tbody>
       </table>
 
-      {loading ? <p>Loading...</p> : null}
+      {loading ? <p className="admin-loading">Loading merchants…</p> : null}
 
       {nextCursor ? (
         <button type="button" disabled={loading} onClick={() => void load(nextCursor)}>
-          Load more
+          {loading ? "Loading…" : "Load more"}
         </button>
       ) : null}
     </section>

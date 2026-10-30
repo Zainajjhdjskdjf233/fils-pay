@@ -1,4 +1,4 @@
-import { bahrainDateTime, bahrainDate } from "../../lib/format.js";
+import { bahrainDateTime, bahrainDate, label } from "../../lib/format.js";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { formatBhd, parseBhdToFils, toFils } from "@filspay/money";
@@ -67,6 +67,7 @@ export function MerchantDetailPage() {
 
   async function handleKycReview(outcome: "approved" | "rejected"): Promise<void> {
     if (!id) return;
+    if (outcome === "rejected" && !window.confirm("Reject KYC for this merchant? They cannot take payments until a new review approves them.")) return;
     setBusy(true);
     setActionError(null);
     setNotice(null);
@@ -76,9 +77,9 @@ export function MerchantDetailPage() {
         notes: kycNotes.trim() ? kycNotes.trim() : undefined,
       });
       setNotice(
-        `KYC ${outcome}. Onboarding status is now ${result.onboardingStatus} (kycPassed: ${String(
-          result.kycPassed,
-        )}).`,
+        `KYC ${outcome}. Onboarding status is now "${label(result.onboardingStatus)}"${
+          result.kycPassed ? " and the merchant has passed KYC." : "."
+        }`,
       );
       setKycNotes("");
       await load();
@@ -114,9 +115,10 @@ export function MerchantDetailPage() {
     if (!id) return;
     const deltaFils = Number(adjustDeltaFils.trim());
     if (!Number.isInteger(deltaFils) || deltaFils === 0) {
-      setActionError("Enter a non-zero whole number of fils.");
+      setActionError("Enter a whole number of fils that is not 0 (for example 5000 or -5000).");
       return;
     }
+    if (!window.confirm(`Change the cached balance by ${bhd(deltaFils)}?\n\nThis corrects the displayed figure only. It moves no money and is written to the audit log.`)) return;
     setBusy(true);
     setActionError(null);
     setNotice(null);
@@ -140,6 +142,14 @@ export function MerchantDetailPage() {
   async function handleIssueCredit(event: React.FormEvent): Promise<void> {
     event.preventDefault();
     if (!id) return;
+    let previewFils: number;
+    try {
+      previewFils = Number(parseBhdToFils(creditAmountBhd));
+    } catch {
+      setActionError("Enter the credit amount in BHD, with at most 3 decimals (for example 25.500).");
+      return;
+    }
+    if (!window.confirm(`Issue a credit of ${bhd(previewFils)} to ${detail?.merchant.displayName ?? "this merchant"}${creditReverseFee ? ", and also reverse the fee on it" : ""}?`)) return;
     setBusy(true);
     setActionError(null);
     setNotice(null);
@@ -156,17 +166,15 @@ export function MerchantDetailPage() {
       });
       setNotice(
         record.status === "posted"
-          ? `Credit of ${bhd(record.postedAmountFils)} posted to the ledger (entry group ${
-              record.ledgerEntryGroupId ?? "unknown"
-            }).`
-          : `Credit of ${bhd(record.postedAmountFils)} raised and awaiting a second approver — see Credits.`,
+          ? `Credit of ${bhd(record.postedAmountFils)} posted to the merchant's balance.`
+          : `Credit of ${bhd(record.postedAmountFils)} raised. It waits for a second finance admin in Merchant credits.`,
       );
       setCreditAmountBhd("");
       setCreditMemo("");
       setCreditReverseFee(false);
       await load();
     } catch (err) {
-      setActionError(err instanceof RangeError ? err.message : describeError(err));
+      setActionError(err instanceof RangeError ? "Enter the credit amount in BHD, with at most 3 decimals." : describeError(err));
     } finally {
       setBusy(false);
     }
@@ -226,14 +234,19 @@ export function MerchantDetailPage() {
   if (loadError) {
     return (
       <section>
-        <p className="admin-error">{loadError}</p>
+        <p className="admin-error" role="alert">{loadError}</p>
         <Link to="/merchants">Back to merchants</Link>
       </section>
     );
   }
 
   if (!detail) {
-    return <p>Loading merchant...</p>;
+    return (
+      <section>
+        <p><Link to="/merchants">&larr; Merchants</Link></p>
+        <p className="admin-loading">Loading merchant…</p>
+      </section>
+    );
   }
 
   const { merchant } = detail;
@@ -253,13 +266,16 @@ export function MerchantDetailPage() {
         <code>{merchant.id}</code>
       </p>
 
-      {actionError ? <p className="admin-error">{actionError}</p> : null}
-      {notice ? <p className="admin-notice">{notice}</p> : null}
+      {/* UX: the message stays in view while you scroll to the form below. */}
+      <div className="admin-sticky-msg">
+        {actionError ? <p className="admin-error" role="alert">{actionError}</p> : null}
+        {notice ? <p className="admin-notice" role="status">{notice}</p> : null}
+      </div>
 
       <h2>Profile</h2>
       <dl className="admin-dl">
         <dt>Status</dt>
-        <dd>{merchant.status}</dd>
+        <dd>{label(merchant.status)}</dd>
         <dt>Onboarding status</dt>
         <dd>{merchant.onboardingStatus}</dd>
         <dt>KYC</dt>
@@ -338,8 +354,9 @@ export function MerchantDetailPage() {
       >
         <div className="admin-form">
           <label>
-            Delta (fils, may be negative)
+            Change in fils (negative to reduce; 1000 fils = 1.000 BHD)
             <input
+              required
               value={adjustDeltaFils}
               onChange={(e) => setAdjustDeltaFils(e.target.value)}
               inputMode="numeric"
@@ -352,15 +369,21 @@ export function MerchantDetailPage() {
               value={adjustReason}
               onChange={(e) => setAdjustReason(e.target.value)}
               placeholder="phone confirmation with merchant"
+              required
             />
           </label>
+          <span className="admin-muted">
+            {/^-?\d+$/.test(adjustDeltaFils.trim()) && Number(adjustDeltaFils.trim()) !== 0
+              ? `Changes the cached balance by ${bhd(Number(adjustDeltaFils.trim()))}.`
+              : "Whole fils only."}
+          </span>
           <div>
             <button
               type="button"
               disabled={busy || !adjustDeltaFils.trim() || !adjustReason.trim()}
               onClick={() => void handleAdjustBalance()}
             >
-              Adjust balance
+              {busy ? "Adjusting…" : "Adjust balance"}
             </button>
           </div>
         </div>
@@ -424,8 +447,8 @@ export function MerchantDetailPage() {
             Memo (optional)
             <textarea value={creditMemo} onChange={(e) => setCreditMemo(e.target.value)} rows={2} />
           </label>
-          <button type="submit" disabled={busy}>
-            {busy ? "Submitting..." : "Issue credit"}
+          <button type="submit" className="admin-button-primary" disabled={busy}>
+            {busy ? "Submitting…" : "Issue credit"}
           </button>
         </form>
       </RequireRole>
@@ -449,10 +472,10 @@ export function MerchantDetailPage() {
             <textarea value={kycNotes} onChange={(e) => setKycNotes(e.target.value)} rows={3} />
           </label>
           <div>
-            <button type="button" disabled={busy} onClick={() => void handleKycReview("approved")}>
+            <button type="button" className="admin-button-primary" disabled={busy} onClick={() => void handleKycReview("approved")}>
               Approve KYC
             </button>{" "}
-            <button type="button" disabled={busy} onClick={() => void handleKycReview("rejected")}>
+            <button type="button" className="admin-button-danger" disabled={busy} onClick={() => void handleKycReview("rejected")}>
               Reject KYC
             </button>
           </div>
@@ -516,8 +539,8 @@ export function MerchantDetailPage() {
                       allow={["finance", "super_admin"]}
                       fallback={<span className="admin-muted">finance role required</span>}
                     >
-                      <button type="button" onClick={() => setPendingRotation(key.id)}>
-                        Revoke
+                      <button type="button" className="admin-button-danger" disabled={busy} onClick={() => setPendingRotation(key.id)}>
+                        Revoke…
                       </button>
                     </RequireRole>
                   )}
@@ -531,13 +554,16 @@ export function MerchantDetailPage() {
       {pendingRotation ? (
         <div className="admin-confirm">
           <p>
-            <strong>Revoke this API key?</strong> It stops working at once. Staff do not receive a
+            <strong>
+              Revoke API key <code>{apiKeys.find((k) => k.id === pendingRotation)?.prefix ?? ""}</code>?
+            </strong>{" "}
+            It stops working at once. Staff do not receive a
             replacement (E82): the merchant owner issues a new key in the dashboard.
           </p>
-          <button type="button" disabled={busy} onClick={() => void handleRevoke(pendingRotation)}>
-            {busy ? "Revoking..." : "Yes, revoke it"}
+          <button type="button" className="admin-button-danger" disabled={busy} onClick={() => void handleRevoke(pendingRotation)}>
+            {busy ? "Revoking…" : "Yes, revoke it"}
           </button>{" "}
-          <button type="button" onClick={() => setPendingRotation(null)}>
+          <button type="button" disabled={busy} onClick={() => setPendingRotation(null)}>
             Cancel
           </button>
         </div>
@@ -628,7 +654,7 @@ export function MerchantDetailPage() {
         its own. A banner stays on screen until you exit it.
       </p>
       <button type="button" disabled={busy} onClick={() => void handleImpersonate()}>
-        View as merchant
+        {busy ? "Starting…" : "View as merchant"}
       </button>
       {impersonationUrl ? (
         <p>
