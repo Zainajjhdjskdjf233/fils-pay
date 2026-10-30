@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 06:20 PM (30 Oct 2026)
-Summary: Errors 100/175 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 06:21 PM (30 Oct 2026)
+Summary: Errors 101/175 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1297,7 +1297,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 ### E174 — [second review] Payment-link expiresAt rolls over (2026-02-30) or is read zone-less
 - Where: apps/api/src/paymentLinks/create.ts:43 `new Date(input.expiresAt)`.
 - Proof: the second review (items 85, notes received 5:30 PM / 6:15 PM); checked by me in the code (06:18 PM).
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E174)
 
 ### E175 — [second review] Webhook URLs with embedded credentials are accepted but never deliverable
 - Where: apps/api/src/webhooks/create.ts:19 parses the URL but never checks username/password (fetch refuses such URLs at send time).
@@ -2488,6 +2488,12 @@ ROLLBACK;
 - Changed: apps/api/src/paymentLinks/create.ts: amountFils <= 0 → 400 invalid_amount (0 passed toFils and hit CHECK amount_fils > 0, 0020:31 → 500).
 - Test: apps/api/src/routes/paymentLinkCreate.e166.test.ts. Before: 500 (CHECK, 23514). After: PASS; payment-link tests pass.
 - Found by: the second review (item 60).
+- check.sh: OK.
+
+### E174 — 06:21 PM — payment-link expiresAt must be a real date with a zone
+- Changed: apps/api/src/paymentLinks/create.ts: isRealDate(expiresAt) before new Date (shared helper; a time needs Z or ±hh:mm), else 400 invalid_expiry. The dashboard sends toISOString() (apps/web/src/format.ts:48), still accepted.
+- Test: routes/paymentLinkCreate.e166.test.ts testE174_expiresAtMustBeRealAndZoned. Before: fail (2099-02-30T10:00:00Z accepted). After: PASS; payment-link tests pass.
+- Found by: the second review (item 85).
 - check.sh: OK.
 
 ## 6. Deploy

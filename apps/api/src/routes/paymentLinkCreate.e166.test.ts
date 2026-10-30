@@ -36,3 +36,23 @@ test("testE166_zeroAmountLinkIs400", async () => {
   });
   assert.equal(r.statusCode, 400, `${r.statusCode} ${r.body}`);
 });
+
+// E174 [second review, item 85]: expiresAt must be a real date with a zone;
+// 2026-02-30 rolled over and a zone-less time was read in the server's zone.
+test("testE174_expiresAtMustBeRealAndZoned", async () => {
+  const m = await pool.query<{ id: string }>(`INSERT INTO merchants (display_name, mdr_bps) VALUES ($1, 250) RETURNING id`, [`E174 ${randomUUID()}`]);
+  const u = await pool.query<{ id: string }>(
+    `INSERT INTO merchant_users (merchant_id, email, role, password_hash) VALUES ($1, $2, 'owner', 'unused') RETURNING id`,
+    [m.rows[0]!.id, `e174-${randomUUID()}@example.test`],
+  );
+  const { rawKey } = await issueApiKey(pool, config, { merchantId: m.rows[0]!.id, createdBy: u.rows[0]!.id, label: "e174" });
+  const create = (expiresAt: string) => app.inject({
+    method: "POST", url: `/v1/merchants/${m.rows[0]!.id}/payment-links`, headers: { authorization: `Bearer ${rawKey}` },
+    payload: { amountFils: 1000, reference: "e174", description: "E174", expiresAt },
+  });
+  for (const bad of ["2099-02-30T10:00:00Z", "2099-03-01T10:00:00"]) {
+    const r = await create(bad);
+    assert.equal(r.statusCode, 400, `${bad}: ${r.statusCode} ${r.body}`);
+  }
+  assert.equal((await create(new Date(Date.now() + 3_600_000).toISOString())).statusCode, 201);
+});

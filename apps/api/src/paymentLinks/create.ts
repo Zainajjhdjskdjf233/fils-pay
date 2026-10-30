@@ -1,3 +1,4 @@
+import { isRealDate } from "../lib/queryParsing.js";
 import type { Pool } from "pg";
 import { toFils } from "@filspay/money";
 import { BadRequestError } from "../lib/errors.js";
@@ -44,6 +45,11 @@ export async function createPaymentLink(
     throw new BadRequestError("invalid_amount", "amountFils must be a positive whole number of fils");
   }
 
+  // E174: a real date, and a time must carry its zone (2026-02-30 rolled
+  // over; a zone-less time was read in the server's own zone).
+  if (!isRealDate(input.expiresAt)) {
+    throw new BadRequestError("invalid_expiry", "expiresAt must be a real ISO 8601 date (a time needs a zone such as Z)");
+  }
   const expiresAtDate = new Date(input.expiresAt);
   if (Number.isNaN(expiresAtDate.getTime()) || expiresAtDate.getTime() <= Date.now()) {
     throw new BadRequestError("invalid_expiry", "expiresAt must be a valid ISO 8601 date strictly in the future");
