@@ -276,4 +276,4 @@ Where: apps/reporting/src/consumer/runConsumerPass.ts:54 · Commit: eebf7d4
 
 The money check guessed the fee on payments not yet paid out using the shop's default rate and rough decimals, while payments were really charged a scheduled rate. So the check almost never balanced. Now it uses the exact same rule and rounding as the real settlement. A test that used to show a 66-fils gap now shows zero.
 
-Where: apps/api/src/settlement/query.ts:374 · Commit: PENDING_N46
+Where: apps/api/src/settlement/query.ts:374 · Commit: 976d166

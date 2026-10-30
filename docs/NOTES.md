@@ -1726,4 +1726,4 @@ Same inputs and same rounding as the real settlement.
 "Can the gap still be non-zero?"
 Yes, for shops with a negotiated discount (E50): the payment-time fee and the settlement fee really differ, and reconciliation now shows that honestly.
 
-Commit: PENDING_N46
+Commit: 976d166
