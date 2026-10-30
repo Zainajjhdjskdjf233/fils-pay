@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 08:29 PM (30 Oct 2026)
-Summary: Errors 160/177 fixed (+8 partly: E50, E92, E131, E48, E67, E78, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 08:30 PM (30 Oct 2026)
+Summary: Errors 161/177 fixed (+8 partly: E50, E92, E131, E48, E67, E78, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -823,7 +823,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: db/migrations/0007_ledger_double_entry.sql:72-74 (comment) vs :43-70 (trigger only checks each group sums to 0); 0034_admin_audit_log.sql has no trigger (grep: 0)
 - Error: deleting a whole group, moving it to another merchant, rescaling both legs or back-dating all commit without error; audit rows can be erased.
 - Proof: code read (backend security-review agent (1:03 PM); checked by me).
-- Severity: medium · Status: partly fixed (0082 revokes UPDATE/DELETE/TRUNCATE on ledger_entries and admin_audit_log for the app roles; no reject trigger yet)
+- Severity: medium · Status: fixed (see section 5, E92)
 
 ### E93 — [found later] sqlFilter builds a DELETE with no WHERE for null/undefined filters and pastes identifiers
 - Where: scripts/lib/sqlFilter.ts:8,13,17,21,30 (`continue` on null/undefined; `DELETE FROM ${table} ${clause}`)
@@ -2935,6 +2935,13 @@ ROLLBACK;
 - Proof (dev server on :5199, command output 08:29 PM): /v1/admin/auth/me → 200 text/html (not forwarded); /v1/auth/me → 401 application/json (forwarded to the API as before); no proxy errors.
 - The shared cookie jar on localhost is a property of browsers (cookies ignore ports); in hosting the admin runs on its own port with its own cookie name (fp_admin_sid), and the API never accepts one plane's cookie on the other (admin.test.ts 'a merchant session cookie grants nothing on the admin plane').
 - With the earlier part E86 is now fully fixed. check.sh not affected (dev config).
+
+### E92 — 08:30 PM — (rest) ledger_entries and admin_audit_log are append-only for every database role
+- Changed: new db/migrations/0086_ledger_audit_append_only.sql: a BEFORE UPDATE OR DELETE trigger on ledger_entries refuses every change; one on admin_audit_log refuses DELETE and any UPDATE that touches a column other than outcome/metadata (the only update the app makes, adminAudit/log.ts:112). 0082 had only revoked the rights from the app roles, so the owner and superusers could still rewrite history. TRUNCATE (dev seed only) is not a row event.
+- Checked first: no code updates or deletes ledger rows; the only audit update is log.ts:112 (grep of apps, scripts, db).
+- Before: apps/api/src/admin/appendOnly.e92.test.ts (as the postgres superuser) → UPDATE/DELETE of a ledger row and a rewrite of an audit action succeeded. After migration 0086: refused; outcome/metadata update still works. Full regression on a fresh DB with the triggers: api 525/525, money 44/44, events 4/4, reporting 22/22, web 13/13, scripts 11/11, Go 84, failing 0.
+- With the earlier part (0082) E92 is now fully fixed.
+- check.sh (clean environment): OK. Needs a redeploy (migration; allowed on the live server).
 
 ## 6. Deploy
 

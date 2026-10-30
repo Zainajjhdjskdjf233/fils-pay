@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 160 of 177 fixed.
+Summary: 161 of 177 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -66,7 +66,7 @@ Summary: 160 of 177 fixed.
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-## Medium (53 of 60 fixed)
+## Medium (54 of 60 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -102,7 +102,7 @@ Summary: 160 of 177 fixed.
 | E82 | [found later] Admin "rotate API key" hands staff a full-power merchant key | Open |
 | E83 | [found later] Legal name and CR number editable after KYC approval, no re-review | Fixed |
 | E91 | [found later] Every service connects as one Postgres superuser | Fixed |
-| E92 | [found later] Ledger immutability claim false; audit log unprotected | Partly fixed |
+| E92 | [found later] Ledger immutability claim false; audit log unprotected | Fixed |
 | E93 | [found later] sqlFilter builds DELETE with no WHERE for null/undefined filters | Fixed |
 | E100 | [found later] Checkout tells a charged buyer to try again (reservation_lost) | Fixed |
 | E101 | [found later] Expired link with stale reservation: Pay form forever, cannot cancel | Fixed |
