@@ -32,7 +32,7 @@ What we did, with sources:
 - **Errors:** 178 entries recorded with file:line proof (docs/ERRORS.md, docs/LOG.md section 2). 172 fixed, 1 partly fixed (E79: three dead files wait for approval to delete), 5 closed by a recorded decision (E58 not a bug, E150 kept as designed, E69/E70 dev seed, E72 documented with a read-only query), 0 open. All 46 High entries are fixed (docs/ERRORS.md, "High (46 of 46 fixed)").
 - **Hidden things:** 40 entries in docs/LOG.md section 3 (false comments, planted AI instruction files, a staged git history, missing commits).
 - **Features from the case file:** both done. F01 (refund flow end to end) and F02 (live on Dilmune Cloud) (docs/LOG.md section 4).
-- **Tests:** every fix started with a test that failed for the right reason, except a few UI-only and timing-race fixes where LOG says so. Final full regression on a fresh database (commit 8acf5d2, 08:06 PM): API 519/519, money 44/44, events 4/4, reporting 21/21, web 13/13, scripts 11/11, Go 84 pass, 0 failures (docs/LOG.md section 6).
+- **Tests:** every fix started with a test that failed for the right reason, except a few UI-only and timing-race fixes where LOG says so. Latest full regression on a fresh database (commit ed78c94, 09:36 PM): API 531/531, money 44/44, events 4/4, reporting 23/23, web 13/13, scripts 11/11, Go 86 pass, 0 failures (docs/LOG.md section 6).
 - **Live check:** 45 public and 29 logged-in checks against the live server, including a full refund (10.000 BD) and a partial refund (4.000 BD), with a reconciliation gap of 0 (docs/LOG.md section 6).
 - **Case:** the inherited history was staged after 12 Sep 2026. Main actor: Mahmood Khalil (medium confidence). Full reasoning: docs/CASE-MAP.md.
 

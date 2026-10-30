@@ -3203,6 +3203,9 @@ A fresh clone of the fork, built and started from nothing but the repo.
 - Rehearsed every step on a second, identical set (rehearsal-partial, rehearsal-full, rehearsal-checkout) so the judges' set stays untouched: login + OTP 200; partial refund 4.000 → partially_refunded 10000/4000; full refund → refunded 10000/10000; settlement batches 200; reconciliation today gap 0 (ledger 41681), 30-day default window gap 0; checkout active → paid; pages 200; headless Chrome rendered the checkout (shop name, 4.750 BHD, card form, "Pay 4.750") and the login form. After the rehearsal the demo set was still captured with nothing refunded and the checkout link active.
 - No password was printed or written; the demo credentials stay in the mode-600 file on the server.
 
+### Full regression after the decision pass — 09:36 PM
+- Fresh, freshly migrated database (filspay_full_213551_20427; migrations up to 0088) at commit ed78c94: api 531/531, money 44/44, events 4/4, reporting 23/23, web 13/13, scripts 11/11, Go 86 pass (1 skip), failing 0.
+
 ## 7. Judge notes
 
 ### Live deploy — 06:12 PM (30 Oct 2026)
