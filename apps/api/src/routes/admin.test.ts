@@ -1317,6 +1317,7 @@ test("settlement run-batch: the audit row is COMMITTED before the call is made, 
 
 test("settlement run-batch: a failing call surfaces its status and leaves an audit row marked failed", async () => {
   const finance = await signedInAdmin("finance", "runbatch-fail");
+  const { merchantId: realMerchantId } = await createMerchant("runbatch-fail"); // E173: run-batch now 404s an unknown merchant
   settlementSpy.runBatchCalls = [];
   const { AppError } = await import("../lib/errors.js");
   settlementSpy.runBatchImpl = async () => {
@@ -1327,7 +1328,7 @@ test("settlement run-batch: a failing call surfaces its status and leaves an aud
     method: "POST",
     url: "/v1/admin/settlement/run-batch",
     headers: { cookie: finance.cookie },
-    payload: { date: "2026-09-10", merchantId: randomUUID() },
+    payload: { date: "2026-09-10", merchantId: realMerchantId },
   });
   assert.equal(res.statusCode, 502, res.body);
   assert.equal(res.json().error, "settlement_unreachable");

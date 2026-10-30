@@ -1,3 +1,4 @@
+import { isRealDate } from "../lib/queryParsing.js";
 import type { FastifyInstance } from "fastify";
 import { requireAdminRole, requireAdminSession } from "../adminAuth/middleware.js";
 import { insertAdminAuditLog, markAdminAuditOutcome } from "../adminAudit/log.js";
@@ -115,11 +116,16 @@ export async function adminRoutes(app: FastifyInstance, options: AdminRoutesOpti
       if (!adminAuth) throw new UnauthorizedError("unauthenticated");
 
       const { date, merchantId } = request.body ?? {};
-      if (!date || !ISO_DATE_RE.test(date)) {
+      // E173: a real calendar date (regex-only let 2026-02-30 through to settlement → 500).
+      if (!date || !isRealDate(date, true)) {
         throw new BadRequestError("invalid_request", "date is required, formatted YYYY-MM-DD");
       }
       if (merchantId !== undefined && !UUID_RE.test(merchantId)) {
         throw new BadRequestError("invalid_request", "merchantId, if given, must be a UUID");
+      }
+      // E173: an unknown merchant hit the settlement FK → 500.
+      if (merchantId !== undefined && (await app.db.query(`SELECT 1 FROM merchants WHERE id = $1`, [merchantId])).rowCount === 0) {
+        throw new NotFoundError("merchant_not_found");
       }
 
       const auditLogId = await withTransaction(app.db, async (client) =>
@@ -273,8 +279,12 @@ export async function adminRoutes(app: FastifyInstance, options: AdminRoutesOpti
       }
 
       const { from, to } = request.body ?? {};
-      if (!from || !ISO_DATE_RE.test(from) || !to || !ISO_DATE_RE.test(to)) {
+      if (!from || !isRealDate(from, true) || !to || !isRealDate(to, true)) {
         throw new BadRequestError("invalid_request", "from and to are required, formatted YYYY-MM-DD");
+      }
+      // E173: a reversed range was a silent no-op (0 batches, "succeeded").
+      if (from >= to) {
+        throw new BadRequestError("invalid_request", "from must be before to");
       }
 
       const auditLogId = await withTransaction(app.db, async (client) =>

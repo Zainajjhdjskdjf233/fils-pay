@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 06:29 PM (30 Oct 2026)
-Summary: Errors 106/175 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 06:31 PM (30 Oct 2026)
+Summary: Errors 107/175 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1292,7 +1292,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 ### E173 — [second review] Admin run-batch and MDR recalc: dates checked by regex only, a reversed range is a silent no-op, a missing merchant gives 500
 - Where: apps/api/src/routes/admin.ts:68 (ISO_DATE_RE), :276 (no from < to check); settlementClient.ts:142 turns any non-2xx into 500; a missing merchant hits the FK at batch.go:79.
 - Proof: the second review (items 84, 87, 88, notes received 5:30 PM / 6:15 PM); checked by me in the code (06:18 PM).
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E173)
 
 ### E174 — [second review] Payment-link expiresAt rolls over (2026-02-30) or is read zone-less
 - Where: apps/api/src/paymentLinks/create.ts:43 `new Date(input.expiresAt)`.
@@ -2543,6 +2543,13 @@ ROLLBACK;
 - Changed: apps/api/src/routes/adminMerchants.ts replay-batch and archive: from/to through parseOptionalDate (real date; a time needs a zone), else 400 — was `new Date(from)` (2026-02-30 rolled over, zone-less times read in the server zone). The admin page sends toISOString() (WebhookReplayPage.tsx:103), still accepted.
 - Test: routes/adminWebhookReplay.e136.test.ts testE172_archiveAndReplayDatesAreStrict. Before: fail. After: PASS; admin, replay and archive tests 49/49.
 - Found by: the second review (item 81).
+- check.sh: OK.
+
+### E173 — 06:31 PM — admin run-batch and MDR recalc check dates, range order and the merchant
+- Changed: apps/api/src/routes/admin.ts: run-batch and mdr-recalculation use isRealDate (real calendar day; regex-only let 2026-02-30 reach settlement → 500); MDR refuses from >= to (was a silent no-op); run-batch with an unknown merchantId → 404 before the audit row and the settlement call (was an FK error → 500).
+- Test: apps/api/src/routes/adminSettlement.e173.test.ts (4 cases). Before: `run-batch {"date":"2026-02-30"}: 502` (reached the settlement call). After: PASS.
+- Existing test adjusted: admin.test.ts "run-batch: a failing call…" used a random merchant id; it now uses a real merchant (it tests the failure path, not merchants). admin tests pass.
+- Found by: the second review (items 84, 87, 88).
 - check.sh: OK.
 
 ## 6. Deploy
