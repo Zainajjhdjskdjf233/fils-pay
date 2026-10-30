@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 142 of 176 fixed.
+Summary: 143 of 176 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -66,7 +66,7 @@ Summary: 142 of 176 fixed.
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-## Medium (48 of 60 fixed)
+## Medium (49 of 60 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -100,7 +100,7 @@ Summary: 142 of 176 fixed.
 | E75 | [found later] March sweep posts the opposite legs from ADR-0002, charging merchants | Fixed |
 | E76 | [found later] Dashboard date filter uses UTC days, not Bahrain days | Fixed |
 | E82 | [found later] Admin "rotate API key" hands staff a full-power merchant key | Open |
-| E83 | [found later] Legal name and CR number editable after KYC approval, no re-review | Open |
+| E83 | [found later] Legal name and CR number editable after KYC approval, no re-review | Fixed |
 | E91 | [found later] Every service connects as one Postgres superuser | Fixed |
 | E92 | [found later] Ledger immutability claim false; audit log unprotected | Partly fixed |
 | E93 | [found later] sqlFilter builds DELETE with no WHERE for null/undefined filters | Fixed |

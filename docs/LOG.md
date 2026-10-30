@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 07:47 PM (30 Oct 2026)
-Summary: Errors 142/176 fixed (+10 partly: E50, E92, E101, E131, E145, E163, E47, E86, E94, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 07:51 PM (30 Oct 2026)
+Summary: Errors 143/176 fixed (+10 partly: E50, E92, E101, E131, E145, E163, E47, E86, E94, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -768,7 +768,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/onboarding/businessProfile.ts:81-92 (PATCHABLE_COLUMNS incl. legal_name, registration_number, business_type), :99-131 (no status change, no audit)
 - Error: pass KYC as company A, rename to company B, stay approved — KYC/AML bypass.
 - Proof: code read (security-review agent (12:59 PM); checked by me).
-- Severity: medium · Status: open
+- Severity: medium · Status: fixed (see section 5, E83)
 
 ### E84 — [found later] CSRF from same-site pages: SameSite=Lax only, text/plain bodies accepted
 - Where: cookie writes routes/auth.ts:100-106, adminAuth.ts:93,198, adminMerchants.ts:347 (sameSite lax); no Origin/CSRF check; Fastify parses text/plain
@@ -2794,6 +2794,12 @@ ROLLBACK;
 - Changed: apps/api/src/paymentLinks/status.ts: a timed-out reservation is 'active' only if the link has not expired, else 'expired'. apps/api/src/paymentLinks/pay.ts classifyClaimFailure: 'reserved' + expired → 410 payment_link_expired (was 409 processing, 'try again' forever).
 - Before: testE101_staleReservationOnExpiredLinkIsExpired (status.test.ts) → 'active'; testE101_payOnExpiredStaleReservedLinkIs410 (paymentLinks.test.ts) → 409. After: 'expired' and 410; a still-fresh reservation stays 'processing'. Payment-link suites 32/32.
 - Still open: cancel.ts:16 cancels only status='active', so a merchant cannot cancel such a link (it is harmless now: nobody can pay it).
+- check.sh (clean environment): OK. Needs a redeploy.
+
+### E83 — 07:51 PM — a merchant can no longer change its legal name, CR number or business type during or after KYC review [found later]
+- Changed: apps/api/src/onboarding/businessProfile.ts updateBusinessProfile: a patch that touches IDENTITY_FIELDS (legalName, registrationNumber, businessType) runs in a transaction with SELECT kyc_passed, onboarding_status FROM merchants … FOR UPDATE, and is refused (409 identity_locked_after_kyc) when KYC passed or the status is under_review/approved. Contact fields stay editable; a rejected merchant can still correct its identity before the next review.
+- Before: apps/api/src/onboarding/businessProfile.e83.test.ts — after approval, legalName 'Company B' was accepted (`Missing expected rejection`). After: refused under review and after approval (all three fields); city still editable. Onboarding, signup, app and admin suites 77/77.
+- Second review (Copilot): not run — copilot not found (LOG line 1567). fix-reviewer: APPROVE; kyc_passed is written only by review.ts:50 and bulkKyc.ts:28, both with onboarding_status, and both lock the merchant row, so FOR UPDATE serializes them; only signup inserts profiles; flagged a gap — identity still editable while under_review, so an approval could land on a name the reviewer never saw. Our answer: agree — the lock now also covers under_review, with a test step, before committing.
 - check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy

@@ -1,6 +1,7 @@
 import { BadRequestError } from "../lib/errors.js";
 import type { Pool } from "pg";
-import { NotFoundError } from "../lib/errors.js";
+import { ConflictError, NotFoundError } from "../lib/errors.js";
+import { withTransaction } from "../db/withTransaction.js";
 import { todayStamp } from "../lib/dateUtil.js";
 
 export interface BusinessProfile {
@@ -79,6 +80,9 @@ export interface BusinessProfilePatch {
   postalCode?: string | null;
 }
 
+/** E83: the fields a KYC review checked. */
+const IDENTITY_FIELDS: ReadonlyArray<keyof BusinessProfilePatch> = ["legalName", "registrationNumber", "businessType"];
+
 const PATCHABLE_COLUMNS: Record<keyof BusinessProfilePatch, string> = {
   legalName: "legal_name",
   registrationNumber: "registration_number",
@@ -93,8 +97,8 @@ const PATCHABLE_COLUMNS: Record<keyof BusinessProfilePatch, string> = {
 };
 
 /** Partial update of the editable business-profile fields (all except
- *  merchant_id). Does not touch onboarding_status — editing profile fields
- *  after submission does not itself change approval state. */
+ *  merchant_id). Does not touch onboarding_status. E83: once KYC has passed,
+ *  the identity fields (IDENTITY_FIELDS) are refused with 409. */
 // FH: PATCHABLE_COLUMNS values interpolated into the SQL — injection? claude: yes
 // column names come from the fixed map, not user input — am
 export async function updateBusinessProfile(
@@ -132,14 +136,35 @@ export async function updateBusinessProfile(
     setClauses.push(`${PATCHABLE_COLUMNS[key]} = $${params.length}`);
   }
 
-  const result = await pool.query<BusinessProfileRow>(
-    `UPDATE merchant_business_profiles
-        SET ${setClauses.join(", ")}, updated_at = now()
-      WHERE merchant_id = $1
-      RETURNING merchant_id, legal_name, registration_number, business_type, country,
-                contact_email, contact_phone, address_line1, address_line2, city, postal_code, updated_at`,
-    params,
-  );
+  // E83: after KYC approval the legal identity is what was reviewed; changing
+  // it would keep the approval for a different company. Contact fields stay
+  // editable. The merchant row is locked so a review cannot land in between.
+  const changesIdentity = entries.some(([key]) => IDENTITY_FIELDS.includes(key));
+  const result = await withTransaction(pool, async (client) => {
+    if (changesIdentity) {
+      const merchant = await client.query<{ kyc_passed: boolean; onboarding_status: string }>(
+        `SELECT kyc_passed, onboarding_status FROM merchants WHERE id = $1 FOR UPDATE`,
+        [merchantId],
+      );
+      // fix-reviewer: also while the review is running, or an approval could
+      // land on a name the reviewer never saw.
+      const row = merchant.rows[0];
+      if (row && (row.kyc_passed || row.onboarding_status === "under_review" || row.onboarding_status === "approved")) {
+        throw new ConflictError(
+          "identity_locked_after_kyc",
+          "legal name, registration number and business type cannot change during or after KYC review; contact support for a new review",
+        );
+      }
+    }
+    return client.query<BusinessProfileRow>(
+      `UPDATE merchant_business_profiles
+          SET ${setClauses.join(", ")}, updated_at = now()
+        WHERE merchant_id = $1
+        RETURNING merchant_id, legal_name, registration_number, business_type, country,
+                  contact_email, contact_phone, address_line1, address_line2, city, postal_code, updated_at`,
+      params,
+    );
+  });
   const row = result.rows[0];
   if (!row) {
     throw new NotFoundError("business_profile_not_found");
