@@ -81,7 +81,8 @@ export function SettlementBatchDetailPage() {
   }
 
   const { batch } = state;
-  const displayProgress = parseFloat((batch.grossFils / 10000).toFixed(2));
+  // E77: integer math only on fils (ADR-0001); the bar is decorative, 1 % per 10,000 fils (10 BD) gross, capped at 100.
+  const displayProgress = Math.min(100, Math.floor(batch.grossFils / 10_000));
 
   return (
     <section>
