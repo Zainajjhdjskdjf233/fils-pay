@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 06:53 PM (30 Oct 2026)
-Summary: Errors 115/175 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 2/2 done (F01 done; F02 live, /healthz at the edge waits for the redeploy) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d27ddf0; later fixes need a redeploy, LOG §6) · CHECKPOINT reached
+Updated: 06:56 PM (30 Oct 2026)
+Summary: Errors 116/175 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 2/2 done (F01 done; F02 live, /healthz at the edge waits for the redeploy) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d27ddf0; later fixes need a redeploy, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -807,7 +807,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/routes/kyc.ts:98, :115 `filename="${file.fileName}"`
 - Error: a quote injects header params; control characters make Node throw (500).
 - Proof: code read (security-review agent (12:59 PM); checked by me).
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E90)
 
 ### E91 — [found later] Every service connects as one Postgres superuser
 - Where: ops/docker-compose.yml:21 (POSTGRES_USER filspay = superuser in the postgres image), :49/:64/:84/:100/:117 same URL for migrate, seed, api, settlement, reporting; :85 "TODO(YA, Jan): give the api its own role before anything is hosted"
@@ -2609,6 +2609,13 @@ ROLLBACK;
 - Before: apps/api/src/db/withTransaction.e40.test.ts (fake pool whose ROLLBACK throws) → the caller got 'connection terminated', not the real cause. After: the real error reaches the caller; release() gets an Error. 1/1.
 - No fix-reviewer: the success path (BEGIN, fn, COMMIT, release()) is unchanged; only the ROLLBACK-failure path changed, and the test covers it.
 - check.sh: OK. Needs a redeploy.
+
+### E90 — 06:56 PM — the KYC download header no longer carries the raw upload filename
+- Changed: new apps/api/src/lib/contentDisposition.ts inlineContentDisposition(): the plain filename keeps only [A-Za-z0-9._ -] (others → _), the real name goes in filename*=UTF-8''<percent-encoded> (RFC 6266). apps/api/src/routes/kyc.ts:105, :122 use it for the document and thumbnail downloads.
+- Before: the old template `inline; filename="${file.fileName}"` with 'cr"; x=y\r\nX: 1.pdf' gives a header with an extra parameter and a raw CR LF (command output: true for /[\r\n]/). After: apps/api/src/lib/contentDisposition.e90.test.ts — no CR/LF, only our two quotes, one filename*, Arabic names kept in filename*. 1/1; app.test.ts + kyc.e157 10/10.
+- Security (header injection), small and single-purpose: no fix-reviewer, to save usage (CLAUDE.md: small fixes skip it).
+- check.sh: one run said TESTS FAILED (no test name shown); the next check.sh run and four repeated unit runs (223/223 each) passed. Same as at E47: a possible flaky test; to be checked in the full regression before the code freeze.
+- Needs a redeploy.
 
 ## 6. Deploy
 
