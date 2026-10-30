@@ -103,6 +103,8 @@ export function SettlementPage() {
   // FH: ADMIN.md says this is safe
   async function handleRecalculateMdr(event: React.FormEvent): Promise<void> {
     event.preventDefault();
+    // UX: this posts ledger adjustments, so it asks first.
+    if (!window.confirm(`Recalculate fees for merchant ${mdrMerchantId.trim().slice(0, 8)}… from ${mdrFrom} to ${mdrTo} (not included)? Any difference is posted to the ledger as an adjustment.`)) return;
     setMdrBusy(true);
     setMdrError(null);
     setMdrResult(null);
@@ -357,7 +359,7 @@ export function SettlementPage() {
             <input type="date" value={mdrFrom} onChange={(e) => setMdrFrom(e.target.value)} required />
           </label>
           <label>
-            To (exclusive)
+            To (not included)
             <input type="date" value={mdrTo} onChange={(e) => setMdrTo(e.target.value)} required />
           </label>
           <button type="submit" disabled={mdrBusy}>

@@ -301,3 +301,6 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 }
 @media (prefers-reduced-motion: reduce) { .admin-loading::before { animation: none; } }
 .admin-sticky-msg { position: sticky; top: 0; z-index: 5; }
+/* UX: form buttons keep their natural width; long ids hide on a phone (the name links to the detail). */
+.admin-form > button, .admin-form > div > button { align-self: flex-start; }
+@media (max-width: 700px) { .admin-table td .admin-muted code { display: none; } }

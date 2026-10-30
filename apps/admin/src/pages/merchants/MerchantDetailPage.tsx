@@ -277,9 +277,9 @@ export function MerchantDetailPage() {
         <dt>Status</dt>
         <dd>{label(merchant.status)}</dd>
         <dt>Onboarding status</dt>
-        <dd>{merchant.onboardingStatus}</dd>
+        <dd>{label(merchant.onboardingStatus)}</dd>
         <dt>KYC</dt>
-        <dd>{merchant.kycPassed ? "passed" : "not passed"}</dd>
+        <dd>{merchant.kycPassed ? "Passed" : "Not passed"}</dd>
         <dt>MDR</dt>
         <dd>
           {(merchant.mdrBps / 100).toFixed(2)}% ({merchant.mdrBps} bps)
@@ -291,7 +291,7 @@ export function MerchantDetailPage() {
             : "no negotiated schedule on file (uses MDR above)"}
         </dd>
         <dt>Mode</dt>
-        <dd>{merchant.testMode ? "test" : "live"}</dd>
+        <dd>{merchant.testMode ? "Test" : "Live"}</dd>
         <dt>Created</dt>
         <dd>{bahrainDateTime(merchant.createdAt)}</dd>
         {profile ? (
@@ -301,7 +301,7 @@ export function MerchantDetailPage() {
             <dt>Registration number</dt>
             <dd>{profile.registrationNumber}</dd>
             <dt>Business type</dt>
-            <dd>{profile.businessType}</dd>
+            <dd>{profile.businessType === "llc" ? "LLC" : label(profile.businessType)}</dd>
             <dt>Contact</dt>
             <dd>
               {profile.contactEmail} / {profile.contactPhone}
@@ -324,11 +324,13 @@ export function MerchantDetailPage() {
           Payable (ledger, authoritative): <strong>{bhd(detail.balance.ledgerPayableFils)}</strong>
           <br />
           Cached payable: {bhd(detail.balance.cachedPayableFils)} (updated{" "}
-          {bahrainDateTime(detail.balance.updatedAt)})
+          {bahrainDateTime(detail.balance.updatedAt)}).
           {detail.balance.driftFils !== 0 ? (
-            <span className="admin-error"> — cache differs from the ledger by {bhd(detail.balance.driftFils)}</span>
+            <span className="admin-error" style={{ display: "block", marginTop: "0.5rem" }}>
+              The cached figure differs from the ledger by {bhd(detail.balance.driftFils)}. The ledger figure is correct;
+              rebuild the cache from <Link to="/settlement">Settlement ops</Link>.
+            </span>
           ) : null}
-          . The cache is rebuildable from Settlement ops.
         </p>
       ) : (
         <p className="admin-muted">No cached balance row yet.</p>
@@ -392,7 +394,7 @@ export function MerchantDetailPage() {
       <h2>Issue credit</h2>
       <p className="admin-muted">
         Journals a manual credit to this merchant&apos;s payable balance. Above the approval limit
-        it waits in <Link to="/credits">Credits</Link> for a second finance operator; at or below
+        it waits in <Link to="/credits">Merchant credits</Link> for a second finance operator; at or below
         it, it posts immediately. The effective date is the accounting date the ledger legs are
         booked against.
       </p>
@@ -406,7 +408,7 @@ export function MerchantDetailPage() {
       >
         <form className="admin-form" onSubmit={(e) => void handleIssueCredit(e)}>
           <label>
-            Amount (BD, up to 3 decimals)
+            Amount (BHD, up to 3 decimals)
             <input
               type="text"
               required
@@ -435,7 +437,7 @@ export function MerchantDetailPage() {
               onChange={(e) => setCreditEffectiveDate(e.target.value)}
             />
           </label>
-          <label>
+          <label style={{ flexDirection: "row", alignItems: "center", gap: "0.5rem" }}>
             <input
               type="checkbox"
               checked={creditReverseFee}
@@ -498,7 +500,7 @@ export function MerchantDetailPage() {
           <tbody>
             {kycReviews.map((review) => (
               <tr key={review.id}>
-                <td>{review.outcome}</td>
+                <td>{label(review.outcome)}</td>
                 <td>{review.reviewerIdentifier}</td>
                 <td>{review.notes ?? "-"}</td>
                 <td>{bahrainDateTime(review.reviewedAt)}</td>
@@ -618,7 +620,7 @@ export function MerchantDetailPage() {
             {batches.map((batch) => (
               <tr key={batch.id}>
                 <td>{batch.batchDate}</td>
-                <td>{batch.status}</td>
+                <td>{label(batch.status)}</td>
                 <td className="num">{bhd(batch.grossFils)}</td>
                 <td className="num">{bhd(batch.feeFils)}</td>
                 <td className="num">{bhd(batch.netPayoutFils)}</td>
