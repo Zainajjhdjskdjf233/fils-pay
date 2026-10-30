@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 121 of 175 fixed.
+Summary: 122 of 175 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -131,7 +131,7 @@ Summary: 121 of 175 fixed.
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-## Low (33 of 69 fixed)
+## Low (34 of 69 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -177,7 +177,7 @@ Summary: 121 of 175 fixed.
 | E111 | [second review] CSV quoting ignores carriage returns | Fixed |
 | E112 | [second review] Invalid date filters reach the DB (500 instead of 400) | Fixed |
 | E113 | [second review] Session promotion after OTP updates by id only (defence in depth) | Fixed |
-| E114 | [second review] Concurrent OTP resends can rotate the challenge twice | Open |
+| E114 | [second review] Concurrent OTP resends can rotate the challenge twice | Fixed |
 | E115 | [second review] Impossible dates like 2026-02-30 are accepted | Fixed |
 | E116 | [second review] Writer actor does not reject impersonation (defence in depth) | Fixed |
 | E126 | [second review] Pagination limits parsed with parseInt; NaN reaches SQL | Fixed |

@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 07:03 PM (30 Oct 2026)
-Summary: Errors 121/175 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 2/2 done (F01 done; F02 live, /healthz at the edge waits for the redeploy) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d27ddf0; later fixes need a redeploy, LOG §6) · CHECKPOINT reached
+Updated: 07:05 PM (30 Oct 2026)
+Summary: Errors 122/175 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 2/2 done (F01 done; F02 live, /healthz at the edge waits for the redeploy) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d27ddf0; later fixes need a redeploy, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -951,7 +951,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/routes/auth.ts:248 (30 s throttle checked outside the transaction)
 - Error: two resends at once both pass and issue two codes; attempt counts still carry over (E34), so the guess budget is not reset.
 - Proof: a second review with another AI tool (pasted by Zainab, 2:30 PM); checked by me in the code.
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E114)
 
 ### E115 — [second review] Impossible calendar dates like 2026-02-30 are accepted
 - Where: apps/api/src/routes/analytics.ts:25 (`DATE_RE.test && !isNaN(Date.parse(v))`; comment says it "rejects 2026-02-30") and the transactions filters
@@ -2647,6 +2647,12 @@ ROLLBACK;
 - Changed: scripts/lib/sqlFilter.ts: assertIdentifier() (/^[a-z_][a-z0-9_]*$/) on the table and every filter key; buildDelete throws if the WHERE clause ends up empty (filters that are all null/undefined, or {}). E12 had covered empty arrays only.
 - Before: scripts/lib/sqlFilter.e93.test.ts failed — buildDelete('holds', { id: undefined }) gave 'DELETE FROM holds' (same as the agent's run in §2), and pasted names were accepted. After: all refused; the normal case still builds 'DELETE FROM holds WHERE id = ANY($1::uuid[])'. Unit 3/3; expire_holds DB tests 4/4 (its only caller, scripts/expire_holds.ts:25, always passes an array).
 - check.sh (clean environment): OK. Script code: no redeploy needed (scripts are never run on the live server).
+
+### E114 — 07:05 PM — parallel OTP resends issue exactly one new code [second review] [deep review]
+- Changed: apps/api/src/routes/auth.ts /otp/resend: the UPDATE that consumes the old challenge now also requires consumed_at IS NULL AND created_at <= now() - interval '30 seconds'; no row → 429 resend_too_soon (the transaction rolls back). The earlier read stays only as a fast path.
+- Before: testE114_parallelResendsIssueOneCode (auth.e34.test.ts; code aged 60 s by SQL, 10 parallel resends × 5 rounds) → `round 1: exactly one resend wins: 200,200,200,200,200,200,200,200,200,200` (a first 3-request version passed by luck; it was strengthened before the fix). After: exactly one 200 per round, the rest 429. Auth suites 37/37.
+- Second review (Copilot): not run — copilot not found (LOG line 1567). fix-reviewer: APPROVE; parallel resends wait on the row lock and see consumed_at set; a legit user cannot get stuck (a consumed challenge only follows a successful verify or an E117 new login, and both make resend return 401 first); the new check uses DB time only (created_at DEFAULT now(), 0011_otp_challenges.sql:20); there is no admin resend route. Our answer: agree.
+- check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy
 

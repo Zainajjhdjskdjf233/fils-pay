@@ -132,3 +132,22 @@ test("testE167_verifyRotatesTheSessionToken", async () => {
   const newMe = await app.inject({ method: "GET", url: "/v1/auth/me", headers: { cookie: fresh } });
   assert.equal(newMe.statusCode, 200, newMe.body);
 });
+
+// E114 [second review]: two resends at the same moment must issue ONE new code
+// (the 30 s throttle was read outside the transaction, so both passed).
+test("testE114_parallelResendsIssueOneCode", async () => {
+  for (let round = 0; round < 5; round++) {
+    const { cookie } = await pendingLogin();
+    // Make the current code older than the 30 s throttle without waiting.
+    const aged = await pool.query(
+      `UPDATE otp_challenges SET created_at = now() - interval '60 seconds'
+        WHERE id = (SELECT otp_challenge_id FROM sessions WHERE token_hash = encode(sha256(convert_to($1, 'UTF8')), 'hex'))`,
+      [cookie.split("=")[1]],
+    );
+    assert.equal(aged.rowCount, 1, "test setup: the pending challenge was found");
+    const results = await Promise.all(Array.from({ length: 10 }, () => app.inject({ method: "POST", url: "/v1/auth/otp/resend", headers: { cookie } })));
+    const codes = results.map((r) => r.statusCode);
+    assert.equal(codes.filter((c) => c === 200).length, 1, `round ${round}: exactly one resend wins: ${codes}`);
+    assert.ok(codes.every((c) => c === 200 || c === 429), `${codes}`);
+  }
+});

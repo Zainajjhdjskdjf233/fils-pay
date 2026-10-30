@@ -268,11 +268,19 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       // land after the SELECT above are carried over too.
       let carriedAttempts = 0;
       if (existingChallenge) {
+        // E114: the 30 s check above is only a fast path. Re-check it here in the
+        // same atomic UPDATE that consumes the old code, so of N parallel
+        // resends only one can win; the rest get 429.
         const old = await client.query<{ attempt_count: number }>(
-          `UPDATE otp_challenges SET consumed_at = now() WHERE id = $1 RETURNING attempt_count`,
+          `UPDATE otp_challenges SET consumed_at = now()
+            WHERE id = $1 AND consumed_at IS NULL AND created_at <= now() - interval '30 seconds'
+            RETURNING attempt_count`,
           [existingChallenge.id],
         );
-        carriedAttempts = old.rows[0]?.attempt_count ?? 0;
+        if ((old.rowCount ?? 0) === 0) {
+          throw new TooManyRequestsError("resend_too_soon");
+        }
+        carriedAttempts = old.rows[0]!.attempt_count;
       }
       const challenge = await issueChallenge(client, {
         merchantUserId: pending.merchantUserId,
