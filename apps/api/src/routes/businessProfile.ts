@@ -24,18 +24,28 @@ export async function businessProfileRoutes(app: FastifyInstance): Promise<void>
     }
     const bp = body.businessProfile;
     const owner = body.owner;
-    if (
-      !bp.legalName ||
-      !bp.registrationNumber ||
-      !bp.businessType ||
-      !bp.contactEmail ||
-      !bp.contactPhone ||
-      !bp.addressLine1 ||
-      !bp.city ||
-      !owner.email ||
-      !owner.password
-    ) {
+    // E145: typed checks, not truthiness. A 1-character password was
+    // accepted, a number password crashed argon2 (500), and a bad
+    // businessType or country hit DB constraints (500).
+    const isText = (v: unknown): v is string => typeof v === "string" && v.trim() !== "";
+    const required = [bp.legalName, bp.registrationNumber, bp.businessType, bp.contactEmail, bp.contactPhone, bp.addressLine1, bp.city, owner.email];
+    if (!required.every(isText) || typeof owner.password !== "string") {
       throw new BadRequestError("invalid_request", "missing required business profile or owner fields");
+    }
+    for (const v of [bp.country, bp.addressLine2, bp.postalCode]) {
+      if (v !== undefined && v !== null && typeof v !== "string") {
+        throw new BadRequestError("invalid_request", "optional fields must be strings");
+      }
+    }
+    if (!["sole_proprietorship", "llc", "partnership", "public_company", "other"].includes(bp.businessType as string)) {
+      throw new BadRequestError("invalid_business_type", "businessType is not a known type");
+    }
+    if (bp.country != null && !/^[A-Z]{2}$/.test(bp.country)) {
+      throw new BadRequestError("invalid_country", "country must be a 2-letter ISO code");
+    }
+    // Minimum 12 (our choice, for Zainab to review; the case file sets none); max 256 caps argon2 work.
+    if (owner.password.length < 12 || owner.password.length > 256) {
+      throw new BadRequestError("weak_password", "password must be 12 to 256 characters");
     }
 
     const result = await createMerchantWithOwner(app.db, app.config, body as SignupInput);

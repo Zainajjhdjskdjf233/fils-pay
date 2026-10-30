@@ -120,7 +120,7 @@ Summary: 90 of 163 fixed.
 | E142 | [coverage] Control characters in credit memos and adjustment reasons are accepted; a NUL byte likely gives 500 | Open |
 | E143 | [coverage] A webhook replay gets a new delivery id; comments and docs/ADMIN.md say it keeps the original | Open |
 | E144 | [coverage] Webhook archive create loads an endpoint's whole history into memory; "pages of 500" is false | Open |
-| E145 | [coverage] Signup: no password rule and no type checks; bad input gives 500 | Open |
+| E145 | [coverage] Signup: no password rule and no type checks; bad input gives 500 | Partly fixed |
 | E146 | [coverage] Public signup and login have no rate limit; each call runs argon2 | Open |
 | E147 | [coverage] A broken image upload gives 500 and leaves an orphan file on disk | Open |
 | E148 | [coverage] No limit on KYC uploads per merchant: the shared disk can be filled | Open |

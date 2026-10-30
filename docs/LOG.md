@@ -1,6 +1,6 @@
 # LOG
 Mode: Competition
-Updated: 05:21 PM (30 Oct 2026)
+Updated: 05:23 PM (30 Oct 2026)
 Summary: Errors 90/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
@@ -1133,7 +1133,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/routes/businessProfile.ts:27-41 (truthiness only); onboarding/signup.ts:44.
 - Error: password "a" → 201; password 123 → argon2 TypeError → 500; businessType "x" or country "BHR" → DB error → 500; emails not lower-cased ("Owner@x.com" cannot log in as "owner@x.com").
 - Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
-- Severity: medium · Status: open
+- Severity: medium · Status: partly fixed (see section 5, E145; email and the PATCH path open)
 
 ### E146 — [coverage] Public signup and login have no rate limit; each call runs argon2
 - Where: apps/api/src/routes/businessProfile.ts:20, routes/auth.ts:69; no rate limit in apps/api/src (grep).
@@ -2353,6 +2353,13 @@ ROLLBACK;
 - Changed: apps/api/src/paymentLinks/pay.ts:194-206: after the failed-capture COMMIT the link client is released and voidTransaction runs (best effort; a refusal or an error is logged; the capture error stays the answer).
 - Test: apps/api/src/paymentLinks/pay.e130.test.ts (acquirer capture "error" → 502). Before: transactions [ 'authorized' ] (hold left open). After: PASS ([ 'voided' ], link active); payment-link tests pass.
 - fix-reviewer: APPROVE (void.ts only voids 'authorized', so a captured payment is never voided; thrown idempotency 409/422 go to the catch with no void, correct while another capture may run; no double release). Took its hardening: log a refused void. Noted: an API caller retrying the SAME pay key after a 502 now gets 409 not_capturable (the web UI never reuses a key); a real acquirer's unknown 502 outcome is an existing design limit (capture.ts already treats error as not captured).
+- check.sh: OK.
+
+### E145 — 05:23 PM — signup checks types, businessType, country and password length
+- Changed: apps/api/src/routes/businessProfile.ts:27-49: required fields must be non-empty strings, optional ones strings; businessType in the 0014:19 list; country ^[A-Z]{2}$ (null/missing still defaults to BH); password 12-256 characters (12 is our choice, for Zainab to review; 256 caps argon2 work).
+- Test: apps/api/src/routes/signup.e145.test.ts. Before: `short password: 201` (then 500s for a number password, businessType "x", country "BHR"). After: PASS (4 bad → 400; a valid signup → 201); signup and auth tests 17/17.
+- fix-reviewer: APPROVE (seed hashes directly and uses a 16-char password; no other caller of createMerchantWithOwner; every signup test password is 12+). Accepted tightening: lowercase country "bh" is now 400.
+- PARTLY fixed — still open: email format check and lower-casing (signup.ts:82, login matches exactly at auth.ts:63); the PATCH business-profile path (onboarding/businessProfile.ts:68-79) relies on TypeScript types only, so businessType "x" / country "BHR" there likely still give 500 (same root cause, not yet tested).
 - check.sh: OK.
 
 ## 6. Deploy
