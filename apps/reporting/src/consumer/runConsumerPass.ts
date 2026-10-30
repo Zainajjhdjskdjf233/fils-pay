@@ -43,18 +43,22 @@ export async function runConsumerPass(
     const cursor = await readCursor(client, CONSUMER_NAME);
 
     // MK 2026-06: ids come from a sequence, they're monotonic. fine for now.
-    const eventsResult = await client.query<OutboxEventRow>(
-      `SELECT id, event_type, aggregate_id, payload, created_at
+    // E42: monotonic, but not in COMMIT order — a slow transaction could commit
+    // a lower id after a higher one was processed, and `id > cursor` skipped it
+    // forever. Read only events from transactions older than the oldest one
+    // still running, in (txid, id) order; nothing can commit behind that.
+    const eventsResult = await client.query<OutboxEventRow & { txid: string }>(
+      `SELECT id, event_type, aggregate_id, payload, created_at, txid::text AS txid
          FROM outbox_events
-        WHERE id > $1
-          AND event_type = ANY($2::text[])
-        ORDER BY id ASC
-        LIMIT $3`,
-      [cursor.lastProcessedId.toString(), REPORTING_EVENT_TYPES, config.consumerBatchLimit],
+        WHERE (txid, id) > ($1::xid8, $2::bigint)
+          AND txid < pg_snapshot_xmin(pg_current_snapshot())
+          AND event_type = ANY($3::text[])
+        ORDER BY txid ASC, id ASC
+        LIMIT $4`,
+      [cursor.lastProcessedTxid, cursor.lastProcessedId.toString(), REPORTING_EVENT_TYPES, config.consumerBatchLimit],
     );
 
-    // FH: redundant with ORDER BY id ASC (last row is max). harmless
-    let maxId = cursor.lastProcessedId;
+    let last: { id: bigint; txid: string } | null = null;
     for (const row of eventsResult.rows) {
       // E53: each event in its own savepoint. A data error (bad payload, or a
       // Postgres data/constraint error, SQLSTATE class 22/23) parks that one
@@ -75,12 +79,11 @@ export async function runConsumerPass(
         );
         console.warn(`[reporting] parked outbox event ${String(row.id)} (${row.event_type}): ${message}`);
       }
-      const rowId = BigInt(row.id);
-      if (rowId > maxId) maxId = rowId;
+      last = { id: BigInt(row.id), txid: row.txid };
     }
 
-    if (eventsResult.rows.length > 0) {
-      await advanceCursor(client, CONSUMER_NAME, maxId);
+    if (last) {
+      await advanceCursor(client, CONSUMER_NAME, last.id, last.txid);
     }
 
     return { processedCount: eventsResult.rows.length };

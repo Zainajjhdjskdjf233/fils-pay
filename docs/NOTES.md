@@ -1653,3 +1653,40 @@ A savepoint undoes only that one event, not the whole batch.
 To reporting_dead_letters with the error message, so a person can inspect and replay them.
 
 Commit: 41c9754
+
+## N45 — The report worker can no longer skip a slow payment's event
+
+### The idea
+The report worker remembers "I have read every event up to number N", like a bookmark in a book.
+
+### The problem
+Event numbers are given out when a payment starts saving, not when it finishes.
+- A slow payment could take number 10, while a fast one took 11 and finished first.
+- The worker read 11 and moved its bookmark past 10. When 10 finished, it was never read.
+
+### The fix
+- Migration 0079: each event also records its transaction id (which transaction wrote it).
+- runConsumerPass.ts: only read events from transactions older than the oldest one still running, in (transaction id, event number) order. Nothing can finish "behind" the bookmark any more.
+
+### The code
+Before (apps/reporting/src/consumer/runConsumerPass.ts:49):
+```sql
+WHERE id > $1 ... ORDER BY id ASC
+```
+After:
+```sql
+WHERE (txid, id) > ($1::xid8, $2::bigint)
+  AND txid < pg_snapshot_xmin(pg_current_snapshot())
+ORDER BY txid ASC, id ASC
+```
+pg_snapshot_xmin is "the oldest transaction still running"; everything older is finished and safe to read.
+
+### The proof
+- Before: slow event (10) + fast event (11) → only 2.000 BD in the report, the 1.000 BD event lost.
+- After: both events counted, 3.000 BD.
+
+### If the judges ask
+"What if a transaction stays open for a long time?"
+Reports wait until it ends (late, never lost). A database timeout for idle transactions is suggested for hosting.
+
+Commit: PENDING_N45

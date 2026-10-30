@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 40 of 60 fixed.
+Summary: 41 of 60 fixed.
 
 ## High (24 of 27 fixed)
 
@@ -47,7 +47,7 @@ Summary: 40 of 60 fixed.
 | E51 | API and seed cannot start: built-in dev key is 34 bytes, check needs 32 | Fixed |
 | E52 | Every refund fails: code inserts reason = NULL, migration 0070 forbids NULL | Fixed |
 
-## Medium (15 of 21 fixed)
+## Medium (16 of 21 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -65,7 +65,7 @@ Summary: 40 of 60 fixed.
 | E37 | OTP code logged and returned in the response when NODE_ENV is not "production" | Fixed |
 | E39 | CSV export loads everything into memory (DoS) and allows formula injection | Fixed |
 | E41 | Reporting consumer can crash and loop forever | Fixed |
-| E42 | Outbox consumer can skip events | Open |
+| E42 | Outbox consumer can skip events | Fixed |
 | E43 | refund_merchant_summary view joins on the wrong column | Fixed |
 | E44 | Reconciliation "pending" estimate uses float and the wrong rate | Open |
 | E50 | Fee at capture ignores the negotiated discount that settlement applies | Skipped |

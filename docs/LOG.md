@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 11:46 AM (30 Oct 2026)
-Summary: Errors 40/60 fixed (+3 partly: E13, E19, E31; same count as docs/ERRORS.md) · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
+Updated: 11:51 AM (30 Oct 2026)
+Summary: Errors 41/60 fixed (+3 partly: E13, E19, E31; same count as docs/ERRORS.md) · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -443,7 +443,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/reporting/src/consumer/runConsumerPass.ts:49
 - Error: reads `id > cursor`; a lower id that commits late is skipped forever. HANDOVER.md lists this as not finished.
 - Severity: medium
-- Status: open
+- Status: fixed (see section 5)
 
 ### E43 — `refund_merchant_summary` view joins on the wrong column
 - Where: db/migrations/0072_refund_merchant_summary.sql:10; apps/reporting/src/consumer/applyEvent.ts:159-176
@@ -1277,6 +1277,14 @@ ROLLBACK;
 - Decision (for Zainab to review): park only data errors; outages still fail the pass so no valid event is parked by mistake — Alternative: park after N retries of any error.
 - Review: no fix-reviewer (one loop + validation, fully covered by the shared-DB suite).
 - Actual result: matches expected (a `{}` event is skipped and logged; later events are processed).
+
+### E42 — 11:51 AM — the reporting cursor can no longer skip late-committing events
+- Changed: db/migrations/0079_outbox_txid_cursor.sql: `outbox_events.txid xid8` (old rows sentinel '0', new rows `pg_current_xact_id()`), index (txid, id), `reporting_outbox_cursor.last_processed_txid` (default '0'). apps/reporting/src/consumer/runConsumerPass.ts: `WHERE (txid, id) > (cursor) AND txid < pg_snapshot_xmin(pg_current_snapshot()) ORDER BY txid, id`; cursor.ts stores/reads/resets both values. Other writers (Go batch.go, payout_notify.go, packages/events, seed, tests) list their columns and get the default (fix-reviewer checked).
+- Test: apps/reporting/src/consumer/runConsumerPass.e42.test.ts (a slow transaction takes the lower id and commits after a faster one was consumed). Before: `both events applied; got [{"captured_count":1,"captured_gross_fils":"2000"}]`. After: PASS; reporting 16/16 on a fresh DB.
+- Review: fix-reviewer → horizon logic correct; CHANGES on the migration: my first version set every old row and the cursor to the migration's own txid, which (a) rewrote the table under an exclusive lock and (b) could skip an API transaction that got an xid before the migration and wrote its outbox row after it. Replaced with the sentinel-0 version above; re-tested. The upgrade path itself was not run (no pre-0079 database with a cursor here) — proven by reasoning only.
+- Known limit: a session that is idle in a transaction holding an xid delays reporting until it ends (lag, never loss). Suggest `idle_in_transaction_session_timeout` for app roles at /deploy.
+- Regression: full-db-test.sh = baseline v3 (1 known failure, E54).
+- Actual result: matches expected.
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)
