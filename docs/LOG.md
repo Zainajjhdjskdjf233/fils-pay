@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 03:11 PM (30 Oct 2026)
-Summary: Errors 62/132 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 03:13 PM (30 Oct 2026)
+Summary: Errors 63/133 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -511,11 +511,12 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: medium
 - Status: fixed (see section 5)
 
-### E45 — `/v1/reporting/export-summary` always returns 500
+### E45 — `/v1/reporting/export-summary` has no login check (always 500 for everyone)
 - Where: apps/api/src/routes/reporting.ts:79-86
 - Error: no preHandler, so `request.merchantAuth!` is undefined.
-- Severity: low
-- Status: open
+- Root cause [second review, item 29]: the route has no `requireMerchantAuth`, unlike the three routes above it, so anyone can call it without logging in. Today it crashes before the query (no data leaks yet); fixing only the 500 would have exposed every merchant's volume to anonymous callers.
+- Severity: high (security; re-rated from low by Zainab at the second review's item 29)
+- Status: fixed (see section 5)
 
 ### E46 — KYC "PDF only" rule checks the filename, not the content
 - Where: apps/api/src/onboarding/kyc.ts:57, :67; routes/kyc.ts:35, :101, :117
@@ -1053,6 +1054,11 @@ Order follows the fix order: app-stopping → high security → (features) → w
 ### E132 — [deep review] Reconciliation reads its six figures from different snapshots
 - Where: apps/api/src/settlement/query.ts:304 `Promise.all([...pool.query...])`: each query may use a different connection and moment.
 - Error: a batch closing during the report can be counted in one figure and not another, so a one-off false gap appears. Re-running fixes it.
+- Severity: low · Status: open
+
+### E133 — [second review] Report filter JSON is used without a shape check
+- Where: apps/api/src/routes/reporting.ts:31 `parsed = JSON.parse(request.query.filter)` goes straight to resolveReportMerchantId (reporting/scope.ts:3) and runTransactionsReport (reporting/transactionsReportQuery.ts:42-53).
+- Error: `filter=null` → TypeError on `parsed.merchantId` (500); a non-UUID merchantId, a number, or a bad `from`/`to` reaches Postgres (500); an unknown status is accepted. Bad input must give 400 (lens rule 4). Queries are parameterized, so no injection.
 - Severity: low · Status: open
 
 ## 3. Hidden things
@@ -1933,13 +1939,20 @@ ROLLBACK;
   - apps/settlement/internal/settlement/credit_batch.go (new) `takeCredits`: unbatched merchant_payable groups with the four adjustment descriptions (credits.ts, ledgerAdjustments.ts, adjustmentImport.ts), oldest first; credits always taken; a negative one only while the net stays >= 0, else it and later negative ones carry to the next day (same rule as refunds, F01d).
   - batch.go:238: CloseBatch takes credits before refunds, stores credit_fils, records the groups, and gives the cache only `netPayout - batchCredit` (the API already added the credit to the cache when it posted it; PayoutBatch removes the whole net).
   - apps/api/src/settlement/query.ts: reconciliation counts unpaid credits as pending and adds `creditsFromOtherPeriodsFils` (credits a batch in this window took from another period), mirroring the two refund terms.
-- Decision (approved by Zainab at 3:00 PM): pay credits in the next batch, carry negative adjustments like refunds.
+- Decision (approved by Zainab, E121 plan question): pay credits in the next batch, carry negative adjustments like refunds.
 - Test: apps/settlement/internal/settlement/credit_batch_e121_test.go (credit paid once; a -5.000 BD adjustment waits for a day with enough payout) and apps/api/src/routes/reconciliation.e121.test.ts. Before (old batch.go / query.ts via `git show HEAD:…`): `day-1 net payout = 9750, want 11750`, `day-2 net payout = 9750, want 4750`, recon `gapFils 2000`. After: PASS; reconciliation/settlement tests 18/18.
 - Regression: same as baseline v3 (api 444/445, the known E54 test; Go 80 pass).
 - Actual result: what an admin credits is paid in the next payout, and negative adjustments are taken from payouts without ever going below zero.
 
 ### E01 — 03:11 PM — Decision for Zainab to review (second review disagrees)
 - Decision (for Zainab to review): the two suspense accounts in 0055 are `asset` — Why: `chart_of_accounts.kind` allows only asset, liability or revenue (0007_ledger_double_entry.sql:7-11), and a no-op 0055 leaves `fx_rounding_difference` and `chargeback_suspense` missing for any code that posts to them — Alternative (the second review's): keep 0055 a no-op until finance chooses the kind.
+
+### E45 — 03:13 PM — export summary needs a merchant login
+- Changed: apps/api/src/routes/reporting.ts:80: added `{ preHandler: requireMerchantAuth }`, the same as the other reporting routes.
+- Test: apps/api/src/routes/reporting.e45.test.ts. Before: `anonymous call: 500 {"error":"internal_error"}`. After: PASS (anonymous 401; a merchant's API key gets 200 with its own summary).
+- Regression: same as baseline v3 (api 445/446, the known E54 test; Go 80 pass).
+- Second review: found the root cause (item 29); we had recorded only the 500. Our answer: agree, proof reporting.ts:79.
+- Actual result: the route answers only a logged-in merchant, for its own data.
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04) — not yet. Local Docker stack done (01:48 PM, see section 5 E02).

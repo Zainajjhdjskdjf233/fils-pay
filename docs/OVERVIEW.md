@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 3:11 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 3:13 PM
 
 ## Contents
 1. Status now
@@ -14,8 +14,8 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:11 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 62 of 132 fixed.
-  - High: 38 of 39 fixed
+- Errors: 63 of 133 fixed.
+  - High: 39 of 40 fixed
   - Medium: 22 of 44 fixed
   - Low: 2 of 49 fixed
 - Missing feature (refunds, F01): done
@@ -27,7 +27,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:11 PM
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 62 of 132 fixed.
+- 🔄 Fix: 63 of 133 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ⬜ UI and UX, before/after screenshots
@@ -91,7 +91,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:11 PM
 - e5eb890 feat(F01f): dashboard refund page; fix(E61): same-origin API calls for web and admin
 
 ## 7. All errors
-## High (38 of 39 fixed)
+## High (39 of 40 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -134,6 +134,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:11 PM
 | E122 | [deep review] Failed DB connect in link pay leaks the lock slot forever | Fixed |
 | E123 | [deep review] Malformed card gives 500 after the link is claimed (link blocked 60 s) | Fixed |
 | E124 | [deep review] Capture replay credits the wrong discount (twice after a zero-discount capture) | Fixed |
+| E45 | [second review] /v1/reporting/export-summary had no login check (always 500) | Fixed |
 
 ### Medium (22 of 44 fixed)
 
@@ -190,7 +191,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:11 PM
 |---|---|---|
 | E38 | Public payment link page exposes the merchant's API key hash and prefix | Open |
 | E40 | withTransaction: a failing ROLLBACK hides the real error | Open |
-| E45 | /v1/reporting/export-summary always returns 500 | Open |
 | E46 | KYC "PDF only" rule checks the filename, not the content | Open |
 | E47 | Admin console: session not rotated after OTP; no CSP | Open |
 | E48 | Admin run-batch sends no payout notification; split payouts skip the lifetime estimate | Open |
@@ -237,9 +237,10 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:11 PM
 | E126 | [second review] Pagination limits parsed with parseInt; NaN reaches SQL | Open |
 | E127 | [second review] Settlement date filters accept impossible dates | Open |
 | E132 | [deep review] Reconciliation reads its figures from different snapshots | Open |
+| E133 | [second review] Report filter JSON used without a shape check | Open |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68
 
 ### N01 — Database setup stopped halfway
 
@@ -2733,4 +2734,38 @@ The day's payout now includes credits (and fitting negative corrections) before 
 The ledger is append-only for the app (migration 0082), so we cannot update its rows. The table's primary key also stops one credit from being paid twice.
 
 Commit: d97de16
+
+### N68 — The export summary now needs a login
+
+#### The idea
+Most report pages check who you are first, like a door that needs a key card.
+
+#### The problem
+One report route had no key-card reader at all.
+- Anyone on the internet could call it without logging in.
+- It only crashed (500) because it looked for a user that was not there; a quick "fix" of the crash would have shown shop data to strangers.
+
+#### The fix
+- reporting.ts: added the same login check the other report routes use.
+
+#### The code
+Before (apps/api/src/routes/reporting.ts:79):
+```ts
+app.get("/export-summary", async (request) => {
+```
+After:
+```ts
+app.get("/export-summary", { preHandler: requireMerchantAuth }, async (request) => {
+```
+The login check runs first; no login means 401.
+
+#### The proof
+- Before: an anonymous call got 500.
+- After: an anonymous call gets 401; a logged-in shop gets its own summary (200).
+
+#### If the judges ask
+"It only gave 500, so why High?"
+The real bug is the missing login check. It leaked nothing only by luck; the second review found this root cause.
+
+Commit: PENDING_N68
 

@@ -13,9 +13,9 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 62 of 132 fixed.
+Summary: 63 of 133 fixed.
 
-## High (38 of 39 fixed)
+## High (39 of 40 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -58,6 +58,7 @@ Summary: 62 of 132 fixed.
 | E122 | [deep review] Failed DB connect in link pay leaks the lock slot forever | Fixed |
 | E123 | [deep review] Malformed card gives 500 after the link is claimed (link blocked 60 s) | Fixed |
 | E124 | [deep review] Capture replay credits the wrong discount (twice after a zero-discount capture) | Fixed |
+| E45 | [second review] /v1/reporting/export-summary had no login check (always 500) | Fixed |
 
 ## Medium (22 of 44 fixed)
 
@@ -114,7 +115,6 @@ Summary: 62 of 132 fixed.
 |---|---|---|
 | E38 | Public payment link page exposes the merchant's API key hash and prefix | Open |
 | E40 | withTransaction: a failing ROLLBACK hides the real error | Open |
-| E45 | /v1/reporting/export-summary always returns 500 | Open |
 | E46 | KYC "PDF only" rule checks the filename, not the content | Open |
 | E47 | Admin console: session not rotated after OTP; no CSP | Open |
 | E48 | Admin run-batch sends no payout notification; split payouts skip the lifetime estimate | Open |
@@ -161,3 +161,4 @@ Summary: 62 of 132 fixed.
 | E126 | [second review] Pagination limits parsed with parseInt; NaN reaches SQL | Open |
 | E127 | [second review] Settlement date filters accept impossible dates | Open |
 | E132 | [deep review] Reconciliation reads its figures from different snapshots | Open |
+| E133 | [second review] Report filter JSON used without a shape check | Open |
