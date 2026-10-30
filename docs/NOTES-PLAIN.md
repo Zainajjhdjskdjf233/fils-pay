@@ -306,4 +306,4 @@ Where: db/migrations/0081_transaction_events_capture_time_idx.sql:7 · Commit: f
 
 Shops with a negotiated fee discount got it when customers paid by card through the API, but not when customers used a payment link, so those shops paid too much. A comment claimed both were covered, but only one was. Now the payment link uses the same discount step. A test shows the same fee both ways.
 
-Where: apps/api/src/paymentLinks/pay.ts:228 · Commit: PENDING_N51
+Where: apps/api/src/paymentLinks/pay.ts:228 · Commit: 107618c

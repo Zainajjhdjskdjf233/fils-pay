@@ -1893,4 +1893,4 @@ The same function, with the same guard against applying it twice.
 "Is the discount math now identical to settlement?"
 Almost: payments discount the fee, settlement discounts the amount, so they can differ by 1-2 fils of rounding. Choosing one formula is marked for Zainab.
 
-Commit: PENDING_N51
+Commit: 107618c
