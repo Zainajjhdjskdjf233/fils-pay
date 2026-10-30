@@ -7,6 +7,7 @@ import {
 import { createPaymentLink } from "../paymentLinks/create.js";
 import { getPublicPaymentLink } from "../paymentLinks/read.js";
 import { payPaymentLink } from "../paymentLinks/pay.js";
+import { parseSimulatedCard } from "../acquirer/cardShape.js";
 import { cancelPaymentLink } from "../paymentLinks/cancel.js";
 import { listPaymentLinks } from "../paymentLinks/query.js";
 import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from "../lib/errors.js";
@@ -158,6 +159,11 @@ export async function paymentLinkPublicRoutes(app: FastifyInstance): Promise<voi
     if (!card) {
       throw new BadRequestError("invalid_request", "card is required");
     }
+    // E123: check the shape before the link is claimed (a bad card used to 500 after the claim).
+    const cleanCard = parseSimulatedCard(card);
+    if (!cleanCard) {
+      throw new BadRequestError("invalid_card", "card needs pan (12-19 digits), expiryMonth (1-12), expiryYear and cvv (3-4 digits)");
+    }
 
     const result = await payPaymentLink(
       app.db,
@@ -167,7 +173,7 @@ export async function paymentLinkPublicRoutes(app: FastifyInstance): Promise<voi
         // E29: half the pool, so every pay holding a link lock can get its capture connection.
         maxConcurrentLockedPays: Math.max(1, Math.floor(app.config.pgPoolMax / 2)),
       },
-      { token: request.params.token, card, idempotencyKey, submittedAt },
+      { token: request.params.token, card: cleanCard, idempotencyKey, submittedAt },
     );
     reply.code(result.statusCode).send(result.body);
   });

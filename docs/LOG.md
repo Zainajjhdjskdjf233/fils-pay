@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 02:54 PM (30 Oct 2026)
-Summary: Errors 58/127 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 02:57 PM (30 Oct 2026)
+Summary: Errors 59/127 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1021,7 +1021,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/routes/paymentLinks.ts:158 and routes/transactions.ts:73 check only `!card`; apps/api/src/acquirer/simulator.ts:127 calls `req.card.pan.endsWith` → TypeError after the claim UPDATE.
 - Error: `{"card":{}}` → 500, and the link answers "payment_link_processing" for 60 s, so the real buyer cannot pay. Lens rule 4 (bad input must be 400 and never reach the database).
 - Proof: red test `routes/pay.e123.test.ts`: `link pay with card {}: {"error":"internal_error"}`.
-- Severity: high · Status: open
+- Severity: high · Status: fixed (see section 5)
 
 ### E124 — [deep review] A replayed capture can credit the negotiated discount twice
 - Where: apps/api/src/payments/discountAdjustment.ts:53-58 compares the count of capture events with the count of discount adjustments for the transaction, and always reads the latest capture's fee.
@@ -1879,6 +1879,13 @@ ROLLBACK;
 - Test: apps/api/src/paymentLinks/pay.e122.test.ts (one slot; the 2nd connect fails). Before: `the failed pay must release its claim at once` (link stuck "reserved"; the slot also leaked). After: PASS, the link is active, the authorization is voided, and the next pay finishes with 200 instead of waiting forever.
 - Regression: full suite same as baseline v3 (api 440/441, the known E54 test; Go 77 pass).
 - Actual result: a pool timeout under load costs one 503, not every later link payment.
+
+### E123 — 02:57 PM — a malformed card is refused with 400 before the link is claimed
+- Changed: new apps/api/src/acquirer/cardShape.ts `parseSimulatedCard` (PAN 12-19 digits after removing spaces and dashes, month 1-12, year 2000-2099, CVV 3-4 digits; null otherwise). Used in routes/paymentLinks.ts:163 (before payPaymentLink, so before the claim) and routes/transactions.ts:77 (card API, same gap). Defence in depth: paymentLinks/pay.ts frees the claim if authorize throws for any other reason.
+- Decision: strip spaces and dashes from the PAN — Why: the checkout form sends the number as typed (apps/web/src/pages/checkout/CheckoutPage.tsx:188-189), so "4242 4242 4242 4242" must still pay — Alternative: make the web send digits only (two changes instead of one).
+- Test: apps/api/src/routes/pay.e123.test.ts (7 bad shapes on both routes, then a real pay with a spaced PAN). Before: `link pay with card {}: {"error":"internal_error"}`. After: PASS (400 `invalid_card` for all 7 on both routes; the link pays 200 right after).
+- Regression: same as baseline v3 (api 441/442, the known E54 test; Go 77 pass).
+- Actual result: bad card input no longer reaches the database or blocks a link.
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04) — not yet. Local Docker stack done (01:48 PM, see section 5 E02).

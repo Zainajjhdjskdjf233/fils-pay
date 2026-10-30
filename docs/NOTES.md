@@ -2336,3 +2336,44 @@ The ticket is returned even when the connection fails. The buyer gets a 503 and 
 The connect line was before the try, so finally never ran. Moving the whole thing inside would also release a client we never got; a small try/catch around connect is clearer.
 
 Commit: c06b7eb
+
+## N64 — A broken card form gives a clear 400, not a crash that blocks the link
+
+### The idea
+Before a link payment starts, the link is "held" for one buyer, like a fitting room marked busy.
+
+### The problem
+A card with missing parts crashed the server after the link was held.
+- The buyer got a 500 error.
+- The link stayed "busy" for 60 seconds, so the real buyer could not pay.
+
+### The fix
+- New cardShape.ts: checks the card number, month, year and CVV.
+- Both payment routes run this check first, before anything is held or saved.
+- pay.ts also frees the link if the card step fails for any other reason.
+
+### The code
+Before (apps/api/src/routes/paymentLinks.ts:158):
+```ts
+if (!card) {
+  throw new BadRequestError("invalid_request", "card is required");
+}
+```
+After:
+```ts
+const cleanCard = parseSimulatedCard(card);
+if (!cleanCard) {
+  throw new BadRequestError("invalid_card", "card needs pan (12-19 digits), ...");
+}
+```
+The card is checked and cleaned (spaces removed) before the link is touched.
+
+### The proof
+- Before: {"card":{}} gave 500 "internal_error".
+- After: 7 bad cards give 400 on both routes; a card typed with spaces still pays (200).
+
+### If the judges ask
+"Why also check in the card API route?"
+It has the same gap (only checks that a card exists), and a crash there is also a 500. One shared helper fixes both.
+
+Commit: PENDING_N64

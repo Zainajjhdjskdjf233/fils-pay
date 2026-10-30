@@ -10,6 +10,7 @@ import { buildTransactionsExportCsv } from "../transactions/exportCsv.js";
 import { getTransactionById, listTransactions } from "../transactions/query.js";
 import { listTransactionEvents } from "../transactions/events.js";
 import { BadRequestError, NotFoundError } from "../lib/errors.js";
+import { parseSimulatedCard } from "../acquirer/cardShape.js";
 import type { SimulatedCardInput } from "../acquirer/types.js";
 
 interface AuthorizeBody {
@@ -73,11 +74,15 @@ export async function transactionRoutes(app: FastifyInstance): Promise<void> {
       if (amountFils === undefined || !card) {
         throw new BadRequestError("invalid_request", "amountFils and card are required");
       }
+      const cleanCard = parseSimulatedCard(card);
+      if (!cleanCard) {
+        throw new BadRequestError("invalid_card", "card needs pan (12-19 digits), expiryMonth (1-12), expiryYear and cvv (3-4 digits)"); // E123
+      }
 
       const input: AuthorizeInput = {
         merchantId: request.apiKeyAuth!.merchantId,
         amountFils: toFils(amountFils),
-        card,
+        card: cleanCard,
         reference,
         idempotencyKey,
         actor: { type: "merchant_api_key", id: request.apiKeyAuth!.apiKeyId },

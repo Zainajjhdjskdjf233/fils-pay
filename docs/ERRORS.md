@@ -13,9 +13,9 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 58 of 127 fixed.
+Summary: 59 of 127 fixed.
 
-## High (34 of 39 fixed)
+## High (35 of 39 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -56,7 +56,7 @@ Summary: 58 of 127 fixed.
 | E120 | [deep review] MDR recalculation can make a batch's net payout negative | Open |
 | E121 | [deep review] Manual credits and CSV adjustments are never paid out | Open |
 | E122 | [deep review] Failed DB connect in link pay leaks the lock slot forever | Fixed |
-| E123 | [deep review] Malformed card gives 500 after the link is claimed (link blocked 60 s) | Open |
+| E123 | [deep review] Malformed card gives 500 after the link is claimed (link blocked 60 s) | Fixed |
 | E124 | [deep review] Replayed capture can credit the negotiated discount twice | Open |
 
 ## Medium (22 of 40 fixed)

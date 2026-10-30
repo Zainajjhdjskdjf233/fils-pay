@@ -379,3 +379,9 @@ Where: apps/api/src/admin/adjustmentImport.ts:65 · Commit: c973988
 Only two link payments may hold a link lock at once, each with a "ticket". When the database was too busy to give a connection, the payment failed but never gave its ticket back. After two such failures, every later link payment waited forever. Now a failed connection returns the ticket, frees the link and cancels the card hold. A test with one ticket shows the next payment goes through instead of hanging.
 
 Where: apps/api/src/paymentLinks/pay.ts:141 · Commit: c06b7eb
+
+## N64 — A broken card form gives a clear 400, not a crash that blocks the link
+
+When someone sent a card with missing parts, the server crashed after it had already reserved the payment link. The buyer saw an error, and the link stayed "busy" for a minute so the real buyer could not pay. Now both payment routes check the card first and answer "bad card" (400) before touching anything. Card numbers typed with spaces still work. A test sends seven broken cards to both routes and then pays normally.
+
+Where: apps/api/src/routes/paymentLinks.ts:163 · Commit: PENDING_N64

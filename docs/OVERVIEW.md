@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 2:54 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 2:57 PM
 
 ## Contents
 1. Status now
@@ -14,8 +14,8 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:54 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 58 of 127 fixed.
-  - High: 34 of 39 fixed
+- Errors: 59 of 127 fixed.
+  - High: 35 of 39 fixed
   - Medium: 22 of 40 fixed
   - Low: 2 of 48 fixed
 - Missing feature (refunds, F01): done
@@ -27,7 +27,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:54 PM
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 58 of 127 fixed.
+- 🔄 Fix: 59 of 127 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ⬜ UI and UX, before/after screenshots
@@ -91,7 +91,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:54 PM
 - 976d166 fix(E44): reconciliation pending fee uses the settlement formula (schedule, tier, integer)
 
 ## 7. All errors
-## High (34 of 39 fixed)
+## High (35 of 39 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -132,7 +132,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:54 PM
 | E120 | [deep review] MDR recalculation can make a batch's net payout negative | Open |
 | E121 | [deep review] Manual credits and CSV adjustments are never paid out | Open |
 | E122 | [deep review] Failed DB connect in link pay leaks the lock slot forever | Fixed |
-| E123 | [deep review] Malformed card gives 500 after the link is claimed (link blocked 60 s) | Open |
+| E123 | [deep review] Malformed card gives 500 after the link is claimed (link blocked 60 s) | Fixed |
 | E124 | [deep review] Replayed capture can credit the negotiated discount twice | Open |
 
 ### Medium (22 of 40 fixed)
@@ -234,7 +234,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:54 PM
 | E127 | [second review] Settlement date filters accept impossible dates | Open |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64
 
 ### N01 — Database setup stopped halfway
 
@@ -2570,4 +2570,45 @@ The ticket is returned even when the connection fails. The buyer gets a 503 and 
 The connect line was before the try, so finally never ran. Moving the whole thing inside would also release a client we never got; a small try/catch around connect is clearer.
 
 Commit: c06b7eb
+
+### N64 — A broken card form gives a clear 400, not a crash that blocks the link
+
+#### The idea
+Before a link payment starts, the link is "held" for one buyer, like a fitting room marked busy.
+
+#### The problem
+A card with missing parts crashed the server after the link was held.
+- The buyer got a 500 error.
+- The link stayed "busy" for 60 seconds, so the real buyer could not pay.
+
+#### The fix
+- New cardShape.ts: checks the card number, month, year and CVV.
+- Both payment routes run this check first, before anything is held or saved.
+- pay.ts also frees the link if the card step fails for any other reason.
+
+#### The code
+Before (apps/api/src/routes/paymentLinks.ts:158):
+```ts
+if (!card) {
+  throw new BadRequestError("invalid_request", "card is required");
+}
+```
+After:
+```ts
+const cleanCard = parseSimulatedCard(card);
+if (!cleanCard) {
+  throw new BadRequestError("invalid_card", "card needs pan (12-19 digits), ...");
+}
+```
+The card is checked and cleaned (spaces removed) before the link is touched.
+
+#### The proof
+- Before: {"card":{}} gave 500 "internal_error".
+- After: 7 bad cards give 400 on both routes; a card typed with spaces still pays (200).
+
+#### If the judges ask
+"Why also check in the card API route?"
+It has the same gap (only checks that a card exists), and a crash there is also a 500. One shared helper fixes both.
+
+Commit: PENDING_N64
 
