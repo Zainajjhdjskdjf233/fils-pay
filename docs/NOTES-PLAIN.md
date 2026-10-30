@@ -259,3 +259,9 @@ Where: apps/api/src/transactions/exportCsv.ts: · Commit: 3918ae8
 The report worker checked each closed settlement day against its own daily summary, and crashed if that summary did not exist yet. Because a crash makes it retry the same work, it got stuck forever and all reports stopped updating. Now a missing summary simply counts as zero and the worker writes a warning. A test with exactly that situation now passes.
 
 Where: apps/reporting/src/consumer/applyEvent.ts:149 · Commit: 44adee8
+
+## N44 — One bad event no longer stops all reports
+
+The report worker processed events in order, and one broken event made it fail and retry the same event forever, so all reports stopped. Now each event is handled on its own: a broken one is set aside in a "dead letters" table with its error, and the worker moves on. Real database problems still stop it, so nothing good is set aside by mistake. Four tests that always failed before now pass.
+
+Where: apps/reporting/src/consumer/runConsumerPass.ts:63 · Commit: PENDING_N44

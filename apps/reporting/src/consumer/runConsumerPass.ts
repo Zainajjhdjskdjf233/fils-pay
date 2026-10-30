@@ -3,7 +3,7 @@ import type { EventType } from "@filspay/events";
 import { withTransaction } from "../db/withTransaction.js";
 import type { ReportingConfig } from "../config.js";
 import { readCursor, advanceCursor } from "./cursor.js";
-import { applyEvent, type OutboxEventRow } from "./applyEvent.js";
+import { applyEvent, PoisonEventError, type OutboxEventRow } from "./applyEvent.js";
 
 export const REPORTING_EVENT_TYPES: readonly EventType[] = [
   "transaction.captured",
@@ -56,7 +56,25 @@ export async function runConsumerPass(
     // FH: redundant with ORDER BY id ASC (last row is max). harmless
     let maxId = cursor.lastProcessedId;
     for (const row of eventsResult.rows) {
-      await applyEvent(client, row);
+      // E53: each event in its own savepoint. A data error (bad payload, or a
+      // Postgres data/constraint error, SQLSTATE class 22/23) parks that one
+      // event in reporting_dead_letters and the pass continues; any other
+      // error (connection, deadlock) still rolls back the whole pass.
+      await client.query("SAVEPOINT apply_event");
+      try {
+        await applyEvent(client, row);
+        await client.query("RELEASE SAVEPOINT apply_event");
+      } catch (err) {
+        if (!isDataError(err)) throw err;
+        await client.query("ROLLBACK TO SAVEPOINT apply_event");
+        const message = err instanceof Error ? err.message : String(err);
+        await client.query(
+          `INSERT INTO reporting_dead_letters (outbox_event_id, consumer_name, event_type, error)
+           VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING`,
+          [row.id.toString(), CONSUMER_NAME, row.event_type, message.slice(0, 1000)],
+        );
+        console.warn(`[reporting] parked outbox event ${String(row.id)} (${row.event_type}): ${message}`);
+      }
       const rowId = BigInt(row.id);
       if (rowId > maxId) maxId = rowId;
     }
@@ -67,4 +85,11 @@ export async function runConsumerPass(
 
     return { processedCount: eventsResult.rows.length };
   });
+}
+
+/** E53: bad data, not a broken database. */
+function isDataError(err: unknown): boolean {
+  if (err instanceof PoisonEventError) return true;
+  const code = (err as { code?: unknown } | null)?.code;
+  return typeof code === "string" && (code.startsWith("22") || code.startsWith("23"));
 }

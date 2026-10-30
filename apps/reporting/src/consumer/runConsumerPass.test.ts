@@ -118,7 +118,10 @@ test("runConsumerPass: end-to-end settlement.batch_closed populates merchant_pay
 });
 
 // MK: this is the proof exactly-once holds.
-test("runConsumerPass: atomicity — an apply failure partway through a multi-event batch rolls back the WHOLE pass, neither watermark nor any rollup write from that batch persists", async () => {
+// E53: this test used to assert the poison-pill behaviour (one bad event rolls back the
+// whole pass forever until a human deletes it). Now the bad event is parked in
+// reporting_dead_letters and the good event is applied.
+test("runConsumerPass: a malformed event is parked in reporting_dead_letters and does not block the good event before it (E53)", async () => {
   const merchantId = await createMerchant("atomicity");
 
   // Event 1: valid, would successfully write a merchant_daily_volume row if
@@ -142,30 +145,15 @@ test("runConsumerPass: atomicity — an apply failure partway through a multi-ev
   });
   assert.ok(badEvent.id > goodEvent.id, "bad event sorts after the good one, so the good one is applied first");
 
-  const cursorBefore = await getCursor();
+  await runConsumerPass(pool, config);
 
-  await assert.rejects(runConsumerPass(pool, config));
+  const volumeRows = await pool.query(`SELECT captured_count FROM merchant_daily_volume WHERE merchant_id = $1`, [merchantId]);
+  assert.equal(volumeRows.rows.length, 1, "the good event is applied");
+  assert.equal(volumeRows.rows[0].captured_count, 1);
 
-  const cursorAfter = await getCursor();
-  assert.equal(cursorAfter, cursorBefore, "watermark must be completely untouched after a rolled-back pass");
-
-  const volumeRows = await pool.query(`SELECT * FROM merchant_daily_volume WHERE merchant_id = $1`, [merchantId]);
-  assert.equal(volumeRows.rows.length, 0, "the good event's rollup write must NOT have persisted — the whole pass rolled back");
-
-  // Prove the pass is retryable and self-heals once the poisoned row is no
-  // longer in the way: delete the malformed event, retry, and confirm the
-  // good event (still unprocessed, since the watermark never advanced past
-  // it) is now correctly applied.
-  await pool.query(`DELETE FROM outbox_events WHERE id = $1`, [badEvent.id]);
-  const retryResult = await runConsumerPass(pool, config);
-  assert.ok(retryResult.processedCount >= 1);
-
-  const volumeRowsAfterRetry = await pool.query(`SELECT captured_count FROM merchant_daily_volume WHERE merchant_id = $1`, [
-    merchantId,
-  ]);
-  assert.equal(volumeRowsAfterRetry.rows.length, 1);
-  assert.equal(volumeRowsAfterRetry.rows[0].captured_count, 1);
+  const parked = await pool.query(`SELECT event_type FROM reporting_dead_letters WHERE outbox_event_id = $1`, [badEvent.id]);
+  assert.equal(parked.rows.length, 1, "the bad event is parked for a human");
 
   const cursorFinal = await getCursor();
-  assert.ok(cursorFinal >= goodEvent.id, "watermark now past the previously-blocked good event");
+  assert.ok(cursorFinal >= badEvent.id, "watermark moved past both events");
 });

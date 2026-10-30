@@ -1613,3 +1613,43 @@ if (rolledUp < groundTruthCount) {
 No. E53 is a bad event payload (still open); this was a missing report row for a good event.
 
 Commit: 44adee8
+
+## N44 — One bad event no longer stops all reports
+
+### The idea
+The report worker reads a queue of events (payments, voids, refunds). It is like a post office sorting letters in order.
+
+### The problem
+One letter with no address stopped the whole post office.
+- An event with an empty payload made the database insert fail.
+- The whole batch was undone and the same bad event was picked first again, forever.
+- Every report after it stopped updating.
+
+### The fix
+- applyEvent.ts: check the event (merchant id, amount) before writing.
+- runConsumerPass.ts: each event gets its own savepoint. A bad event is moved to a "dead letters" table (migration 0078) and the worker continues.
+- Real outages (database down) still stop the batch, so no good event is parked by mistake.
+
+### The code
+Before (apps/reporting/src/consumer/runConsumerPass.ts:59):
+```ts
+for (const row of eventsResult.rows) {
+  await applyEvent(client, row);
+```
+After:
+```ts
+await client.query("SAVEPOINT apply_event");
+try { await applyEvent(client, row); await client.query("RELEASE SAVEPOINT apply_event"); }
+catch (err) { if (!isDataError(err)) throw err; await client.query("ROLLBACK TO SAVEPOINT apply_event"); /* park it */ }
+```
+A savepoint undoes only that one event, not the whole batch.
+
+### The proof
+- Before: 4 reporting tests failed every time in the shared test database.
+- After: all 15 reporting tests pass there; a bad event before a good one no longer blocks it.
+
+### If the judges ask
+"Where do bad events go?"
+To reporting_dead_letters with the error message, so a person can inspect and replay them.
+
+Commit: PENDING_N44

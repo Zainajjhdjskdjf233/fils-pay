@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 11:44 AM (30 Oct 2026)
-Summary: Errors 39/60 fixed (+3 partly: E13, E19, E31; same count as docs/ERRORS.md) · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
+Updated: 11:46 AM (30 Oct 2026)
+Summary: Errors 40/60 fixed (+3 partly: E13, E19, E31; same count as docs/ERRORS.md) · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -521,7 +521,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: medium
 - Proposed fix: validate the payload; move a bad event aside (mark it failed) instead of blocking the pass.
 - Expected result: a `{}` event is skipped and logged; later events are still processed.
-- Status: open
+- Status: fixed (see section 5)
 
 ### E54 — [found later] Webhook backoff test always fails: test expects no jitter, code adds random ±10 %
 - Where: apps/api/src/webhooks/dispatcher.ts:53-62 (`jitter = Math.random`); apps/api/src/webhooks/dispatcher.test.ts:181
@@ -1269,6 +1269,14 @@ ROLLBACK;
 - Regression: full-db-test.sh = baseline (5 known failures).
 - Review: one guard → no fix-reviewer.
 - Actual result: the pass no longer crashes on this event.
+
+### E53 — 11:46 AM — a bad outbox event is parked instead of blocking the reporting worker
+- Changed: db/migrations/0078_reporting_dead_letters.sql (new table). apps/reporting/src/consumer/applyEvent.ts: `PoisonEventError` + `validatePayload` (merchantId must be a UUID; amountCapturedFils / amountFils must be safe integers) before any DB write. apps/reporting/src/consumer/runConsumerPass.ts: each event runs in `SAVEPOINT apply_event`; a data error (PoisonEventError or SQLSTATE class 22/23) → `ROLLBACK TO SAVEPOINT`, insert into reporting_dead_letters, warn, continue; any other error still rolls back the whole pass (unchanged safety for outages).
+- Test: runConsumerPass.e53.test.ts (poison event then good event → good applied). runConsumerPass.test.ts atomicity test asserted the old poison-pill behaviour ("rolls back the WHOLE pass", fixed only by deleting the bad row); rewritten to expect: good applied, bad parked, cursor past both.
+- Before (proof from the baseline): in the shared test DB, 4 reporting tests failed every run because api tests leave payload-`{}` events (E53 entry, 12:30 AM). After: reporting 15/15 in the shared DB; full-db-test failing list = 1 (only E54). New baseline saved as scratchpad/baseline-failing-v3.txt (old file kept).
+- Decision (for Zainab to review): park only data errors; outages still fail the pass so no valid event is parked by mistake — Alternative: park after N retries of any error.
+- Review: no fix-reviewer (one loop + validation, fully covered by the shared-DB suite).
+- Actual result: matches expected (a `{}` event is skipped and logged; later events are processed).
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)

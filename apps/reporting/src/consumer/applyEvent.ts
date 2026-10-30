@@ -186,7 +186,32 @@ async function applyRefundSucceeded(client: PoolClient, row: OutboxEventRow): Pr
  * filters to the four types handled below, so this branch should never
  * actually run against real data.
  */
+/** E53: an event whose payload cannot be applied (bad data, not a DB outage). */
+export class PoisonEventError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PoisonEventError";
+  }
+}
+
+const REPORTED_TYPES = new Set(["transaction.captured", "transaction.voided", "settlement.batch_closed", "refund.succeeded"]);
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** E53: check the fields every applier relies on before touching the DB. */
+function validatePayload(row: OutboxEventRow): void {
+  const p = (row.payload ?? {}) as Record<string, unknown>;
+  if (typeof p.merchantId !== "string" || !UUID_RE.test(p.merchantId)) {
+    throw new PoisonEventError(`${row.event_type} ${String(row.id)}: missing or invalid merchantId`);
+  }
+  const amountField =
+    row.event_type === "transaction.captured" ? "amountCapturedFils" : row.event_type === "refund.succeeded" ? "amountFils" : null;
+  if (amountField && !Number.isSafeInteger(p[amountField])) {
+    throw new PoisonEventError(`${row.event_type} ${String(row.id)}: ${amountField} is not an integer`);
+  }
+}
+
 export async function applyEvent(client: PoolClient, row: OutboxEventRow): Promise<void> {
+  if (REPORTED_TYPES.has(row.event_type)) validatePayload(row);
   switch (row.event_type) {
     case "transaction.captured":
       return applyTransactionCaptured(client, row);
