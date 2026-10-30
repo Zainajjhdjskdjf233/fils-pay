@@ -253,3 +253,9 @@ Where: apps/api/src/config.ts:212 · Commit: f588a09
 The payment export could carry a spreadsheet formula hidden in a payment reference, which Excel would run when the shop opened the file. It also loaded every row into memory, so a very large export could crash the server. Now such cells are marked as plain text, and an export above 50,000 rows asks the user to choose a shorter date range. Tests check both.
 
 Where: apps/api/src/transactions/exportCsv.ts: · Commit: 3918ae8
+
+## N43 — The report worker no longer crashes on an empty day
+
+The report worker checked each closed settlement day against its own daily summary, and crashed if that summary did not exist yet. Because a crash makes it retry the same work, it got stuck forever and all reports stopped updating. Now a missing summary simply counts as zero and the worker writes a warning. A test with exactly that situation now passes.
+
+Where: apps/reporting/src/consumer/applyEvent.ts:149 · Commit: PENDING_N43

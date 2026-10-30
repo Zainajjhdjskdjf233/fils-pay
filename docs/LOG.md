@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 11:42 AM (30 Oct 2026)
-Summary: Errors 40/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
+Updated: 11:43 AM (30 Oct 2026)
+Summary: Errors 41/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -437,7 +437,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Error: `rollupResult.rows[0]` may be undefined → TypeError → whole pass rolls back → same events retried forever.
 - Proof: blame 3f18d11 (Yousif, 2026-01-12). Trigger suspected.
 - Severity: medium
-- Status: open
+- Status: fixed (see section 5)
 
 ### E42 — Outbox consumer can skip events
 - Where: apps/reporting/src/consumer/runConsumerPass.ts:49
@@ -1260,6 +1260,15 @@ ROLLBACK;
 - Regression: full-db-test.sh = baseline (5 known failures).
 - Review: small, well-tested → no fix-reviewer.
 - Actual result: matches expected.
+
+### E41 — 11:43 AM — a missing rollup row no longer crashes the reporting pass
+- Changed: apps/reporting/src/consumer/applyEvent.ts (applyBatchClosed parity check): a missing merchant_daily_volume row counts as 0 captured and logs the lag warning (was `rollupResult.rows[0].captured_count` → TypeError → whole pass rolled back, same event retried forever).
+- Trigger (reproduced): a settlement.batch_closed for a day that has capture events but no daily-volume row (e.g. captures whose outbox events were not consumed yet).
+- Checked and false: FH's note in applyEvent.test.ts "claude: Yes, the next test covers it" — the next test covers a missing settlement_batches row, not a missing rollup row.
+- Test: apps/reporting/src/consumer/applyEvent.e41.test.ts. Before: `TypeError: Cannot read properties of undefined (reading 'captured_count')`. After: PASS (trend row written); applyEvent.test.ts passes.
+- Regression: full-db-test.sh = baseline (5 known failures).
+- Review: one guard → no fix-reviewer.
+- Actual result: the pass no longer crashes on this event.
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)

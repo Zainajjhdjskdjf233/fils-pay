@@ -1577,3 +1577,39 @@ The leading ' tells the spreadsheet "this is text".
 A limit is the smallest safe change. The old streaming code was unused and skips rows with the same time; switching to it is marked for Zainab to decide.
 
 Commit: 3918ae8
+
+## N43 — The report worker no longer crashes on an empty day
+
+### The idea
+The report worker reads events one batch at a time. If one event fails, the whole batch is undone and tried again, like a cashier recounting a till from the start.
+
+### The problem
+When a settlement batch closed, the worker compared it with the daily report row.
+- If that row did not exist yet, the code read a field from "nothing" and crashed.
+- The batch was undone and retried, crashed again, forever. All reports behind it stopped.
+
+### The fix
+- applyEvent.ts: a missing row counts as 0, and the worker logs a warning instead of crashing.
+
+### The code
+Before (apps/reporting/src/consumer/applyEvent.ts:147-148):
+```ts
+const rollup = rollupResult.rows[0] as { captured_count: number };
+if (rollup.captured_count < groundTruthCount) {
+```
+After:
+```ts
+const rolledUp = Number((rollupResult.rows[0] as { captured_count?: number } | undefined)?.captured_count ?? 0);
+if (rolledUp < groundTruthCount) {
+```
+"No row" now means "0 counted so far", which is exactly a lag to warn about.
+
+### The proof
+- Before: TypeError: Cannot read properties of undefined (reading 'captured_count').
+- After: no crash, and the payout trend row is still written.
+
+### If the judges ask
+"Is this the same as E53?"
+No. E53 is a bad event payload (still open); this was a missing report row for a good event.
+
+Commit: PENDING_N43
