@@ -1768,3 +1768,36 @@ test("testE58_sessionWinsOverAnOldImpersonationCookie", async () => {
   const row = await pool.query(`SELECT merchant_id FROM reporting_saved_filters WHERE name = 'e58' AND merchant_id = $1`, [own.merchantId]);
   assert.equal(row.rowCount, 1, "data lands in the merchant's own shop, never the viewed one");
 });
+
+// E63 [found later], decided: the admin reporting rebuild counted events the
+// reporting worker had not reached yet, and the worker then counted them
+// again. The rebuild now moves the worker's cursor past exactly what it counted.
+test("testE63_rebuildMovesTheWorkerCursorPastWhatItCounted", async () => {
+  const { enqueueEvent } = await import("@filspay/events");
+  const finance = await signedInAdmin("finance", "e63");
+  const { merchantId } = await createMerchant("e63");
+  const txn = await pool.query<{ id: string }>(
+    `INSERT INTO transactions (merchant_id, status, amount_fils, captured_fils, acquirer_reference) VALUES ($1, 'captured', 1000, 1000, $2) RETURNING id`,
+    [merchantId, `acq-${randomUUID()}`],
+  );
+  await pool.query(
+    `INSERT INTO transaction_events (transaction_id, event_type, amount_fils, actor_type, metadata) VALUES ($1, 'captured', 1000, 'system', '{"feeFils": 25}')`,
+    [txn.rows[0]!.id],
+  );
+  await enqueueEvent(pool, {
+    eventType: "transaction.captured", aggregateType: "transaction", aggregateId: txn.rows[0]!.id,
+    payload: { merchantId, amountCapturedFils: 1000, feeFils: 25, newStatus: "captured", capturedTotalFils: 1000 },
+  });
+  const ev = await pool.query<{ id: string; txid: string }>(
+    `SELECT id::text, txid::text FROM outbox_events WHERE aggregate_id = $1 ORDER BY id DESC LIMIT 1`, [txn.rows[0]!.id],
+  );
+  const res = await app.inject({ method: "POST", url: "/v1/admin/reporting/rebuild", headers: { cookie: finance.cookie } });
+  assert.equal(res.statusCode, 200, res.body);
+  const vol = await pool.query(`SELECT COALESCE(SUM(captured_gross_fils), 0)::int AS g FROM merchant_daily_volume WHERE merchant_id = $1`, [merchantId]);
+  assert.equal(vol.rows[0].g, 1000, "counted once by the rebuild");
+  const cur = await pool.query<{ past: boolean }>(
+    `SELECT (last_processed_txid, last_processed_id) >= ($1::xid8, $2::bigint) AS past FROM reporting_outbox_cursor WHERE consumer_name = 'reporting'`,
+    [ev.rows[0]!.txid, ev.rows[0]!.id],
+  );
+  assert.equal(cur.rows[0]?.past, true, "the worker will not count the same event again");
+});

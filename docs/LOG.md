@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 09:16 PM (30 Oct 2026)
-Summary: Errors 166/178 fixed (+3 partly: E50, E94, E178; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 09:20 PM (30 Oct 2026)
+Summary: Errors 167/178 fixed (+3 partly: E50, E94, E178; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -654,9 +654,10 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/admin/reportingRebuild.ts:11-55 (truncate + rebuild from transaction_events/refunds; never moves reporting_outbox_cursor); route comment admin.ts:233-240 "replays the outbox" is false.
 - Error: a committed capture the worker has not consumed yet is counted by the rebuild and again by the worker.
 - Proof: code read (second bug hunt, bug-hunter agent (12:55 PM); checked by me in the code).
-- Severity: medium · Status: open — for Zainab to review (07:36 PM)
+- Severity: medium · Status: fixed (see section 5, E63)
 - Analysis (07:36 PM): moving reporting_outbox_cursor inside the rebuild is not enough. The rebuild sees one snapshot; the worker only takes outbox rows with txid < pg_snapshot_xmin (apps/reporting/src/consumer/runConsumerPass.ts:55). A transaction that committed before the rebuild's snapshot can still have txid >= xmin (an older transaction still open), so it is counted by the rebuild AND later by the worker. A single watermark cannot describe "everything this snapshot saw".
 - Options: (a) the rebuild takes the cursor row FOR UPDATE (pauses the worker), waits until no older transaction is open (pg_snapshot_xmin = txid_current), then rebuilds and sets the cursor to the newest outbox row — exact, but can wait on a long transaction; (b) the rebuild counts only events whose outbox row is at or before the cursor and leaves the rest to the worker — exact, needs a join from transaction_events to outbox_events; (c) document "run the rebuild only with the reporting worker stopped". Recommended: (b). Not started (time).
+- Decision (Claude, Zainab approved deciding without review): the admin reporting rebuild counts exactly what the worker has not: one REPEATABLE READ snapshot taken after pausing the worker, then the worker's cursor is moved past the newest event that snapshot counted; if a committed event sits behind a still-open older transaction, the rebuild answers 503 'try again' — Why: it is exact (each event counted once) without a join from transaction_events to outbox_events, and the 503 case needs a long-open transaction, which is rare — Alternative: count only events at or before the cursor (needs an event-level join), or tell admins to stop the worker before a rebuild
 
 ### E64 — [found later] Payout trends never show "paid"
 - Where: apps/reporting/src/consumer/runConsumerPass.ts REPORTING_EVENT_TYPES (no `settlement.paid`); applyEvent.ts:93-118 copies status/paid_at only at batch_closed time (always closed/NULL).
@@ -3004,6 +3005,12 @@ ROLLBACK;
 ### E58 — closed as not a bug (09:18 PM)
 - Test added: testE58_sessionWinsOverAnOldImpersonationCookie (apps/api/src/routes/admin.test.ts): with a merchant session cookie AND an old grant cookie, /v1/auth/me shows the merchant's own shop and a saved-filter write lands in the merchant's own shop (201), not the viewed one. Passes on the current code; no source change. Status stays 'Skipped' in docs/ERRORS.md because nothing was broken.
 
+### E63 — 09:20 PM — the admin reporting rebuild no longer double-counts events the worker has not reached
+- Changed: apps/api/src/admin/reportingRebuild.ts refreshAnalyticsRollups: SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, LOCK TABLE reporting_outbox_cursor IN EXCLUSIVE MODE (pauses the worker), refuse with 503 reporting_busy if a committed reporting event has txid >= the snapshot's xmin, rebuild as before, then upsert the 'reporting' cursor to the newest outbox event with txid < xmin. False route comment ('replays the outbox', routes/admin.ts) corrected.
+- Before: testE63_rebuildMovesTheWorkerCursorPastWhatItCounted (admin.test.ts) — after the rebuild the cursor was still behind the counted event, so the worker would count it again. After: counted once (1000), cursor past the event. Admin and refund-report suites 56/56.
+- Live permissions: filspay_api has UPDATE on the cursor table through the default grants (ops/postgres/01-roles.sh:25), which this lock mode needs.
+- check.sh (clean environment): OK. Needs a redeploy.
+
 ## 6. Deploy
 
 ### Official submission rules (04:28 PM, from Zainab; they override older plans)
@@ -3306,3 +3313,4 @@ Zainab asked for speed without losing safety. Two read-only agents now plan ahea
 - Judge note (08:40 PM): before committing a migration that changed a view's owner, I checked which database user runs migrations on the live server. It is a non-superuser that cannot give ownership away, so that migration would have failed at the redeploy and kept the API down. My superuser test databases could not show this. I switched to a plain view, which needs no special rights.
 - Judge note (09:16 PM): E82 — staff could quietly obtain a full-power merchant key; now they can only cut a key off, and the shop issues its own.
 - Judge note (09:17 PM): E58 — a comment claimed identities could mix; a test proves they do not, so nothing was changed and the test stays as a guard.
+- Judge note (09:20 PM): E63 — the rebuild and the worker could both count the same payment; now the rebuild hands the worker an exact starting point.

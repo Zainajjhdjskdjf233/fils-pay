@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 166 of 178 fixed.
+Summary: 167 of 178 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -66,7 +66,7 @@ Summary: 166 of 178 fixed.
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-## Medium (56 of 60 fixed)
+## Medium (57 of 60 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -93,7 +93,7 @@ Summary: 166 of 178 fixed.
 | E60 | Reconciliation counts payouts of earlier days as an unexplained gap | Fixed |
 | E61 | Dashboard and admin console cannot reach the API from their own origin (no CORS, no proxy) | Fixed |
 | E62 | [found later] Two reporting passes at the same time count every event twice | Fixed |
-| E63 | [found later] Admin reporting rebuild double-counts events the worker has not reached | Open |
+| E63 | [found later] Admin reporting rebuild double-counts events the worker has not reached | Fixed |
 | E64 | [found later] Payout trends never show "paid" (settlement.paid not consumed) | Fixed |
 | E65 | [found later] The seed wipes real tables (incl. admin audit log) with no environment check | Fixed |
 | E74 | [found later] Balance cache and ledger rebuild measure different things (drift after rebuild) | Open |
