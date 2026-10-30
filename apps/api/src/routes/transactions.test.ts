@@ -294,3 +294,21 @@ test("POST /v1/refunds (old stub path) is no longer routed", async () => {
   const res = await app.inject({ method: "POST", url: "/v1/refunds", headers: authHeader(rawKey), payload: {} });
   assert.equal(res.statusCode, 404, res.body);
 });
+
+// E129 [deep review]: the capture idempotency hash ignored the transaction id,
+// so the same key used on transaction B replayed A's cached 200 and B was
+// never captured (FH asked for this case above).
+test("testE129_sameCaptureKeyOnAnotherTransactionIs422", async () => {
+  const { rawKey } = await createApprovedMerchantWithApiKey("e129");
+  const a = await authorize(rawKey, 5_000);
+  const b = await authorize(rawKey, 5_000);
+  const aId = a.id;
+  const bId = b.id;
+  const key = randomUUID();
+  assert.equal((await capture(rawKey, aId, {}, key)).statusCode, 200);
+  const second = await capture(rawKey, bId, {}, key);
+  assert.equal(second.statusCode, 422, second.body);
+  assert.equal((second.json() as { error: string }).error, "idempotency_key_reused");
+  const row = await pool.query<{ status: string }>(`SELECT status FROM transactions WHERE id = $1`, [bId]);
+  assert.equal(row.rows[0]!.status, "authorized");
+});

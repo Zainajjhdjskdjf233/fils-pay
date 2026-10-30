@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 05:16 PM (30 Oct 2026)
-Summary: Errors 88/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 05:17 PM (30 Oct 2026)
+Summary: Errors 89/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1041,7 +1041,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 ### E129 — [deep review] The capture idempotency hash ignores the transaction id
 - Where: apps/api/src/payments/capture.ts:92 `hashRequest({ amountFils: input.amountFils ?? null })`.
 - Error: the same Idempotency-Key used to capture transaction B after A returns A's cached 200; B is never captured, and the caller sees success (with A's id in the body).
-- Severity: medium · Status: open
+- Severity: medium · Status: fixed (see section 5, E129)
 
 ### E130 — [deep review] A failed link capture leaves the card authorization open
 - Where: apps/api/src/paymentLinks/pay.ts:193-199: on a capture failure the link is released but the authorization is not voided.
@@ -2335,6 +2335,12 @@ ROLLBACK;
 - Decision (for Zainab to review): the cap value, the same as E141.
 - Test: routes/adminBalanceAdjustments.test.ts testE140_hugeDeltaIsA400 (2^53, ±9e15). Before: `9007199254740992: {"error":"internal_error"}`. After: PASS; balance adjustment tests 19/19.
 - fix-reviewer: APPROVE. Leftover (Low, not E140): about 9,000 maximum calls could still push the cache past 2^53 — toFils then throws inside the transaction (rolled back, 500); a guard in the UPDATE would close it.
+- check.sh: OK.
+
+### E129 — 05:17 PM — the capture idempotency hash includes the transaction id
+- Changed: apps/api/src/payments/capture.ts:94: hashRequest({ transactionId, amountFils }) (was amountFils only). The idempotency key is (merchant, endpoint, key), so the transaction was the missing part.
+- Test: routes/transactions.test.ts testE129_sameCaptureKeyOnAnotherTransactionIs422 (the case FH asked for at :218). Before: B's capture returned A's cached 200 (A's id) and B stayed uncaptured. After: PASS (422 idempotency_key_reused, B still authorized); payment tests 85/85 incl. payment-link retries.
+- fix-reviewer: APPROVE (link retries replay: same txnId → same hash; also stops the discount adjustment running on B after A's replay). Known one-time deploy effect: a key completed before the deploy and retried after it gets 422 instead of a replay — nothing is captured twice; a retry needs a new key.
 - check.sh: OK.
 
 ## 6. Deploy
