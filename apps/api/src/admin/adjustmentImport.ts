@@ -3,7 +3,8 @@ import type { Pool } from "pg";
 import { addFils, toFils, ZERO_FILS, type Fils } from "@filspay/money";
 import { insertAdminAuditLog } from "../adminAudit/log.js";
 import { withTransaction } from "../db/withTransaction.js";
-import { BadRequestError, ConflictError } from "../lib/errors.js";
+import { BadRequestError, ConflictError, UnprocessableEntityError } from "../lib/errors.js";
+import { CREDIT_APPROVAL_THRESHOLD_FILS } from "./creditThreshold.js";
 import { parseAdjustmentAmountFils } from "./adjustmentCsvParsing.js";
 import { postLedgerAdjustment } from "./ledgerAdjustments.js";
 
@@ -50,6 +51,24 @@ export async function applyAdjustmentImport(
 ): Promise<AdjustmentImportResult> {
   if (input.rows.length === 0) {
     throw new BadRequestError("empty_import", "the CSV must contain at least one row");
+  }
+
+  // E119: the import must not bypass the two-person rule for credits above
+  // the approval threshold (creditThreshold.ts, 50 BD). Parse every row first;
+  // if any single row, or the total moved (ignoring sign, so splitting into
+  // small rows does not help), is above the threshold, refuse before writing
+  // anything — larger corrections go through the credit flow with a second
+  // approver.
+  let movedFils = 0;
+  for (const row of input.rows) {
+    const abs = Math.abs(Number(parseAdjustmentAmountFils(row.amount)));
+    if (abs > Number(CREDIT_APPROVAL_THRESHOLD_FILS)) {
+      throw new UnprocessableEntityError("approval_required", "a row above 50.000 BD needs the two-person credit flow");
+    }
+    movedFils += abs;
+  }
+  if (movedFils > Number(CREDIT_APPROVAL_THRESHOLD_FILS)) {
+    throw new UnprocessableEntityError("approval_required", "imports moving more than 50.000 BD in total need the two-person credit flow");
   }
 
   // E22: a fingerprint of the rows (not the filename), stored under a unique

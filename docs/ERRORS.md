@@ -13,9 +13,9 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 56 of 121 fixed.
+Summary: 57 of 122 fixed.
 
-## High (32 of 33 fixed)
+## High (33 of 34 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -52,6 +52,7 @@ Summary: 56 of 121 fixed.
 | E104 | [found later] Bulk Approve KYC approves hidden merchants; server checks no status | Fixed |
 | E117 | [deep review] OTP guess limit was per code, not per user (brute-forceable) | Fixed |
 | E118 | [deep review] Running a batch for today strands that day's later captures | Fixed |
+| E119 | [deep review] CSV adjustment import bypasses the two-person credit rule | Fixed |
 
 ## Medium (22 of 40 fixed)
 

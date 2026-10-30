@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 2:48 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 2:49 PM
 
 ## Contents
 1. Status now
@@ -14,20 +14,20 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:48 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 56 of 121 fixed.
-  - High: 32 of 33 fixed
+- Errors: 57 of 122 fixed.
+  - High: 33 of 34 fixed
   - Medium: 22 of 40 fixed
   - Low: 2 of 48 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
 - Dilmune Cloud: not yet
-- Decisions waiting for Zainab: 20 (search "for Zainab to review" in LOG.md)
+- Decisions waiting for Zainab: 21 (search "for Zainab to review" in LOG.md)
 - Fork: needs a push (VS Code: Git: Push to... → mine)
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 56 of 121 fixed.
+- 🔄 Fix: 57 of 122 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ⬜ UI and UX, before/after screenshots
@@ -91,7 +91,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:48 PM
 - 41c9754 fix(E53): bad outbox events are parked in reporting_dead_letters instead of blocking the worker
 
 ## 7. All errors
-## High (32 of 33 fixed)
+## High (33 of 34 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -128,6 +128,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:48 PM
 | E104 | [found later] Bulk Approve KYC approves hidden merchants; server checks no status | Fixed |
 | E117 | [deep review] OTP guess limit was per code, not per user (brute-forceable) | Fixed |
 | E118 | [deep review] Running a batch for today strands that day's later captures | Fixed |
+| E119 | [deep review] CSV adjustment import bypasses the two-person credit rule | Fixed |
 
 ### Medium (22 of 40 fixed)
 
@@ -228,7 +229,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:48 PM
 | E127 | [second review] Settlement date filters accept impossible dates | Open |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62
 
 ### N01 — Database setup stopped halfway
 
@@ -2488,4 +2489,37 @@ end is the next Bahrain midnight for that day.
 The button, the internal API and the command-line tool all end in CloseBatch, so one check protects them all.
 
 Commit: fb945fa
+
+### N62 — One admin can no longer move big money through the CSV import
+
+#### The idea
+Credits above 50 BD need two people: one asks, another approves. Like a bank cheque that needs two signatures.
+
+#### The problem
+The CSV import posted money with one person only.
+- Any amount, positive or negative, in one file.
+- A test file with 1,000,000 BD was accepted.
+
+#### The fix
+- adjustmentImport.ts: before writing anything, refuse an import if one row, or the total of all rows, is above 50 BD. Bigger corrections use the two-person credit flow.
+
+#### The code
+Before (apps/api/src/admin/adjustmentImport.ts): no amount limit.
+After:
+```ts
+if (abs > Number(CREDIT_APPROVAL_THRESHOLD_FILS)) {
+  throw new UnprocessableEntityError("approval_required", "a row above 50.000 BD needs the two-person credit flow");
+}
+```
+The total is checked too, so splitting into many small rows does not help.
+
+#### The proof
+- Before: a 1,000,000 BD import was accepted.
+- After: refused (422); nothing posted; a 50 BD import still works.
+
+#### If the judges ask
+"Why not build approval for imports?"
+It needs a new table and screens. The limit closes the hole today; staged approval is marked for Zainab.
+
+Commit: PENDING_N62
 

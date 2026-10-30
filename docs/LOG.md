@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 02:48 PM (30 Oct 2026)
-Summary: Errors 56/118 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 02:49 PM (30 Oct 2026)
+Summary: Errors 57/119 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -993,6 +993,12 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Proof: the second review (items i-k, pasted by Zainab, 2:50 PM); checked by me in the code.
 - Severity: low · Status: open
 
+### E119 — [deep review] The CSV adjustment import bypasses the two-person credit rule
+- Where: apps/api/src/admin/adjustmentImport.ts:78-90 (posts real merchant_payable legs per row) and routes/adminAdjustmentImport.ts:43 (one finance or super_admin); creditThreshold.ts:11,15 (credits above 50 BD need a second approver, E09).
+- Error: one admin uploads `<merchant>,1000000,x` → 201, 1,000,000 BD posted with no second person; either sign. Lens rule 5.
+- Proof: deep-review agent (settlement, 2:45 PM); confirmed by me; red test below.
+- Severity: high · Status: fixed (see section 5)
+
 ## 3. Hidden things
 
 ### H01 — "The Order of the Prompt" and its Five Rules
@@ -1831,6 +1837,12 @@ ROLLBACK;
 - Changed: apps/settlement/internal/settlement/batch.go: `ErrBusinessDayNotOver`; CloseBatch returns it when `time.Now()` is before the day's Bahrain window end (one check covers the admin button, the internal API, the CLI and the daemon). internalapi/server.go: that error → 400 `business_day_not_over` (was 500 or a silent early close).
 - Test: settlement/batch_e118_test.go (today and today+3 refused, no batch row created, yesterday closes); internalapi/runbatch_e118_test.go. Before: `status = 200, want 400`. After: PASS; all Go packages pass.
 - Actual result: closing today is refused; nothing is stranded.
+
+### E119 — 02:49 PM — large CSV adjustments need the two-person flow
+- Changed: apps/api/src/admin/adjustmentImport.ts: before anything is written, every row is parsed; any row with |amount| above CREDIT_APPROVAL_THRESHOLD_FILS (50 BD), or a total moved (sum of |amount|) above it, → 422 `approval_required`.
+- Decision (for Zainab to review): cap the import at the credit threshold instead of building a staged maker-checker import — Why: smallest safe change; larger corrections already have the two-person credit flow — Alternative: stage the import and require a second admin to approve it (new table + UI).
+- Test: apps/api/src/admin/adjustmentImport.e119.test.ts (1,000,000; −75; two rows of 30). Before: `Missing expected rejection` (1,000,000 BD accepted). After: PASS; 50.000 still posts; all import tests (24) pass.
+- Actual result: one admin can no longer move more than 50 BD through the import.
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04) — not yet. Local Docker stack done (01:48 PM, see section 5 E02).

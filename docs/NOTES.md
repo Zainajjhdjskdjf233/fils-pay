@@ -2260,3 +2260,36 @@ end is the next Bahrain midnight for that day.
 The button, the internal API and the command-line tool all end in CloseBatch, so one check protects them all.
 
 Commit: fb945fa
+
+## N62 — One admin can no longer move big money through the CSV import
+
+### The idea
+Credits above 50 BD need two people: one asks, another approves. Like a bank cheque that needs two signatures.
+
+### The problem
+The CSV import posted money with one person only.
+- Any amount, positive or negative, in one file.
+- A test file with 1,000,000 BD was accepted.
+
+### The fix
+- adjustmentImport.ts: before writing anything, refuse an import if one row, or the total of all rows, is above 50 BD. Bigger corrections use the two-person credit flow.
+
+### The code
+Before (apps/api/src/admin/adjustmentImport.ts): no amount limit.
+After:
+```ts
+if (abs > Number(CREDIT_APPROVAL_THRESHOLD_FILS)) {
+  throw new UnprocessableEntityError("approval_required", "a row above 50.000 BD needs the two-person credit flow");
+}
+```
+The total is checked too, so splitting into many small rows does not help.
+
+### The proof
+- Before: a 1,000,000 BD import was accepted.
+- After: refused (422); nothing posted; a 50 BD import still works.
+
+### If the judges ask
+"Why not build approval for imports?"
+It needs a new table and screens. The limit closes the hole today; staged approval is marked for Zainab.
+
+Commit: PENDING_N62

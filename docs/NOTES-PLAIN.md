@@ -367,3 +367,9 @@ Where: apps/api/src/auth/otp.ts:71 · Commit: a3975a9
 An admin could close today's settlement in the middle of the day, and every payment after that moment was never paid out to the shop, with no warning. Now the system refuses to close a day until Bahrain midnight has passed. A test shows today is refused and yesterday still closes normally.
 
 Where: apps/settlement/internal/settlement/batch.go:67 · Commit: fb945fa
+
+## N62 — One admin can no longer move big money through the CSV import
+
+Credits over 50 BD normally need a second person to approve them, but the balance-correction file upload let one admin post any amount, even a million BD. Now an upload is refused if any line, or all lines together, go over 50 BD; bigger corrections must use the two-person credit process. A test shows the million-BD file is refused and nothing is posted.
+
+Where: apps/api/src/admin/adjustmentImport.ts:65 · Commit: PENDING_N62
