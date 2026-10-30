@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 04:46 PM (30 Oct 2026)
-Summary: Errors 75/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 04:49 PM (30 Oct 2026)
+Summary: Errors 76/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -608,7 +608,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Proof: scratchpad/api-live.txt (12:50 AM), found while building the E03 attack script.
 - Severity: low (no data leak seen; noisy logs, wrong status code)
 - Proposed fix: validate the body with a schema; map 4xx Fastify errors to their own status.
-- Status: open
+- Status: fixed (see section 5)
 
 - More inputs (04:21 PM, coverage review): a JSON adjustment import over 1 MiB (FST_ERR_CTP_BODY_TOO_LARGE), a KYC POST that is not multipart (FST_INVALID_MULTIPART_CONTENT_TYPE) and 1001 parts (FST_PARTS_LIMIT) all give 500 (errorHandler.ts:29-44 maps only two multipart codes).
 ### E58 — [found later] Session vs impersonation order may mix identities (FP-198 comment)
@@ -2261,6 +2261,13 @@ ROLLBACK;
 - Test: no failing test (UI only); proof by screenshots of the real pages after the refund demo (batch 2026-10-29: 20.000 − 0.450 − 14.000 + 0.315 = 5.865). My own mistake caught by the screenshot: I added a second "Refunded amount" row to TransactionDetailPage.tsx, which already had one (F01f); removed before commit.
 - web tsc clean; web tests 13/13; check.sh OK.
 - Actual result: the numbers on the merchant dashboard add up with refunds.
+
+### E57 — 04:49 PM — bad input gives 4xx, never 500
+- Changed: apps/api/src/plugins/errorHandler.ts: Fastify's own client errors (FST_* with a 4xx statusCode: invalid JSON 400, body too large 413, unsupported media type 415, multipart limits 413, non-multipart KYC POST 415) keep their status; Postgres invalid-input errors from a request value (22P02 bad uuid/number, 22007/22008 bad date) → 400 `invalid_request`. apps/api/src/routes/auth.ts: login merchantId must be a UUID (new apps/api/src/lib/queryParsing.ts with UUID_RE). Covers the E155 non-UUID `:id` part too.
+- Planner: read-only agent (scratchpad/plans/validation.md, C1); the 22P02 net added by me after finding routes with no id check (transactions, settlement, webhooks, paymentLinks).
+- Test: apps/api/src/routes/badInput.e57.test.ts. Before: `broken JSON: 500 {"error":"internal_error"}`, then `/v1/transactions/not-a-uuid: 500`. After: PASS (2 tests); auth/app tests 17/17.
+- Regression: api 450/451 (the known E54 test), reporting 18/18, web 13/13, Go 80. Scripts showed 1 failure (testE16_secondRunPostsNothing, 9 !== 12): not this change but a race in my own E75 test, which swept March on the same DB while E16 inserted its March rows; E75 test moved to May (separate commit). Scripts then 10/10 four times.
+- Actual result: the live site's automated tests get 4xx for malformed requests instead of 500.
 
 ## 6. Deploy
 

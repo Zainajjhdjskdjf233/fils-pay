@@ -1,3 +1,4 @@
+import { UUID_RE } from "../lib/queryParsing.js";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { verifyPassword } from "../auth/passwords.js";
 import { issueChallenge, prepareMerchantUserForNewChallenge, verifyOtpCode } from "../auth/otp.js";
@@ -52,7 +53,8 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
   /** POST /v1/auth/login — step 1. */
   app.post<{ Body: LoginBody }>("/login", async (request, reply) => {
     const { merchantId, email, password } = request.body ?? {};
-    if (!merchantId || !email || !password) {
+    // E57: a non-UUID merchantId reached Postgres (500).
+    if (!merchantId || !email || !password || typeof merchantId !== "string" || !UUID_RE.test(merchantId)) {
       throw new BadRequestError("invalid_request", "merchantId, email and password are required");
     }
 

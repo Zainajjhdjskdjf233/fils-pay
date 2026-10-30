@@ -32,6 +32,23 @@ export function errorHandler(
     return;
   }
 
+  // E57: Fastify's own client errors (bad JSON, body too large, wrong media
+  // type, multipart limits) keep their 4xx instead of becoming 500.
+  const clientStatus = fastifyErr.code === "FST_INVALID_MULTIPART_CONTENT_TYPE" ? 415 : fastifyErr.statusCode;
+  if (fastifyErr.code?.startsWith("FST_") && typeof clientStatus === "number" && clientStatus >= 400 && clientStatus < 500) {
+    const code = clientStatus === 413 ? "payload_too_large" : clientStatus === 415 ? "unsupported_media_type" : "invalid_request";
+    reply.code(clientStatus).send({ error: code, message: fastifyErr.message });
+    return;
+  }
+
+  // E57: a malformed value from the request reached a Postgres cast (a bad
+  // uuid, number or date). That is the client's input, not a server fault.
+  const pgCode = (err as { code?: unknown }).code;
+  if (pgCode === "22P02" || pgCode === "22007" || pgCode === "22008") {
+    reply.code(400).send({ error: "invalid_request", message: "a value in the request is not valid" });
+    return;
+  }
+
   // Load shedding: the DB pool had no free connection within its timeout —
   // the server is overloaded, not broken. Answer like the in-flight cap does.
   if (/timeout exceeded when trying to connect/i.test(err.message)) {

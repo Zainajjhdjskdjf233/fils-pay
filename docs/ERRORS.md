@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 75 of 163 fixed.
+Summary: 76 of 163 fixed.
 
 ## High (45 of 46 fixed)
 
@@ -126,7 +126,7 @@ Summary: 75 of 163 fixed.
 | E148 | [coverage] No limit on KYC uploads per merchant: the shared disk can be filled | Open |
 | E163 | [second review] API config never refuses bad settings (prefixes, booleans, NODE_ENV typo turns off security defaults, no ranges) | Open |
 
-## Low (4 of 62 fixed)
+## Low (5 of 62 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -139,7 +139,7 @@ Summary: 75 of 163 fixed.
 | E54 | Webhook backoff test always fails: test expects no jitter, code adds random ±10 % | Open |
 | E55 | Seed prints API keys; API listens on every network interface | Open |
 | E56 | Go DB tests are flaky when packages run in parallel | Open |
-| E57 | Bad input gives 500 instead of 400 (invalid JSON body, malformed UUID) | Open |
+| E57 | Bad input gives 500 instead of 400 (invalid JSON body, malformed UUID) | Fixed |
 | E59 | Acquirer callback outcome is never validated | Open |
 | E66 | [found later] expire_holds can delete holds released between its SELECT and DELETE | Open |
 | E67 | [found later] refund_merchant_summary counts captured once per refund; never refreshed (my F01e bug) | Open |
