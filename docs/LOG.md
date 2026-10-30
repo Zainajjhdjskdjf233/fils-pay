@@ -2189,6 +2189,16 @@ ROLLBACK;
 - Actual result: only finance can resend old events, and an archive cannot be resent twice.
 
 ## 6. Deploy
+
+### Official submission rules (04:28 PM, from Zainab; they override older plans)
+- Deadline: Friday 30 Oct 2026, 11:00 PM. Nothing can change after that (code, server, docs). (Earlier plan said 9:30 PM; this replaces it.)
+- The fork must be PUBLIC and include the AI setup files (.claude/, CLAUDE.md, hooks, commands, permission rules, helper scripts), checked for secrets. Status: .claude/ tracked since 25b827d (scanned: no secrets); CLAUDE.md tracked; making the fork public is Zainab's action on GitHub.
+- Live demo must pass: a FULL and a PARTIAL refund end to end, with correct amounts in the merchant dashboard AND the settlement report. Check: see "Refund demo check" below.
+- New question: how a redeploy avoids interrupting a settlement run (answered in docs/SUBMISSION.md section 2, from the code and compose).
+- The organizers run automated tests on the live site before judging.
+- docs/SUBMISSION.md with the required headings (cover page; 1 Summary; 2 Architecture and deployment; 3 Capacity; 4 Findings report; 5 UI and UX; 6 AI usage; Appendix). URLs stay TODO until deploy.
+- Plan: finish the coverage Highs (E137, E134, E138), the refund demo check, then SUBMISSION.md, then deploy (F02) when Zainab says.
+
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04) — not yet. Local Docker stack done (01:48 PM, see section 5 E02).
 - How to run: `./ops/gen-env.sh` once, then `docker compose --env-file ops/.env.docker -f ops/docker-compose.yml up -d --build`. Dashboard + checkout http://localhost:8080, admin console http://localhost:8081.
 - Limits (CASE-FILE Item 05): whole stack 1.00 vCPU / 1664 MB of 2 GB; API 0.50 vCPU / 512 MB (`docker inspect` proof in section 5 E02).
