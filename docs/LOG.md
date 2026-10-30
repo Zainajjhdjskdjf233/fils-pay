@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 11:06 AM (30 Oct 2026)
-Summary: Errors 25/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
+Updated: 11:14 AM (30 Oct 2026)
+Summary: Errors 26/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -343,7 +343,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: high
 - Proposed fix: store a claim token; require it in finalize/release; return an error (and void) when finalize misses.
 - Expected result: second payer gets an error, link captured once.
-- Status: open
+- Status: fixed (see section 5)
 
 ### E30 — Incident 2026-08-21: duplicate payout notifications
 - Where: apps/settlement/internal/settlement/payout_notify.go:32-43, :86-89; db/migrations/0009; webhooks/dispatcher.ts:158-161
@@ -1133,6 +1133,20 @@ ROLLBACK;
 - Review: small removal + filter, admin-only route → no fix-reviewer; Copilot CLI not installed.
 - Actual result: matches expected (test merchant stays test after recompute).
 
+### E29 — 11:14 AM — one payment link is charged once, even when payment is slow
+- Changed:
+  - db/migrations/0075_payment_link_reservation_token.sql: `payment_links.reservation_token UUID`.
+  - apps/api/src/paymentLinks/pay.ts: the claim sets `reservation_token = gen_random_uuid()`. After authorize, a dedicated client runs `BEGIN; SELECT 1 FROM payment_links WHERE id AND status='reserved' AND reservation_token FOR UPDATE` (pay.ts:144) and holds that row lock through capture and the finalize/release UPDATE, then COMMIT. A second buyer's claim waits on the lock and then sees 'paid' → 409. If our token was taken while authorizing: ROLLBACK, void our authorization (no money moves), 409 `payment_link_processing`. Finalize/release also require the token (old code matched `status = 'reserved'` only, pay.ts:149, :192). A finalize miss (should no longer happen) answers 409 `payment_link_reservation_lost` with the transactionId instead of 200 "paid".
+  - apps/api/src/payments/void.ts: VoidInput.actor also allows "system" (same as CaptureInput, capture.ts:51-56; transaction_events CHECK allows 'system', 0018:16).
+- Test: apps/api/src/routes/paymentLinks.e29.test.ts (3). Timeout 0 s + 300 ms acquirer, two buyers at once — before: `link charged 2 times; responses 200,200`. Slow capture (500 ms) with B arriving 100 ms after A — after my first fix (token + refresh only): `link charged 2 times` (A 409 reservation_lost, B 200). After the row lock: both PASS, 3/3 runs; existing payment-link tests pass. Third test (5 pays on 5 links, pool max 5, slow capture) passes — but it ALSO passed with the limit set to 5 (no limit), so the starvation was not reproduced; it is a regression guard, not a red/green proof. The limit is kept on the reviewer's reasoning.
+- Mistake caught by review: my first version only refreshed the claim before capture, which closed the authorize window but only detected (not prevented) a double charge while capture was running — the incident's "slow payment" case. fix-reviewer found it; I proved it with the second test and replaced the refresh with the row lock (Judge note J22).
+- Regression: full-db-test.sh = baseline (5 known failures).
+- Cost: one extra DB connection per in-flight link payment, held for the capture call.
+- Known: a buyer who retries with the SAME Idempotency-Key after a "lost owner" 409 gets a stored voided authorization and a 409 again (no money moves); a new key works (fix-reviewer note).
+- Decision (for Zainab to review): no automatic refund in the (now unexpected) finalize-miss path; it logs "refund needed" and returns the transactionId — Why: refunds need a merchant actor today (refunds.created_by_type CHECK, 0042:24) — Alternative: allow a system refund actor (schema change).
+- Review: fix-reviewer → CHANGES (capture window), fixed; re-review → CHANGES (pool starvation: each locked pay holds one connection and needs a second); applied its three fixes: (1) the claim uses `FOR UPDATE SKIP LOCKED`, so a buyer arriving during a capture gets 409 at once instead of waiting on the lock while holding a connection; (2) an in-process limit lets at most floor(pgPoolMax/2) pays hold a link lock (routes/paymentLinks.ts passes it; config.ts:200 pgPoolMax 5); (3) the lock connection is released before voiding, and a broken one is discarded (`release(err)`). Not sent for a third review (the changes are the reviewer's own suggestions). Copilot CLI not installed.
+- Actual result: matches expected (second payer gets an error, link captured once).
+
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)
 - Status: not started
@@ -1241,3 +1255,9 @@ ROLLBACK;
 ### J21 — 10:58 AM — I wrote a wrong time and corrected it
 - What happened: in the E17 section 5 entry I typed "11:02 AM" without reading the clock; `date` showed 10:57 AM right after. Corrected to 10:56 AM (commit 2327ed9 time). From now on every LOG time comes from `date`.
 - Proof: `git log -1 --format=%cd 2327ed9`.
+
+### J22 — 11:14 AM — the reviewer found a hole in my E29 fix
+- What happened: my first E29 fix passed its test, but fix-reviewer showed a double charge was still possible while the acquirer capture itself was slow (it was only detected and logged). I wrote a second test with a 500 ms capture: it failed (`link charged 2 times`). I then held a row lock on the link through capture and finalize; both tests pass 3/3.
+- Why it matters: the incident (2026-05-14) was exactly a slow payment; a test that only covers the easy window can give false confidence.
+- Proof: section 5 E29; paymentLinks.e29.test.ts testE29_secondBuyerDuringASlowCaptureIsRefused.
+

@@ -169,3 +169,9 @@ Where: apps/settlement/internal/settlement/recalculate_mdr.go:67 · Commit: 23e2
 The group chat said test shops kept showing up in the real settlement run, and it was true. An admin tool for tidying payment statuses also switched test shops to live, because it used a count that was always zero. Live shops get paid for real, so this could send real money for fake sales. Now the tool only tidies statuses and never touches the test flag, and a test confirms a test shop stays a test shop.
 
 Where: apps/api/src/routes/adminMerchantsRecompute.ts:31 · Commit: 41c17e8
+
+## N29 — One payment link can only be paid once, even when payment is slow
+
+In May, two customers were charged for the same payment link. When a payment was slow, the link's "reserved" mark expired and a second buyer could pay as well, and both were told "paid". Now each reservation has its own secret token, and the link is locked in the database until the payment is finished, so a second buyer is told to wait. Our tests make two buyers pay at the same moment, and with a slow payment, and now only one is ever charged.
+
+Where: apps/api/src/paymentLinks/pay.ts:144 · Commit: PENDING_N29

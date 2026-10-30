@@ -162,7 +162,11 @@ export async function paymentLinkPublicRoutes(app: FastifyInstance): Promise<voi
     const result = await payPaymentLink(
       app.db,
       app.acquirer,
-      { paymentLinkReservationTimeoutSeconds: app.config.paymentLinkReservationTimeoutSeconds },
+      {
+        paymentLinkReservationTimeoutSeconds: app.config.paymentLinkReservationTimeoutSeconds,
+        // E29: half the pool, so every pay holding a link lock can get its capture connection.
+        maxConcurrentLockedPays: Math.max(1, Math.floor(app.config.pgPoolMax / 2)),
+      },
       { token: request.params.token, card, idempotencyKey, submittedAt },
     );
     reply.code(result.statusCode).send(result.body);
