@@ -13,15 +13,19 @@ export function DashboardLayout() {
   const { me, signOut } = useDashboardAuth();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
 
   // sign out clears the cookie server side, local merchantId stays — am
   async function handleSignOut(): Promise<void> {
     setError(null);
+    setSigningOut(true);
     try {
       await signOut();
       navigate("/dashboard/login", { replace: true });
     } catch (err) {
       setError(describeError(err));
+    } finally {
+      setSigningOut(false);
     }
   }
 
@@ -29,35 +33,36 @@ export function DashboardLayout() {
     <div className="dash-shell">
       <header className="dash-header">
         <div className="dash-brand">FilsPay</div>
-        <nav className="dash-nav">
+        <nav className="dash-nav" aria-label="Dashboard">
+          {/* UX: Overview first, as the landing summary; labels match each page heading. */}
+          <NavLink to="/dashboard/overview">Overview</NavLink>
           <NavLink to="/dashboard/transactions">Transactions</NavLink>
           <NavLink to="/dashboard/payment-links">Payment links</NavLink>
           {/* Every webhook route — including the plain list read — is
               owner/finance-only server-side, so the link itself is
               hidden from support rather than offered and then refused. */}
           <RequireRole allow={["owner", "finance"]}>
-            <NavLink to="/dashboard/webhooks">Webhooks</NavLink>
+            <NavLink to="/dashboard/webhooks">Webhook endpoints</NavLink>
           </RequireRole>
-          <NavLink to="/dashboard/settlement">Settlement</NavLink>
+          <NavLink to="/dashboard/settlement">Settlement batches</NavLink>
           <RequireRole allow={["owner", "finance"]}>
             <NavLink to="/dashboard/reconciliation">Reconciliation</NavLink>
           </RequireRole>
-          <NavLink to="/dashboard/overview">Overview</NavLink>
         </nav>
         <div className="dash-identity">
           {me ? (
             <span>
-              {me.email} <span className="dash-role-chip">{me.role}</span>
+              {me.email} <span className="dash-role-chip" title="Your role">{me.role}</span>
               <span className="dash-muted"> · {me.merchant.displayName}</span>
             </span>
           ) : null}
-          <button type="button" className="dash-button" onClick={() => void handleSignOut()}>
-            Log out
+          <button type="button" className="dash-button" disabled={signingOut} onClick={() => void handleSignOut()}>
+            {signingOut ? "Logging out…" : "Log out"}
           </button>
         </div>
       </header>
 
-      {error ? <p className="dash-error">{error}</p> : null}
+      {error ? <p className="dash-error" role="alert">{error}</p> : null}
 
       <main className="dash-main">
         <Outlet />

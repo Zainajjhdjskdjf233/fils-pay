@@ -5,7 +5,7 @@ import { describeError } from "../../api/client.js";
 import { useDashboardAuth } from "../../auth/DashboardAuthContext.js";
 import { RequireRole } from "../../auth/RequireRole.js";
 import { Pagination } from "../../components/Pagination.js";
-import { bhd, dash, dateTime } from "../../format.js";
+import { bhd, dash, dateTime, statusLabel } from "../../format.js";
 import type { PaymentLinkDto, PaymentLinkStatus } from "../../types.js";
 
 /** The four *stored* statuses, including `reserved` — the merchant-facing
@@ -101,7 +101,7 @@ export function PaymentLinkListPage() {
           <tr>
             <th>Reference</th>
             <th>Description</th>
-            <th>Amount</th>
+            <th className="dash-num">Amount</th>
             <th>Status</th>
             <th>Expires</th>
             <th>Paid</th>
@@ -115,9 +115,9 @@ export function PaymentLinkListPage() {
                 <Link to={`/dashboard/payment-links/${link.id}`}>{dash(link.reference)}</Link>
               </td>
               <td>{dash(link.description)}</td>
-              <td>{bhd(link.amountFils)}</td>
+              <td className="dash-num">{bhd(link.amountFils)}</td>
               <td>
-                <span className={`dash-status dash-status-${link.status}`}>{link.status}</span>
+                <span className={`dash-status dash-status-${link.status}`}>{statusLabel(link.status)}</span>
               </td>
               <td>{dateTime(link.expiresAt)}</td>
               <td>{dateTime(link.paidAt)}</td>

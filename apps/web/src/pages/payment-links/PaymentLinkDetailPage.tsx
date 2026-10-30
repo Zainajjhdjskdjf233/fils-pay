@@ -4,7 +4,7 @@ import { cancelPaymentLink, listPaymentLinks } from "../../api/paymentLinks.js";
 import { describeError } from "../../api/client.js";
 import { useDashboardAuth } from "../../auth/DashboardAuthContext.js";
 import { RequireRole } from "../../auth/RequireRole.js";
-import { bhd, dash, dateTime } from "../../format.js";
+import { bhd, dash, dateTime, statusLabel } from "../../format.js";
 import type { PaymentLinkDto } from "../../types.js";
 
 /** The list endpoint's own maximum page size. */
@@ -115,12 +115,12 @@ export function PaymentLinkDetailPage() {
 
       <dl className="dash-dl">
         <dt>Amount</dt>
-        <dd>{bhd(link.amountFils)}</dd>
+        <dd className="dash-num">{bhd(link.amountFils)}</dd>
         <dt>Currency</dt>
         <dd>{link.currency}</dd>
         <dt>Status</dt>
         <dd>
-          <span className={`dash-status dash-status-${link.status}`}>{link.status}</span>
+          <span className={`dash-status dash-status-${link.status}`}>{statusLabel(link.status)}</span>
         </dd>
         <dt>Reference</dt>
         <dd>{dash(link.reference)}</dd>

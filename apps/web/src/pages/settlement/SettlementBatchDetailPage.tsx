@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getSettlementBatch, getSettlementBatchTransactions } from "../../api/settlement.js";
 import { ApiError, describeError } from "../../api/client.js";
-import { bhd, dash, dateTime } from "../../format.js";
+import { bhd, dash, dateTime, statusLabel } from "../../format.js";
 import type { SettlementBatchDetailDto, SettlementBatchTransactionDto } from "../../types.js";
 
 type LoadState =
@@ -99,19 +99,19 @@ export function SettlementBatchDetailPage() {
       <dl className="dash-dl">
         <dt>Status</dt>
         <dd>
-          <span className={`dash-status dash-status-${batch.status}`}>{batch.status}</span>
+          <span className={`dash-status dash-status-${batch.status}`}>{statusLabel(batch.status)}</span>
         </dd>
         <dt>Gross</dt>
-        <dd>{bhd(batch.grossFils)}</dd>
+        <dd className="dash-num">{bhd(batch.grossFils)}</dd>
         <dt>Fee</dt>
-        <dd>{bhd(batch.feeFils)}</dd>
+        <dd className="dash-num">{bhd(batch.feeFils)}</dd>
         {/* E106: refunds lower the payout; without these rows Gross − Fee ≠ Net on screen */}
         <dt>Refunds</dt>
-        <dd>{bhd(batch.refundFils)}</dd>
+        <dd className="dash-num">{bhd(batch.refundFils)}</dd>
         <dt>Fee returned on refunds</dt>
-        <dd>{bhd(batch.feeReversedFils)}</dd>
+        <dd className="dash-num">{bhd(batch.feeReversedFils)}</dd>
         <dt>Net payout</dt>
-        <dd>{bhd(batch.netPayoutFils)}</dd>
+        <dd className="dash-num">{bhd(batch.netPayoutFils)}</dd>
         <dt>Closed at</dt>
         <dd>{dateTime(batch.closedAt)}</dd>
         <dt>Paid at</dt>
@@ -140,9 +140,9 @@ export function SettlementBatchDetailPage() {
             <th>Transaction</th>
             <th>Reference</th>
             <th>Status</th>
-            <th>Authorized</th>
-            <th>Captured</th>
-            <th>Scheme amount</th>
+            <th className="dash-num">Authorized</th>
+            <th className="dash-num">Captured</th>
+            <th className="dash-num">Scheme amount</th>
           </tr>
         </thead>
         <tbody>
@@ -156,9 +156,9 @@ export function SettlementBatchDetailPage() {
               </td>
               <td>{dash(line.reference)}</td>
               <td>{line.status}</td>
-              <td>{bhd(line.authorizedFils)}</td>
-              <td>{bhd(line.capturedFils)}</td>
-              <td>{bhd(line.schemeAmountFils)}</td>
+              <td className="dash-num">{bhd(line.authorizedFils)}</td>
+              <td className="dash-num">{bhd(line.capturedFils)}</td>
+              <td className="dash-num">{bhd(line.schemeAmountFils)}</td>
             </tr>
           ))}
           {lines.length === 0 ? (

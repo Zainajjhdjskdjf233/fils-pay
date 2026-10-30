@@ -122,18 +122,18 @@ export function ReconciliationPage() {
               {report.periodFrom} to {report.periodTo} (exclusive)
             </dd>
             <dt>Ledger merchant payable (net)</dt>
-            <dd>{bhd(report.ledgerMerchantPayableNetFils)}</dd>
+            <dd className="dash-num">{bhd(report.ledgerMerchantPayableNetFils)}</dd>
             <dt>Settlement net payout</dt>
-            <dd>{bhd(report.settlementNetPayoutFils)}</dd>
+            <dd className="dash-num">{bhd(report.settlementNetPayoutFils)}</dd>
             <dt>Pending, not yet batched</dt>
-            <dd>{bhd(report.pendingUnbatchedFils)}</dd>
+            <dd className="dash-num">{bhd(report.pendingUnbatchedFils)}</dd>
             {/* E106: the parts of the gap formula the page left out */}
             <dt>Refunds from other periods (in this period's batches)</dt>
-            <dd>{bhd(report.refundsFromOtherPeriodsFils)}</dd>
+            <dd className="dash-num">{bhd(report.refundsFromOtherPeriodsFils)}</dd>
             <dt>Credits from other periods (in this period's batches)</dt>
-            <dd>{bhd(report.creditsFromOtherPeriodsFils ?? 0)}</dd>
+            <dd className="dash-num">{bhd(report.creditsFromOtherPeriodsFils ?? 0)}</dd>
             <dt>Gap</dt>
-            <dd>{bhd(report.gapFils)}</dd>
+            <dd className="dash-num">{bhd(report.gapFils)}</dd>
           </dl>
 
           <p className="dash-muted">

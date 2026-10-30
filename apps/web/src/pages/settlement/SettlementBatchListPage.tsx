@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { listSettlementBatches } from "../../api/settlement.js";
 import { describeError } from "../../api/client.js";
 import { Pagination } from "../../components/Pagination.js";
-import { bhd, dateTime } from "../../format.js";
+import { bhd, dateTime, statusLabel } from "../../format.js";
 import type { SettlementBatchDto, SettlementBatchStatus } from "../../types.js";
 
 const STATUSES: SettlementBatchStatus[] = ["open", "closed", "paid"];
@@ -104,10 +104,10 @@ export function SettlementBatchListPage() {
           <tr>
             <th>Batch date</th>
             <th>Status</th>
-            <th>Gross</th>
-            <th>Fee</th>
-            <th>Refunds (net of fee returned)</th>
-            <th>Net payout</th>
+            <th className="dash-num">Gross</th>
+            <th className="dash-num">Fee</th>
+            <th className="dash-num">Refunds (net of fee returned)</th>
+            <th className="dash-num">Net payout</th>
             <th>Closed</th>
             <th>Paid</th>
           </tr>
@@ -119,12 +119,12 @@ export function SettlementBatchListPage() {
                 <Link to={`/dashboard/settlement/${batch.id}`}>{batch.batchDate}</Link>
               </td>
               <td>
-                <span className={`dash-status dash-status-${batch.status}`}>{batch.status}</span>
+                <span className={`dash-status dash-status-${batch.status}`}>{statusLabel(batch.status)}</span>
               </td>
-              <td>{bhd(batch.grossFils)}</td>
-              <td>{bhd(batch.feeFils)}</td>
-              <td>{bhd(batch.refundFils - batch.feeReversedFils)}</td>
-              <td>{bhd(batch.netPayoutFils)}</td>
+              <td className="dash-num">{bhd(batch.grossFils)}</td>
+              <td className="dash-num">{bhd(batch.feeFils)}</td>
+              <td className="dash-num">{bhd(batch.refundFils - batch.feeReversedFils)}</td>
+              <td className="dash-num">{bhd(batch.netPayoutFils)}</td>
               <td>{dateTime(batch.closedAt)}</td>
               <td>{dateTime(batch.paidAt)}</td>
             </tr>

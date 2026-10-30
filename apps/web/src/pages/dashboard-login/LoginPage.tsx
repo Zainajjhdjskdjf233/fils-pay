@@ -1,3 +1,4 @@
+import { timeOnly } from "../../format.js";
 import { useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { login, resendOtp, verifyOtp } from "../../api/dashboardAuth.js";
@@ -173,7 +174,7 @@ export function LoginPage() {
         <form onSubmit={(e) => void handleOtp(e)} className="dash-form">
           <p>
             A one-time code was issued for <strong>{email}</strong>. It expires at{" "}
-            {new Date(step.challenge.otpExpiresAt).toLocaleTimeString()}.
+            {timeOnly(step.challenge.otpExpiresAt)}.
           </p>
           {step.challenge.devOtpCode ? (
             <p className="dash-muted">

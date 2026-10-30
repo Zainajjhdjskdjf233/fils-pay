@@ -9,7 +9,7 @@ import {
 import { ApiError, describeError } from "../../api/client.js";
 import { keepKeyAfterError } from "../../api/idempotencyKey.js";
 import { RequireRole } from "../../auth/RequireRole.js";
-import { bhd, dash, dateTime } from "../../format.js";
+import { bhd, dash, dateTime, statusLabel } from "../../format.js";
 import type { TransactionDto, TransactionEventDto } from "../../types.js";
 import { RefundDrawer } from "./RefundDrawer.js";
 
@@ -154,14 +154,14 @@ export function TransactionDetailPage() {
       <dl className="dash-dl">
         <dt>Status</dt>
         <dd>
-          <span className={`dash-status dash-status-${txn.status}`}>{txn.status}</span>
+          <span className={`dash-status dash-status-${txn.status}`}>{statusLabel(txn.status)}</span>
         </dd>
         <dt>Authorized amount</dt>
-        <dd>{bhd(txn.amountFils)}</dd>
+        <dd className="dash-num">{bhd(txn.amountFils)}</dd>
         <dt>Captured amount</dt>
-        <dd>{bhd(txn.capturedFils)}</dd>
+        <dd className="dash-num">{bhd(txn.capturedFils)}</dd>
         <dt>Refunded amount</dt>
-        <dd>{bhd(txn.refundedFils)}</dd>
+        <dd className="dash-num">{bhd(txn.refundedFils)}</dd>
         <dt>Currency</dt>
         <dd>{txn.currency}</dd>
         <dt>Reference</dt>
@@ -247,7 +247,7 @@ export function TransactionDetailPage() {
           <tr>
             <th>Occurred</th>
             <th>Event</th>
-            <th>Amount</th>
+            <th className="dash-num">Amount</th>
             <th>Actor</th>
           </tr>
         </thead>
@@ -258,7 +258,7 @@ export function TransactionDetailPage() {
             <tr key={event.id}>
               <td>{dateTime(event.occurredAt)}</td>
               <td>{event.eventType}</td>
-              <td>{event.amountFils === null ? "—" : bhd(event.amountFils)}</td>
+              <td className="dash-num">{event.amountFils === null ? "—" : bhd(event.amountFils)}</td>
               <td>
                 {event.actorType}
                 {event.actorId ? (

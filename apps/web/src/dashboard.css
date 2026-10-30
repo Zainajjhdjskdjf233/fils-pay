@@ -311,3 +311,119 @@
   min-width: 1px;
   background: #4a7ebb;
 }
+
+/* ---- UX pass (production polish). Still dash-* only, so checkout is untouched. ---- */
+.dash-shell { line-height: 1.45; background: #f5f6f8; }
+.dash-header { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); position: sticky; top: 0; z-index: 10; }
+.dash-brand { font-size: 1.1rem; color: #1f5fbf; letter-spacing: 0.01em; }
+.dash-nav { gap: 0.25rem; }
+.dash-nav a { padding: 0.35rem 0.7rem; border-radius: 6px; color: #2b2f36; }
+.dash-nav a:hover { background: #eef2f8; }
+.dash-nav a.active { background: #e3ecfa; color: #174a96; text-decoration: none; }
+.dash-role-chip { border-color: #8a9099; background: #f5f6f8; text-transform: capitalize; }
+.dash-main h1 { font-size: 1.5rem; margin: 0 0 1rem; }
+.dash-main h2 { font-size: 1.15rem; margin: 1.75rem 0 0.75rem; }
+.dash-main > section, .dash-card {
+  background: #fff;
+  border: 1px solid #e1e4e8;
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+}
+.dash-centered {
+  background: #fff;
+  border: 1px solid #e1e4e8;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+.dash-form input,
+.dash-form select,
+.dash-form textarea,
+.dash-filters input,
+.dash-filters select {
+  border: 1px solid #8a9099; /* UX: 3:1 border contrast (was #bbb, 1.9:1) */
+  border-radius: 6px;
+  padding: 0.5rem;
+}
+.dash-form label { font-weight: 500; }
+.dash-form input:user-invalid { border-color: #b00020; }
+.dash-button,
+.dash-button-link { border-radius: 6px; padding: 0.45rem 0.9rem; border-color: #8a9099; }
+.dash-button:hover:not(:disabled),
+.dash-button-link:hover { background: #f0f2f5; }
+.dash-button-primary,
+.dash-form button[type="submit"].dash-button {
+  background: #1f5fbf;
+  border-color: #1f5fbf;
+  color: #fff;
+  font-weight: 600;
+}
+.dash-button-primary:hover:not(:disabled),
+.dash-form button[type="submit"].dash-button:hover:not(:disabled) { background: #184c99; }
+.dash-button-danger { border-color: #b00020; color: #8a0016; }
+.dash-button:disabled {
+  opacity: 1; /* UX: readable text on a disabled button (was opacity 0.6) */
+  background: #eceef1;
+  border-color: #c4c8ce;
+  color: #5a5f66;
+  cursor: not-allowed;
+}
+.dash-shell a:focus-visible,
+.dash-shell button:focus-visible,
+.dash-shell input:focus-visible,
+.dash-shell select:focus-visible,
+.dash-shell textarea:focus-visible,
+.dash-centered input:focus-visible,
+.dash-centered button:focus-visible {
+  outline: 3px solid #9cc3ff;
+  outline-offset: 1px;
+}
+.dash-table { border-radius: 8px; overflow: hidden; }
+.dash-table th { background: #f0f2f5; font-weight: 600; color: #2b2f36; }
+.dash-table tbody tr:hover { background: #f8fafd; }
+/* UX: money is right-aligned so the decimal points line up. */
+.dash-table .dash-num,
+.dash-dl .dash-num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.dash-dl dd.dash-num { text-align: left; font-weight: 600; }
+.dash-table-wrap { overflow-x: auto; }
+.dash-muted { color: #555; } /* UX: was #666 */
+.dash-notice { color: #1e4d1e; border-radius: 6px; }
+.dash-error { border-radius: 6px; }
+.dash-confirm { border-radius: 8px; }
+.dash-empty { padding: 1.5rem; text-align: center; color: #555; }
+.dash-loading { color: #555; }
+.dash-loading::before {
+  content: "";
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-right: 0.5rem;
+  vertical-align: -2px;
+  border: 2px solid #c8d6ee;
+  border-top-color: #1f5fbf;
+  border-radius: 50%;
+  animation: dash-spin 0.8s linear infinite;
+}
+@keyframes dash-spin { to { transform: rotate(360deg); } }
+.dash-status {
+  display: inline-block;
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  background: #f0f2f5;
+  font-size: 0.85em;
+  text-transform: capitalize;
+}
+.dash-status-captured, .dash-status-paid, .dash-status-succeeded, .dash-status-active { background: #e6f4e8; }
+.dash-status-authorized, .dash-status-partially_captured, .dash-status-pending,
+.dash-status-reserved, .dash-status-open, .dash-status-processing { background: #fff3db; color: #7a4f00; }
+.dash-status-voided, .dash-status-canceled, .dash-status-expired, .dash-status-disabled,
+.dash-status-exhausted, .dash-status-failed, .dash-status-chargeback { background: #fdecee; }
+.dash-status-refunded, .dash-status-partially_refunded, .dash-status-closed { background: #e9eef4; color: #34495e; }
+.dash-field-error { color: #8a0016; font-size: 0.85em; }
+@media (max-width: 700px) {
+  .dash-header { gap: 0.5rem; padding: 0.6rem 0.75rem; }
+  .dash-identity { margin-left: 0; }
+  .dash-main { padding: 0.75rem; }
+  .dash-dl { grid-template-columns: 1fr; }
+  .dash-table { display: block; overflow-x: auto; }
+}
+@media (prefers-reduced-motion: reduce) { .dash-loading::before { animation: none; } }

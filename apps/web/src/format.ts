@@ -13,15 +13,49 @@ export function bhd(amountFils: number): string {
   return `${formatBhd(toFils(amountFils, { allowNegative: true }))} BHD`;
 }
 
+/** UX: a status code as words ("partially_refunded" -> "Partially refunded"). */
+export function statusLabel(status: string | null | undefined): string {
+  if (!status) return "—";
+  const words = status.replace(/_/g, " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
 /** `—` for a null/absent value, so an empty table cell is visibly empty
  *  rather than ambiguously blank. */
 export function dash(value: string | number | null | undefined): string {
   return value === null || value === undefined || value === "" ? "—" : String(value);
 }
 
-/** Browser-local rendering, not Asia/Bahrain. */
+// UX: one format for every date and time on the dashboard and checkout, in
+// Bahrain time whatever the browser's zone is (was browser-local), e.g.
+// "30 Oct 2026, 10:15 PM".
+const BAHRAIN_DATE_TIME = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Asia/Bahrain",
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  hour12: true,
+});
+const BAHRAIN_TIME = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Asia/Bahrain",
+  hour: "numeric",
+  minute: "2-digit",
+  hour12: true,
+});
+
 export function dateTime(iso: string | null | undefined): string {
-  return iso ? new Date(iso).toLocaleString() : "—";
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "—" : BAHRAIN_DATE_TIME.format(d).replace(/\b(am|pm)\b/, (m) => m.toUpperCase());
+}
+
+/** Time of day only, Bahrain time (e.g. "10:15 PM"). */
+export function timeOnly(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "—" : BAHRAIN_TIME.format(d).replace(/\b(am|pm)\b/, (m) => m.toUpperCase());
 }
 
 /**
