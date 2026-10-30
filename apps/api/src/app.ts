@@ -1,4 +1,5 @@
 import { installLoadShedding } from "./plugins/loadShedding.js";
+import { installCsrfOriginCheck } from "./plugins/csrfOrigin.js";
 import Fastify, { type FastifyInstance } from "fastify";
 import type { Pool } from "pg";
 import type { Config } from "./config.js";
@@ -52,6 +53,7 @@ export function buildApp(config: Config, pool: Pool, options: BuildAppOptions = 
 
   // Load shedding first, so a request turned away costs almost nothing.
   installLoadShedding(app, { maxInFlight: config.maxInFlightRequests, maxEventLoopDelayMs: config.shedEventLoopDelayMs });
+  installCsrfOriginCheck(app, config); // E84
   app.register(cookiesPlugin);
   app.register(multipartPlugin, { config });
   app.setErrorHandler(errorHandler);

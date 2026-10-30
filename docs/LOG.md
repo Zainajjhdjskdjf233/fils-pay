@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 07:42 PM (30 Oct 2026)
-Summary: Errors 140/176 fixed (+9 partly: E50, E92, E131, E145, E163, E47, E86, E94, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 07:45 PM (30 Oct 2026)
+Summary: Errors 141/176 fixed (+9 partly: E50, E92, E131, E145, E163, E47, E86, E94, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -773,7 +773,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: cookie writes routes/auth.ts:100-106, adminAuth.ts:93,198, adminMerchants.ts:347 (sameSite lax); no Origin/CSRF check; Fastify parses text/plain
 - Error: a same-site HTML form can POST void, logout, otp/resend, admin impersonate/end. Agent verified text/plain → 200 with app.inject (scratchpad/csrf.mjs).
 - Proof: code read (security-review agent (12:59 PM); checked by me).
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E84)
 
 ### E85 — [found later] Impersonation grant keeps working after the admin is disabled or logs out
 - Where: apps/api/src/admin/impersonation.ts:105-127 (no `au.status = 'active'`); false comment :106 "revoked_at gets set by the admin-disable trigger" (only trigger in db/ is 0021 webhook notify); admin logout routes/adminAuth.ts:221-238 leaves the grant
@@ -2775,6 +2775,12 @@ ROLLBACK;
 - Changed: apps/web/src/format.ts dayStartIso: midnight at UTC+3 (e.g. 2026-09-12 → 2026-09-11T21:00:00.000Z); a malformed or roll-over date (2026-02-30) is not sent. The false comment ('fixed, uses bahrain time now — am') is kept with a correction; YA's note was right. Comment in TransactionListPage.tsx updated.
 - Test changed: apps/web/src/dashboard.test.ts 'dayStartIso converts a date input to a UTC day boundary' pinned the bug. Now it expects the Bahrain boundary and refuses 2026-02-30. Before: fail. After: web tests 13/13; web tsc clean.
 - The API's from/to stay instants (parseOptionalDate needs a zone; this sends Z), so no API change.
+- check.sh (clean environment): OK. Needs a redeploy.
+
+### E84 — 07:45 PM — cookie-carrying state-changing requests from another origin are refused (403) [found later]
+- Changed: new apps/api/src/plugins/csrfOrigin.ts, installed first in apps/api/src/app.ts: an onRequest hook refuses POST/PUT/PATCH/DELETE that carry one of our session cookies (merchant, admin, impersonation) and an Origin whose hostname differs from the Host hostname. Ports are ignored because nginx forwards Host $host without the port (ops/nginx/nginx.conf:36,58) while the admin console on :8081 sends Origin …:8081.
+- Before: apps/api/src/plugins/csrfOrigin.e84.test.ts — a POST to /v1/auth/logout with a cookie and Origin http://evil.example.test, and a text/plain POST to /v1/auth/otp/resend from another subdomain, were processed. After: both 403; same origin, no Origin header, and no cookie are not affected. Full regression on a fresh DB: api 512/512, money 44/44, events 4/4, reporting 20/20, web 13/13, scripts 11/11, Go 83, failing 0.
+- Second review (Copilot): not run — copilot not found (LOG line 1567). fix-reviewer: APPROVE; checkout, dashboard (:80) and admin console (:8081) keep working on the live server; the hook reads the raw Host header, so trustProxy cannot forge it. Known limits it noted (recorded, not changed): very old browsers that send no Origin on form POSTs are not covered; :80 and :8081 on one IP count as one host (the same-site gap SameSite=Lax already leaves; :80 blocks /v1/admin, E86); a dev page opened as 127.0.0.1 instead of localhost gets 403.
 - check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy
