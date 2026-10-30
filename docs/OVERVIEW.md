@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 8:06 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 8:15 PM
 
 ## Contents
 1. Status now
@@ -14,20 +14,20 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:06 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 148 of 176 fixed.
+- Errors: 152 of 176 fixed.
   - High: 46 of 46 fixed
-  - Medium: 49 of 60 fixed
-  - Low: 53 of 70 fixed
+  - Medium: 50 of 60 fixed
+  - Low: 56 of 70 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
 - Dilmune Cloud: live
-- Decisions waiting for Zainab: 39 (search "for Zainab to review" in LOG.md)
+- Decisions waiting for Zainab: 41 (search "for Zainab to review" in LOG.md)
 - Fork: needs a push (VS Code: Git: Push to... → mine)
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 148 of 176 fixed.
+- 🔄 Fix: 152 of 176 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -74,6 +74,11 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:06 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- a6027dc fix(E78): balance rebuild locks each balance row first (partly fixed); E74 marked for review
+- 668b884 fix(E108): list pages ignore stale answers to older filters
+- 0a8d82c fix(E96): payout trends use the batch row, not the payload (E96 now fully fixed); LOG: freeze moved to 10:00 PM
+- b7066da fix(E109): webhook replay page clears the old merchant's result (E109 now fully fixed)
+- fb71399 fix(E101): merchant can cancel a link with a stale reservation (E101 now fully fixed)
 - ff78296 fix(E48): admin run-batch enqueues payout notifications (partly fixed)
 - 797a8b2 fix(E67): refund summary counts captured once per transaction (migration 0085; partly fixed)
 - 5170b9c fix(E132): reconciliation figures come from one REPEATABLE READ snapshot
@@ -84,11 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:06 PM
 - 129b6bd fix(E96): reporting parks events with zero or negative amounts (partly fixed)
 - a3675a0 fix(E83): legal identity locked during and after KYC review
 - f788901 fix(E101): expired link with a stale reservation reads expired and pay gives 410 (partly fixed)
-- 4513457 fix(E100): checkout tells a charged buyer not to pay again and shows the reference; E82 marked for review
-- 65dd9b1 fix(E84): refuse cookie-carrying state-changing requests from another origin
-- b7e67cf fix(E76): dashboard date filter uses midnight Bahrain, not UTC
-- 88ed92d fix(E146): login and signup rate limited per client IP (429 + Retry-After)
-- ac8951e fix(E143): ADMIN.md corrected — a webhook replay gets a new delivery id (kept by decision)
 
 ## 7. All errors
 ## High (46 of 46 fixed)
@@ -142,7 +142,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:06 PM
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-### Medium (49 of 60 fixed)
+### Medium (50 of 60 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -181,7 +181,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:06 PM
 | E92 | [found later] Ledger immutability claim false; audit log unprotected | Partly fixed |
 | E93 | [found later] sqlFilter builds DELETE with no WHERE for null/undefined filters | Fixed |
 | E100 | [found later] Checkout tells a charged buyer to try again (reservation_lost) | Fixed |
-| E101 | [found later] Expired link with stale reservation: Pay form forever, cannot cancel | Partly fixed |
+| E101 | [found later] Expired link with stale reservation: Pay form forever, cannot cancel | Fixed |
 | E103 | [found later] View as merchant cannot work end to end | Open |
 | E105 | [found later] Refund drawer keeps its key after a definite 4xx (my F01f bug) | Fixed |
 | E106 | [found later] Reconciliation and batch pages leave out refund parts | Fixed |
@@ -207,7 +207,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:06 PM
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-### Low (53 of 70 fixed)
+### Low (56 of 70 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -230,7 +230,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:06 PM
 | E71 | [found later] Re-seeding leaves old dead letters with reused outbox ids | Open |
 | E72 | [found later] reconcile_march uses authorization time and running-total residue (suspected) | Open |
 | E77 | [found later] Float and toFixed on money in the batch detail page | Fixed |
-| E78 | [found later] Balance rebuild may hit the 30 s timeout; no row lock (suspected) | Open |
+| E78 | [found later] Balance rebuild may hit the 30 s timeout; no row lock (suspected) | Partly fixed |
 | E79 | [found later] Dead helpers with float or wrong-scale money math | Open |
 | E80 | [found later] Scheme export fallback can print more than 2 decimals | Fixed |
 | E81 | [found later] Admin Run batch default date uses the UTC day | Fixed |
@@ -243,12 +243,12 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:06 PM
 | E90 | [found later] KYC download puts the raw filename into a header | Fixed |
 | E94 | [found later] Settlement internal API: plain HTTP on all interfaces; weak token accepted | Partly fixed |
 | E95 | [found later] Internal settlement errors returned to admin browsers | Fixed |
-| E96 | [found later] Reporting trusts payload merchant/amounts; negative amounts pass (my E53 check) | Partly fixed |
+| E96 | [found later] Reporting trusts payload merchant/amounts; negative amounts pass (my E53 check) | Fixed |
 | E97 | [found later] Reporting config accepts bad numbers ("15s" → 15 ms) | Fixed |
 | E98 | [found later] Raw Postgres error text in logs and dead letters (my E53 code) | Fixed |
 | E107 | [found later] Expired payment links shown as active with Cancel | Fixed |
-| E108 | [found later] List pages can append rows from an old filter (suspected) | Open |
-| E109 | [found later] Small admin/checkout display bugs | Partly fixed |
+| E108 | [found later] List pages can append rows from an old filter (suspected) | Fixed |
+| E109 | [found later] Small admin/checkout display bugs | Fixed |
 | E110 | [second review] Streaming CSV export pages on occurred_at only (unused code) | Fixed |
 | E111 | [second review] CSV quoting ignores carriage returns | Fixed |
 | E112 | [second review] Invalid date filters reach the DB (500 instead of 400) | Fixed |
@@ -283,7 +283,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:06 PM
 | E176 | [deep review] A redeploy stops settlement after 10 s, although it waits 30 s for a running batch | Fixed |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101 · N102 · N103 · N104 · N105 · N106 · N107 · N108 · N109 · N110 · N111 · N112 · N113 · N114 · N115 · N116 · N117 · N118 · N119 · N120 · N121 · N122 · N123 · N124 · N125 · N126 · N127 · N128 · N129 · N130 · N131 · N132 · N133 · N134 · N135 · N136 · N137 · N138 · N139 · N140 · N141 · N142 · N143 · N144 · N145 · N146 · N147 · N148 · N149 · N150 · N151 · N152 · N153 · N154 · N155 · N156 · N157 · N158 · N159
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101 · N102 · N103 · N104 · N105 · N106 · N107 · N108 · N109 · N110 · N111 · N112 · N113 · N114 · N115 · N116 · N117 · N118 · N119 · N120 · N121 · N122 · N123 · N124 · N125 · N126 · N127 · N128 · N129 · N130 · N131 · N132 · N133 · N134 · N135 · N136 · N137 · N138 · N139 · N140 · N141 · N142 · N143 · N144 · N145 · N146 · N147 · N148 · N149 · N150 · N151 · N152 · N153 · N154 · N155 · N156 · N157 · N158 · N159 · N160 · N161 · N162 · N163 · N164
 
 ### N01 — Database setup stopped halfway
 
@@ -5851,4 +5851,165 @@ The shop hears about the payout right away.
 No; the step skips batches already notified and runs under a lock (E30).
 
 Commit: ff78296
+
+### N160 — Cancel a link that got stuck
+
+#### The idea
+A payment link can be held while someone pays. If the payer's browser dies, the hold ends after a minute. Like a seat hold that runs out.
+
+#### The problem
+A link with a timed-out hold could not be cancelled by the shop.
+- Cancel only worked on "active" links.
+
+#### The fix
+- cancel.ts: a link whose hold has timed out can be cancelled too.
+- A payment still running keeps its lock, so it cannot be cancelled mid-way.
+
+#### The code
+Before (apps/api/src/paymentLinks/cancel.ts:16):
+```sql
+WHERE id = $1 AND merchant_id = $2 AND status = 'active'
+```
+After:
+```sql
+AND (status = 'active' OR (status = 'reserved' AND COALESCE(reserved_at, 'epoch') < now() - make_interval(secs => $3)))
+```
+The shop can tidy up a dead link; a live payment is safe.
+
+#### The proof
+- Before: the stuck link gave 409.
+- After: stuck link 204; a fresh hold still 409.
+
+#### If the judges ask
+"What if the payment finishes while cancelling?"
+The payment holds the row lock until capture ends, so the cancel waits and then sees "paid".
+
+Commit: fb71399
+
+### N161 — Switching merchant clears the old result
+
+#### The idea
+Staff can resend webhooks for one merchant. The page shows the result of the last resend.
+
+#### The problem
+After switching to another merchant, the old merchant's result stayed on screen.
+
+#### The fix
+- WebhookReplayPage.tsx: clear the result, endpoint and old details when the merchant changes.
+
+#### The code
+Before (apps/admin/src/pages/webhooks/WebhookReplayPage.tsx:55): nothing was cleared.
+After:
+```tsx
+setResult(null);
+setEndpointId("");
+```
+Staff only see results for the merchant they picked.
+
+#### The proof
+- Before: the old result stayed visible.
+- After: admin typecheck clean; UI-only change.
+
+#### If the judges ask
+"Why does this matter?"
+Staff could think a resend happened for the wrong merchant.
+
+Commit: b7066da
+
+### N162 — Payout history uses the real batch
+
+#### The idea
+The reports show each payout. The batch record in the database is the truth, like a bank statement.
+
+#### The problem
+The report copied the shop and amounts from the message it received.
+- A wrong message could file one shop's payout under another shop.
+
+#### The fix
+- applyEvent.ts: read the shop, date and amounts from the batch record.
+- An old test helper now gives test batches real amounts.
+
+#### The code
+Before (apps/reporting/src/consumer/applyEvent.ts:110):
+```ts
+payload.merchantId, payload.batchId, payload.batchDate, batch.status, payload.grossFils, ...
+```
+After:
+```ts
+batch.merchant_id, payload.batchId, batch.batch_date, batch.status, batch.gross_fils, ...
+```
+The report always matches the real batch.
+
+#### The proof
+- Before: a message naming shop B filed shop A's batch under B.
+- After: filed under A with A's amounts; reporting tests 20/20.
+
+#### If the judges ask
+"You changed an old test. Why?"
+Its batches had zero amounts and it expected the message's numbers, which is exactly the trust we removed.
+
+Commit: 0a8d82c
+
+### N163 — Lists show only the latest filter
+
+#### The idea
+List pages load results when you change a filter. Like asking two questions quickly: you want the answer to the last one.
+
+#### The problem
+A slow answer to an old filter could be mixed into the new list.
+
+#### The fix
+- Five list pages: each request gets a number; older answers are ignored.
+
+#### The code
+Before (apps/web/src/pages/transactions/TransactionListPage.tsx:62): every answer was used.
+After:
+```tsx
+const seq = ++loadSeq.current;
+...
+if (seq !== loadSeq.current) return;
+```
+Only the newest request can change the list.
+
+#### The proof
+- Before: possible mixed rows (timing race).
+- After: web and admin typecheck clean; web tests 13/13.
+
+#### If the judges ask
+"Why not cancel the old request?"
+Ignoring it is simpler and safe; the server work is tiny.
+
+Commit: 668b884
+
+### N164 — Balance rebuild waits its turn
+
+#### The idea
+Staff can rebuild a shop's cached balance from the ledger. A batch closing at the same time also updates that balance. Like two people writing on the same line.
+
+#### The problem
+The rebuild could overwrite the batch's update.
+
+#### The fix
+- rebuild.go: lock the balance row before recomputing it.
+
+#### The code
+Before (apps/settlement/internal/ledger/rebuild.go:103):
+```sql
+SELECT COALESCE(cached_payable_fils, 0) FROM merchant_balances WHERE merchant_id = $1
+```
+After:
+```sql
+SELECT COALESCE(cached_payable_fils, 0) FROM merchant_balances WHERE merchant_id = $1 FOR UPDATE
+```
+A batch close waits for the rebuild, then adds its part.
+
+#### The proof
+- Before: a TODO said a concurrent close gets overwritten.
+- After: all Go tests pass; the lock is in place.
+
+#### If the judges ask
+"Is the balance now always right?"
+Not fully: what the balance should include is a design question recorded for review (E74), and a very long rebuild can still time out.
+
+Commit: a6027dc
 

@@ -285,7 +285,7 @@ Not changed (recorded): money columns are still left-aligned (29 cells in 10 fil
 ### Every error entry
 
 <!-- errors:start (generated from docs/ERRORS.md) -->
-All 176 entries from docs/ERRORS.md (148 of 176 fixed.). Each ID has its error (section 2) and, when fixed, its fix (section 5) in docs/LOG.md.
+All 176 entries from docs/ERRORS.md (152 of 176 fixed.). Each ID has its error (section 2) and, when fixed, its fix (section 5) in docs/LOG.md.
 
 | ID | Title | Level | Status |
 |---|---|---|---|
@@ -366,7 +366,7 @@ All 176 entries from docs/ERRORS.md (148 of 176 fixed.). Each ID has its error (
 | E75 | [found later] March sweep posts the opposite legs from ADR-0002, charging merchants | Medium | Fixed |
 | E76 | [found later] Dashboard date filter uses UTC days, not Bahrain days | Medium | Fixed |
 | E77 | [found later] Float and toFixed on money in the batch detail page | Low | Fixed |
-| E78 | [found later] Balance rebuild may hit the 30 s timeout; no row lock (suspected) | Low | Open |
+| E78 | [found later] Balance rebuild may hit the 30 s timeout; no row lock (suspected) | Low | Partly fixed |
 | E79 | [found later] Dead helpers with float or wrong-scale money math | Low | Open |
 | E80 | [found later] Scheme export fallback can print more than 2 decimals | Low | Fixed |
 | E81 | [found later] Admin Run batch default date uses the UTC day | Low | Fixed |
@@ -384,20 +384,20 @@ All 176 entries from docs/ERRORS.md (148 of 176 fixed.). Each ID has its error (
 | E93 | [found later] sqlFilter builds DELETE with no WHERE for null/undefined filters | Medium | Fixed |
 | E94 | [found later] Settlement internal API: plain HTTP on all interfaces; weak token accepted | Low | Partly fixed |
 | E95 | [found later] Internal settlement errors returned to admin browsers | Low | Fixed |
-| E96 | [found later] Reporting trusts payload merchant/amounts; negative amounts pass (my E53 check) | Low | Partly fixed |
+| E96 | [found later] Reporting trusts payload merchant/amounts; negative amounts pass (my E53 check) | Low | Fixed |
 | E97 | [found later] Reporting config accepts bad numbers ("15s" → 15 ms) | Low | Fixed |
 | E98 | [found later] Raw Postgres error text in logs and dead letters (my E53 code) | Low | Fixed |
 | E99 | [found later] Dashboard capture makes a new Idempotency-Key on every click (double capture on retry) | High | Fixed |
 | E100 | [found later] Checkout tells a charged buyer to try again (reservation_lost) | Medium | Fixed |
-| E101 | [found later] Expired link with stale reservation: Pay form forever, cannot cancel | Medium | Partly fixed |
+| E101 | [found later] Expired link with stale reservation: Pay form forever, cannot cancel | Medium | Fixed |
 | E102 | [found later] Merchant dashboard logs out after 10 minutes and does not notice | High | Fixed |
 | E103 | [found later] View as merchant cannot work end to end | Medium | Open |
 | E104 | [found later] Bulk Approve KYC approves hidden merchants; server checks no status | High | Fixed |
 | E105 | [found later] Refund drawer keeps its key after a definite 4xx (my F01f bug) | Medium | Fixed |
 | E106 | [found later] Reconciliation and batch pages leave out refund parts | Medium | Fixed |
 | E107 | [found later] Expired payment links shown as active with Cancel | Low | Fixed |
-| E108 | [found later] List pages can append rows from an old filter (suspected) | Low | Open |
-| E109 | [found later] Small admin/checkout display bugs | Low | Partly fixed |
+| E108 | [found later] List pages can append rows from an old filter (suspected) | Low | Fixed |
+| E109 | [found later] Small admin/checkout display bugs | Low | Fixed |
 | E110 | [second review] Streaming CSV export pages on occurred_at only (unused code) | Low | Fixed |
 | E111 | [second review] CSV quoting ignores carriage returns | Low | Fixed |
 | E112 | [second review] Invalid date filters reach the DB (500 instead of 400) | Low | Fixed |

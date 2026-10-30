@@ -955,3 +955,33 @@ Where: db/migrations/0085_refund_summary_captured_once.sql · Commit: 797a8b2
 Payouts started from the admin button did not tell the shop until the nightly job ran. Now the notice goes out right away, and it can never be sent twice. A test proves it.
 
 Where: apps/settlement/internal/internalapi/server.go · Commit: ff78296
+
+## N160 — Cancel a link that got stuck
+
+A shop could not cancel a payment link whose payer had disappeared mid-payment. Now it can, once the hold has timed out. A payment still in progress stays protected. A test proves both.
+
+Where: apps/api/src/paymentLinks/cancel.ts · Commit: fb71399
+
+## N161 — Switching merchant clears the old result
+
+On the webhook resend page, the last merchant's result stayed on screen after switching merchant. Now it is cleared.
+
+Where: apps/admin/src/pages/webhooks/WebhookReplayPage.tsx · Commit: b7066da
+
+## N162 — Payout history uses the real batch
+
+The payout report copied the shop and amounts from the message it received. Now it reads them from the batch record. A test proves a wrong message cannot file a payout under another shop.
+
+Where: apps/reporting/src/consumer/applyEvent.ts · Commit: 0a8d82c
+
+## N163 — Lists show only the latest filter
+
+A slow answer to an old filter could mix into a list. Now each list uses only the answer to its newest request. Five pages got the same small guard.
+
+Where: apps/web/src/pages/transactions/TransactionListPage.tsx · Commit: 668b884
+
+## N164 — Balance rebuild waits its turn
+
+The balance rebuild could overwrite an update from a batch closing at the same moment. Now it locks the balance first. A wider design question about the balance is listed for review.
+
+Where: apps/settlement/internal/ledger/rebuild.go · Commit: a6027dc

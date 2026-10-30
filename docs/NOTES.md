@@ -5568,3 +5568,164 @@ The shop hears about the payout right away.
 No; the step skips batches already notified and runs under a lock (E30).
 
 Commit: ff78296
+
+## N160 — Cancel a link that got stuck
+
+### The idea
+A payment link can be held while someone pays. If the payer's browser dies, the hold ends after a minute. Like a seat hold that runs out.
+
+### The problem
+A link with a timed-out hold could not be cancelled by the shop.
+- Cancel only worked on "active" links.
+
+### The fix
+- cancel.ts: a link whose hold has timed out can be cancelled too.
+- A payment still running keeps its lock, so it cannot be cancelled mid-way.
+
+### The code
+Before (apps/api/src/paymentLinks/cancel.ts:16):
+```sql
+WHERE id = $1 AND merchant_id = $2 AND status = 'active'
+```
+After:
+```sql
+AND (status = 'active' OR (status = 'reserved' AND COALESCE(reserved_at, 'epoch') < now() - make_interval(secs => $3)))
+```
+The shop can tidy up a dead link; a live payment is safe.
+
+### The proof
+- Before: the stuck link gave 409.
+- After: stuck link 204; a fresh hold still 409.
+
+### If the judges ask
+"What if the payment finishes while cancelling?"
+The payment holds the row lock until capture ends, so the cancel waits and then sees "paid".
+
+Commit: fb71399
+
+## N161 — Switching merchant clears the old result
+
+### The idea
+Staff can resend webhooks for one merchant. The page shows the result of the last resend.
+
+### The problem
+After switching to another merchant, the old merchant's result stayed on screen.
+
+### The fix
+- WebhookReplayPage.tsx: clear the result, endpoint and old details when the merchant changes.
+
+### The code
+Before (apps/admin/src/pages/webhooks/WebhookReplayPage.tsx:55): nothing was cleared.
+After:
+```tsx
+setResult(null);
+setEndpointId("");
+```
+Staff only see results for the merchant they picked.
+
+### The proof
+- Before: the old result stayed visible.
+- After: admin typecheck clean; UI-only change.
+
+### If the judges ask
+"Why does this matter?"
+Staff could think a resend happened for the wrong merchant.
+
+Commit: b7066da
+
+## N162 — Payout history uses the real batch
+
+### The idea
+The reports show each payout. The batch record in the database is the truth, like a bank statement.
+
+### The problem
+The report copied the shop and amounts from the message it received.
+- A wrong message could file one shop's payout under another shop.
+
+### The fix
+- applyEvent.ts: read the shop, date and amounts from the batch record.
+- An old test helper now gives test batches real amounts.
+
+### The code
+Before (apps/reporting/src/consumer/applyEvent.ts:110):
+```ts
+payload.merchantId, payload.batchId, payload.batchDate, batch.status, payload.grossFils, ...
+```
+After:
+```ts
+batch.merchant_id, payload.batchId, batch.batch_date, batch.status, batch.gross_fils, ...
+```
+The report always matches the real batch.
+
+### The proof
+- Before: a message naming shop B filed shop A's batch under B.
+- After: filed under A with A's amounts; reporting tests 20/20.
+
+### If the judges ask
+"You changed an old test. Why?"
+Its batches had zero amounts and it expected the message's numbers, which is exactly the trust we removed.
+
+Commit: 0a8d82c
+
+## N163 — Lists show only the latest filter
+
+### The idea
+List pages load results when you change a filter. Like asking two questions quickly: you want the answer to the last one.
+
+### The problem
+A slow answer to an old filter could be mixed into the new list.
+
+### The fix
+- Five list pages: each request gets a number; older answers are ignored.
+
+### The code
+Before (apps/web/src/pages/transactions/TransactionListPage.tsx:62): every answer was used.
+After:
+```tsx
+const seq = ++loadSeq.current;
+...
+if (seq !== loadSeq.current) return;
+```
+Only the newest request can change the list.
+
+### The proof
+- Before: possible mixed rows (timing race).
+- After: web and admin typecheck clean; web tests 13/13.
+
+### If the judges ask
+"Why not cancel the old request?"
+Ignoring it is simpler and safe; the server work is tiny.
+
+Commit: 668b884
+
+## N164 — Balance rebuild waits its turn
+
+### The idea
+Staff can rebuild a shop's cached balance from the ledger. A batch closing at the same time also updates that balance. Like two people writing on the same line.
+
+### The problem
+The rebuild could overwrite the batch's update.
+
+### The fix
+- rebuild.go: lock the balance row before recomputing it.
+
+### The code
+Before (apps/settlement/internal/ledger/rebuild.go:103):
+```sql
+SELECT COALESCE(cached_payable_fils, 0) FROM merchant_balances WHERE merchant_id = $1
+```
+After:
+```sql
+SELECT COALESCE(cached_payable_fils, 0) FROM merchant_balances WHERE merchant_id = $1 FOR UPDATE
+```
+A batch close waits for the rebuild, then adds its part.
+
+### The proof
+- Before: a TODO said a concurrent close gets overwritten.
+- After: all Go tests pass; the lock is in place.
+
+### If the judges ask
+"Is the balance now always right?"
+Not fully: what the balance should include is a design question recorded for review (E74), and a very long rebuild can still time out.
+
+Commit: a6027dc
