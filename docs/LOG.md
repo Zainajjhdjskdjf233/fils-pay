@@ -1,6 +1,6 @@
 # LOG
 Mode: Competition
-Updated: 05:57 PM (30 Oct 2026)
+Updated: 06:12 PM (30 Oct 2026)
 Summary: Errors 96/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
@@ -2504,6 +2504,21 @@ A fresh clone of the fork, built and started from nothing but the repo.
 - Demo accounts: a fresh production database has none (the seed is dev-only, E65). Proposal: one demo merchant owner and one admin, random passwords generated on the server into a mode-600 file, never printed; Zainab decides whether to share them.
 
 ## 7. Judge notes
+
+### Live deploy — 06:12 PM (30 Oct 2026)
+- Code on the server: fork main d27ddf0, cloned to ~/fils-pay. Secrets: `sh ops/gen-env.sh` on the server (9 keys incl. HTTP_PORT, ADMIN_PORT, CHECKOUT_BASE_URL and OTP_DEV_EXPOSE=true; file mode 600; values never printed); a new random acquirer signing secret (the leaked one is refused at boot, E13).
+- Start: `bash ops/deploy.sh` (log ~/deploy.log). Result: api, nginx, postgres, settlement `(healthy)`, reporting `Up`; memory after start 572 MB used of 1,967, swap 0.
+- Firewall: Zainab opened 22, 80, 443 and 8081 in the Dilmune panel; ufw allows 22, 80, 443.
+- Live URLs (tested from the Mac with curl):
+  - Checkout: http://139.59.57.26/pay/<token> → 200 (demo link: /pay/plink_jSNf7vc0_wo6Twmye3Zq9z)
+  - Merchant dashboard: http://139.59.57.26/dashboard/login → 200
+  - Public API: http://139.59.57.26/v1/… → `GET /v1/payment-links/<demo token>` 200 `paid 4750`; `/v1/transactions` without login 401; `/healthz` 200, `/readyz` 200
+  - Admin console: http://139.59.57.26:8081/ → 200 (`/v1/admin/*` blocked on port 80: 404; on 8081 without login: 401)
+  - Closed from outside: 5432 (Postgres), 8091 (settlement internal API).
+- Demo data (approved by Zainab): one shop "Case Closed Demo Shop W.L.L." (b84b79da-a262-4c15-a553-2286b019dd12) created through the public signup API, KYC approved in the owner role with a review row (reviewer "deploy-demo-setup"); one admin (super_admin), password hashed with the API container's argon2. Logins: owner@demo-shop.case-closed.test and admin@case-closed.test; passwords random (openssl rand -hex 12), only in ~/fils-pay/ops/demo-credentials on the server (mode 600), never printed or published — sharing them is Zainab's decision.
+- End to end on the live server (~/demo-check.sh): owner login + OTP (shown, demo flag) 200; payment link 4.750 BD created; card payment → `paid`; dashboard API shows `captured 4750`; admin login + OTP 200; admin merchants list 200.
+- My mistakes, caught and fixed: (1) the first demo-setup run fed a `psql` heredoc from the same stdin as the remote script, so psql swallowed the rest of it (the KYC SQL ran, the admin step did not); rerun as a file with stdin closed and idempotent checks — one review row, one admin. (2) a SQL check used double quotes (identifiers) and failed; no data effect.
+- Live-server rule kept: only migrations ran (the migrate container); no scripts/, no reset, rebuild or sweep.
 
 ### J01 — 12:01 AM — a decision made by the human
 - What happened: Zainab chose Competition mode: one OK per entry in /fix.
