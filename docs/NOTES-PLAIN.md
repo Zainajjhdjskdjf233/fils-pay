@@ -252,4 +252,4 @@ Where: apps/api/src/config.ts:212 · Commit: f588a09
 
 The payment export could carry a spreadsheet formula hidden in a payment reference, which Excel would run when the shop opened the file. It also loaded every row into memory, so a very large export could crash the server. Now such cells are marked as plain text, and an export above 50,000 rows asks the user to choose a shorter date range. Tests check both.
 
-Where: apps/api/src/transactions/exportCsv.ts: · Commit: PENDING_N42
+Where: apps/api/src/transactions/exportCsv.ts: · Commit: 3918ae8

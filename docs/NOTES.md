@@ -1576,4 +1576,4 @@ The leading ' tells the spreadsheet "this is text".
 "Why a limit and not streaming?"
 A limit is the smallest safe change. The old streaming code was unused and skips rows with the same time; switching to it is marked for Zainab to decide.
 
-Commit: PENDING_N42
+Commit: 3918ae8
