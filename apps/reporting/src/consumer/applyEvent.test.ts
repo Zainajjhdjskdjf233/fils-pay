@@ -32,15 +32,17 @@ async function createMerchant(label: string): Promise<string> {
   return result.rows[0]!.id;
 }
 
+// E96: the trend row now comes from the batch row, so a test batch carries
+// the same amounts as the event payload (as a real batch does).
 async function createSettlementBatch(
   merchantId: string,
-  opts: { status?: string; paidAt?: Date | null } = {},
+  opts: { status?: string; paidAt?: Date | null; gross?: number; fee?: number; net?: number } = {},
 ): Promise<string> {
   const result = await pool.query<{ id: string }>(
     `INSERT INTO settlement_batches (merchant_id, batch_date, status, gross_fils, fee_fils, net_payout_fils, closed_at, paid_at)
-     VALUES ($1, $2, $3, 0, 0, 0, now(), $4)
+     VALUES ($1, $2, $3, $5, $6, $7, now(), $4)
      RETURNING id`,
-    [merchantId, "2026-01-05", opts.status ?? "closed", opts.paidAt ?? null],
+    [merchantId, "2026-01-05", opts.status ?? "closed", opts.paidAt ?? null, opts.gross ?? 0, opts.fee ?? 0, opts.net ?? 0],
   );
   return result.rows[0]!.id;
 }
@@ -121,7 +123,7 @@ test("applyTransactionVoided (via applyEvent): increments voided_count, leaves c
 test("applyBatchClosed (via applyEvent): creates a merchant_payout_trends row copying settlement_batches' status/paid_at as of application time", async () => {
   const merchantId = await createMerchant("batch-closed");
   const paidAt = new Date("2026-01-06T12:00:00Z");
-  const batchId = await createSettlementBatch(merchantId, { status: "paid", paidAt });
+  const batchId = await createSettlementBatch(merchantId, { status: "paid", paidAt, gross: 10_000, fee: 250, net: 9_750 });
   const row = makeRow({
     event_type: "settlement.batch_closed",
     payload: { merchantId, batchId, batchDate: "2026-01-05", grossFils: 10_000, feeFils: 250, netPayoutFils: 9_750 },
@@ -164,7 +166,7 @@ test("applyBatchClosed (via applyEvent): a missing settlement_batches row is a n
 
 test("applyBatchClosed (via applyEvent): a day with real capture activity whose rollup already matches ground truth is silent and safe", async () => {
   const merchantId = await createMerchant("batch-closed-rollup-parity");
-  const batchId = await createSettlementBatch(merchantId, { status: "closed", paidAt: null });
+  const batchId = await createSettlementBatch(merchantId, { status: "closed", paidAt: null, gross: 4_750, fee: 119, net: 4_631 });
 
   // One real captured transaction + its transaction_events row (ground
   // truth), occurring inside Asia/Bahrain's 2026-01-05 local day.
@@ -225,7 +227,7 @@ test("applyBatchClosed (via applyEvent): a day with real capture activity whose 
 
 test("applyBatchClosed (via applyEvent) is idempotent: applying the identical event twice produces no duplicate row and no drift", async () => {
   const merchantId = await createMerchant("batch-closed-idempotent");
-  const batchId = await createSettlementBatch(merchantId, { status: "closed", paidAt: null });
+  const batchId = await createSettlementBatch(merchantId, { status: "closed", paidAt: null, gross: 5_000, fee: 125, net: 4_875 });
   const row = makeRow({
     event_type: "settlement.batch_closed",
     payload: { merchantId, batchId, batchDate: "2026-01-05", grossFils: 5_000, feeFils: 125, netPayoutFils: 4_875 },

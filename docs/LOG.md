@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 08:10 PM (30 Oct 2026)
-Summary: Errors 150/176 fixed (+12 partly: E50, E92, E101, E131, E145, E163, E48, E67, E86, E94, E96, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 08:12 PM (30 Oct 2026)
+Summary: Errors 151/176 fixed (+12 partly: E50, E92, E101, E131, E145, E163, E48, E67, E86, E94, E96, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -846,7 +846,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/reporting/src/consumer/applyEvent.ts:93-118 (trend row written under payload.merchantId/amounts, not the batch's own); my E53 validation (`Number.isSafeInteger`) accepts negatives
 - Error: a bad producer can put merchant X's batch into Y's dashboard or push negative volume. (Validation is my own E53 code.)
 - Proof: code read (backend security-review agent (1:03 PM); checked by me).
-- Severity: low · Status: partly fixed (see section 5, E96; payload merchant trust open)
+- Severity: low · Status: fixed (see section 5, E96)
 
 ### E97 — [found later] Reporting config accepts bad numbers ("15s" → 15 ms)
 - Where: apps/reporting/src/config.ts:22-31 (Number.parseInt; comment "'15s' fails loudly" is false; no lower bound)
@@ -2862,6 +2862,13 @@ ROLLBACK;
 - With the earlier part (7c4a68d) E109 is now fully fixed.
 - check.sh (clean environment): OK. Needs a redeploy.
 
+### E96 — 08:12 PM — (rest) payout trend rows and the rollup parity check use the batch row's merchant, date and amounts, not the event payload
+- Changed: apps/reporting/src/consumer/applyEvent.ts applyBatchClosed: reads merchant_id, batch_date, gross/fee/net from settlement_batches (it already read status and paid_at there) and writes the trend row and the parity check from those.
+- Before: apps/reporting/src/consumer/applyEvent.e96b.test.ts (batch of merchant A, payload naming merchant B with other amounts) → the row was filed under B with the payload's amounts. After: merchant A, gross 1000.
+- Test changed: applyEvent.test.ts created batches with zero amounts and expected the payload's amounts in the trend row; its helper now gives each test batch the same amounts as its payload. Reporting suites 20/20.
+- With the earlier part (129b6bd) E96 is now fully fixed.
+- check.sh (clean environment): OK. Needs a redeploy.
+
 ## 6. Deploy
 
 ### Official submission rules (04:28 PM, from Zainab; they override older plans)
@@ -2977,6 +2984,10 @@ A fresh clone of the fork, built and started from nothing but the repo.
 - \`scratchpad/full-db-test.sh\` on a fresh, freshly migrated database (filspay_full_200557_10151; migrations up to 0085 applied from zero) at commit 8acf5d2: api 519/519, money 44/44, events 4/4, reporting 21/21, web 13/13, scripts 11/11, Go 84 pass (1 skip), failing 0.
 - docs/CONTRIBUTIONS.md and the README block regenerated (python3 docs/tools/contributions.py, built at 8acf5d2); SUBMISSION member lines copied from it.
 - Live server: still at d3e4fd1; every fix after it (E95 onward, migration 0085, nginx CSP, API listen host, settlement notify) goes live at the 9:00 PM redeploy, after Zainab pushes.
+
+### Submission window moved — 08:15 PM (organizers' update, from Zainab)
+- Submission window: 10:00-11:00 PM. Code freeze: 10:00 PM (was 9:00 PM). Fixes continue until then, one per commit, tests green; SUBMISSION counts, the final regression, CONTRIBUTIONS and the redeploy move to the new freeze.
+- The 08:06 PM "final regression" entry above is therefore not the last one; another full regression runs at the 10:00 PM freeze.
 
 ## 7. Judge notes
 

@@ -90,8 +90,14 @@ async function applyBatchClosed(client: PoolClient, row: OutboxEventRow): Promis
     netPayoutFils: number;
   };
 
-  const batchResult = await client.query<{ status: string; paid_at: Date | null }>(
-    `SELECT status, paid_at FROM settlement_batches WHERE id = $1`,
+  // E96: merchant, date and amounts come from the batch row (ground truth),
+  // not from the payload, so a bad producer cannot misfile a batch.
+  const batchResult = await client.query<{
+    status: string; paid_at: Date | null; merchant_id: string; batch_date: string;
+    gross_fils: string; fee_fils: string; net_payout_fils: string;
+  }>(
+    `SELECT status, paid_at, merchant_id, batch_date::text AS batch_date, gross_fils, fee_fils, net_payout_fils
+       FROM settlement_batches WHERE id = $1`,
     [payload.batchId],
   );
   const batch = batchResult.rows[0];
@@ -106,13 +112,13 @@ async function applyBatchClosed(client: PoolClient, row: OutboxEventRow): Promis
            fee_fils = EXCLUDED.fee_fils, net_payout_fils = EXCLUDED.net_payout_fils,
            paid_at = EXCLUDED.paid_at, last_updated_at = now()`,
     [
-      payload.merchantId,
+      batch.merchant_id,
       payload.batchId,
-      payload.batchDate,
+      batch.batch_date,
       batch.status,
-      payload.grossFils,
-      payload.feeFils,
-      payload.netPayoutFils,
+      batch.gross_fils,
+      batch.fee_fils,
+      batch.net_payout_fils,
       batch.paid_at,
     ],
   );
@@ -126,7 +132,7 @@ async function applyBatchClosed(client: PoolClient, row: OutboxEventRow): Promis
   // dashboard total looks low. Skipped entirely on a day with no real
   // capture activity (an ordinary empty batch, per CloseBatch's own
   // "every merchant gets a batch every day, even at zero" behaviour).
-  const windowStart = bahrainLocalMidnightUtc(payload.batchDate);
+  const windowStart = bahrainLocalMidnightUtc(batch.batch_date);
   const windowEnd = new Date(windowStart.getTime() + 24 * 60 * 60 * 1000);
   const groundTruth = await client.query<{ event_count: string }>(
     `SELECT COUNT(*)::text AS event_count
@@ -135,21 +141,21 @@ async function applyBatchClosed(client: PoolClient, row: OutboxEventRow): Promis
       WHERE t.merchant_id = $1
         AND te.event_type IN ('captured', 'partially_captured')
         AND te.occurred_at >= $2 AND te.occurred_at < $3`,
-    [payload.merchantId, windowStart, windowEnd],
+    [batch.merchant_id, windowStart, windowEnd],
   );
   const groundTruthCount = Number(groundTruth.rows[0]?.event_count ?? "0");
 
   if (groundTruthCount > 0) {
     const rollupResult = await client.query(
       `SELECT captured_count FROM merchant_daily_volume WHERE merchant_id = $1 AND volume_date = $2`,
-      [payload.merchantId, payload.batchDate],
+      [batch.merchant_id, batch.batch_date],
     );
     // E41: no rollup row yet is a lag of the whole day, not a crash — a
     // TypeError here rolled back the pass and retried the same event forever.
     const rolledUp = Number((rollupResult.rows[0] as { captured_count?: number } | undefined)?.captured_count ?? 0);
     if (rolledUp < groundTruthCount) {
       console.warn(
-        `reporting rollup lags ground truth for merchant ${payload.merchantId} on ${payload.batchDate}: ` +
+        `reporting rollup lags ground truth for merchant ${batch.merchant_id} on ${batch.batch_date}: ` +
           `rollup=${rolledUp} ground_truth=${groundTruthCount}`,
       );
     }
