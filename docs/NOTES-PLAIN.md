@@ -258,4 +258,4 @@ Where: apps/api/src/transactions/exportCsv.ts: · Commit: 3918ae8
 
 The report worker checked each closed settlement day against its own daily summary, and crashed if that summary did not exist yet. Because a crash makes it retry the same work, it got stuck forever and all reports stopped updating. Now a missing summary simply counts as zero and the worker writes a warning. A test with exactly that situation now passes.
 
-Where: apps/reporting/src/consumer/applyEvent.ts:149 · Commit: PENDING_N43
+Where: apps/reporting/src/consumer/applyEvent.ts:149 · Commit: 44adee8
