@@ -433,3 +433,8 @@
 /* UX: amounts in detail lists are right-aligned in a fixed-width column, so
    the decimal points line up down the list. */
 .dash-dl dd.dash-num { text-align: right; max-width: 12rem; }
+@media (max-width: 700px) {
+  /* UX: on a phone keep date, reference, status and the captured amount in view. */
+  .dash-hide-mobile { display: none; }
+  .dash-status { white-space: nowrap; }
+}

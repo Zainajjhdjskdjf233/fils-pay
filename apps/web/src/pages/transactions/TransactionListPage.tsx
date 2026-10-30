@@ -141,9 +141,9 @@ export function TransactionListPage() {
             <th>Occurred</th>
             <th>Reference</th>
             <th>Status</th>
-            <th className="dash-num">Authorized</th>
+            <th className="dash-num dash-hide-mobile">Authorized</th>
             <th className="dash-num">Captured</th>
-            <th>Acquirer reference</th>
+            <th className="dash-hide-mobile">Acquirer reference</th>
           </tr>
         </thead>
         <tbody>
@@ -156,9 +156,9 @@ export function TransactionListPage() {
               <td>
                 <span className={classNames("dash-status", `dash-status-${txn.status}`)}>{statusLabel(txn.status)}</span>
               </td>
-              <td className="dash-num">{bhd(txn.amountFils)}</td>
+              <td className="dash-num dash-hide-mobile">{bhd(txn.amountFils)}</td>
               <td className="dash-num">{bhd(txn.capturedFils)}</td>
-              <td>
+              <td className="dash-hide-mobile">
                 <code>{truncateMiddle(txn.acquirerReference, 20)}</code>
               </td>
             </tr>
