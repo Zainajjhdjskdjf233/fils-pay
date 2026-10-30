@@ -122,11 +122,13 @@ export function LoginPage() {
 
   return (
     <main className="dash-centered">
-      <h1>FilsPay dashboard</h1>
-      <p className="dash-muted">Merchant sign-in.</p>
+      <h1>Sign in to FilsPay</h1>
+      <p className="dash-muted">
+        {step.kind === "credentials" ? "Merchant dashboard. Step 1 of 2: your account details." : "Step 2 of 2: enter the one-time code."}
+      </p>
 
-      {error ? <p className="dash-error">{error}</p> : null}
-      {notice ? <p className="dash-notice">{notice}</p> : null}
+      {error ? <p className="dash-error" role="alert">{error}</p> : null}
+      {notice ? <p className="dash-notice" role="status">{notice}</p> : null}
 
       {step.kind === "credentials" ? (
         <form onSubmit={(e) => void handleCredentials(e)} className="dash-form">
@@ -137,14 +139,17 @@ export function LoginPage() {
               required
               autoComplete="off"
               spellCheck={false}
+              autoFocus
+              pattern="\s*[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\s*"
+              title="A merchant ID looks like 9972daab-2c86-459f-9d78-3fe1be4e3280"
+              aria-describedby="merchant-id-hint"
               placeholder="00000000-0000-0000-0000-000000000000"
               value={merchantId}
               onChange={(e) => setMerchantId(e.target.value)}
             />
           </label>
-          <p className="dash-muted dash-hint">
-            The UUID issued when your account was created. Your API integration
-            already uses this value.
+          <p id="merchant-id-hint" className="dash-muted dash-hint">
+            The ID in your FilsPay welcome email (36 characters). Your API integration uses the same value.
           </p>
           <label>
             Email
@@ -166,8 +171,8 @@ export function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
             />
           </label>
-          <button type="submit" className="dash-button" disabled={submitting}>
-            {submitting ? "Signing in..." : "Continue"}
+          <button type="submit" className="dash-button dash-button-primary" disabled={submitting}>
+            {submitting ? "Checking…" : "Continue"}
           </button>
         </form>
       ) : (
@@ -187,13 +192,14 @@ export function LoginPage() {
               type="text"
               inputMode="numeric"
               autoComplete="one-time-code"
+              autoFocus
               required
               value={code}
               onChange={(e) => setCode(e.target.value)}
             />
           </label>
-          <button type="submit" className="dash-button" disabled={submitting}>
-            {submitting ? "Verifying..." : "Verify"}
+          <button type="submit" className="dash-button dash-button-primary" disabled={submitting}>
+            {submitting ? "Verifying…" : "Verify and sign in"}
           </button>
           <button
             type="button"
@@ -203,7 +209,7 @@ export function LoginPage() {
           >
             Resend code
           </button>
-          <button type="button" className="dash-button" onClick={() => backToCredentials(null)}>
+          <button type="button" className="dash-button" disabled={submitting} onClick={() => backToCredentials(null)}>
             Start over
           </button>
         </form>
