@@ -106,6 +106,16 @@ const SEED_FEE_SCHEDULES: Record<string, Array<{ mdrBps: number; effectiveFrom: 
   ],
 };
 
+/**
+ * E70: an outbox event stamped with the time of the thing it reports. The
+ * reporting worker files each event under the Bahrain day of created_at, so
+ * the seed's events must carry their own history, not the seed run's time.
+ */
+async function enqueueAt(client: PoolClient, event: Parameters<typeof enqueueEvent>[1], at: Date): Promise<void> {
+  const row = await enqueueEvent(client, event);
+  await client.query(`UPDATE outbox_events SET created_at = $2 WHERE id = $1`, [row.id, at]);
+}
+
 /** The rate in force at a moment: the latest schedule row on or before it, else the fixture rate (as EffectiveMdrBpsAt). */
 function mdrRateFor(merchantKey: string, fixtureMdrBps: number): MdrRate {
   const rows = SEED_FEE_SCHEDULES[merchantKey];
@@ -537,6 +547,14 @@ export async function generate(pool: Pool): Promise<SeedSummary> {
               [dayBatchId, merchantId, dayDateStr, dayGross, dayFee, dayNet, dayDate],
             );
             settlementBatchCount += 1;
+            // E70: every seeded closed batch reports itself, like CloseBatch does.
+            await enqueueAt(client, {
+              eventType: "settlement.batch_closed",
+              aggregateType: "settlement_batch",
+              aggregateId: dayBatchId,
+              payload: { merchantId, batchId: dayBatchId, batchDate: dayDateStr, grossFils: dayGross, feeFils: dayFee, netPayoutFils: dayNet },
+            }, dayDate);
+            outboxEventCount += 1;
 
             let dayLineSequence = 1;
             for (const txn of dayTxns) {
@@ -692,7 +710,7 @@ export async function generate(pool: Pool): Promise<SeedSummary> {
         const firstCaptured = transactions.find((t) => t.status === "captured");
         if (firstCaptured) {
           const firstCapturedFeeFils = applyRateFils(firstCaptured.capturedFils, rateAt(mdrRateFor(fixture.key, fixture.mdrBps), firstCaptured.occurredAt));
-          await enqueueEvent(client, {
+          await enqueueAt(client, {
             eventType: "transaction.captured",
             aggregateType: "transaction",
             aggregateId: firstCaptured.id,
@@ -703,22 +721,22 @@ export async function generate(pool: Pool): Promise<SeedSummary> {
               newStatus: firstCaptured.status,
               capturedTotalFils: firstCaptured.capturedFils,
             },
-          });
+          }, firstCaptured.occurredAt);
           outboxEventCount += 1;
         }
 
         const firstVoided = transactions.find((t) => t.status === "voided");
         if (firstVoided) {
-          await enqueueEvent(client, {
+          await enqueueAt(client, {
             eventType: "transaction.voided",
             aggregateType: "transaction",
             aggregateId: firstVoided.id,
             payload: { merchantId },
-          });
+          }, firstVoided.occurredAt);
           outboxEventCount += 1;
         }
 
-        await enqueueEvent(client, {
+        await enqueueAt(client, {
           eventType: "settlement.batch_closed",
           aggregateType: "settlement_batch",
           aggregateId: closedBatchId,
@@ -730,7 +748,7 @@ export async function generate(pool: Pool): Promise<SeedSummary> {
             feeFils,
             netPayoutFils: netFils,
           },
-        });
+        }, shiftDate(SEED_BASE_DATE, -1)); // the batch's own closed_at
         outboxEventCount += 1;
       }
 

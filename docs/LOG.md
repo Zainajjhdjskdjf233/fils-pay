@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 09:58 PM (30 Oct 2026)
-Summary: Errors 174/178 fixed (+1 partly: E79; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 10:00 PM (30 Oct 2026)
+Summary: Errors 175/178 fixed (+1 partly: E79; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -694,13 +694,14 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: low · Status: fixed (see section 5, E69)
 - Confirmed (08:43 PM), deferred: alpha-retail's seeded fees use the flat fixture rate (fixture.mdrBps = 250) at eight places in db/seed/generate.ts (:302, :315, :405, :480, :493, :598, :661, :718), while the seed gives it fee schedules of 245 bps (from 2026-03-01) and 225 bps (from 2026-08-01) at :827-833. Fix: one effective-rate lookup by date, used at all eight places. Dev sample data only (never on the live server); over the 20-minute rule tonight.
 - Decision (Claude, Zainab approved deciding without review): docs only: leave the seed's flat fixture rate; record the fix (one effective-rate-by-date lookup used at the eight places) — Why: seed data is dev-only and never on the live server (E65 guard); the fix touches five fixture generators and would change every seeded figure and the seed self-check checksum, over the time left — Alternative: pass a rate-on-date function through the fixture generators
-- Update (09:59 PM): the 'docs only' decision is superseded — Zainab asked for the seed code fix; tested on fresh local databases only. Status: fixed (see section 5).
+- Update (09:58 PM): the docs-only decision is superseded — Zainab asked for the seed code fix; tested on fresh local databases only. Status: fixed (see section 5).
 
 ### E70 — [found later] Seeded outbox events do not match the seeded history
 - Where: db/seed/generate.ts:651-690 (outbox created_at = now(), so August captures roll up on the seed day; 60 high-volume batches get no batch_closed event).
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E70)
 - Deferred (08:43 PM): dev sample data only (outbox created_at = now() and missing batch_closed events for the 60 high-volume batches, db/seed/generate.ts:651-690). The live server never runs the seed (LOG §6 rules; E65 guard).
 - Decision (Claude, Zainab approved deciding without review): docs only: leave the seeded outbox timestamps and the missing batch_closed events — Why: dev sample data only; the reporting rollups of a seeded dev database are the only effect, and the live server never runs the seed — Alternative: set outbox created_at from each event's own time and enqueue batch_closed for the 60 high-volume batches
+- Update (10:00 PM): the docs-only decision is superseded — Zainab asked for the seed code fix; tested on fresh local databases only.
 
 ### E71 — [found later] Re-seeding leaves old dead letters with reused outbox ids
 - Where: db/seed/generate.ts:98-148 TABLES_TO_RESET lacks reporting_dead_letters (0078); outbox ids restart, so ON CONFLICT DO NOTHING hides a new bad event with a reused id.
@@ -3084,6 +3085,12 @@ ROLLBACK;
 - Changed: db/seed/fixtures/transactions.ts: MdrRate (a fixed rate or 'the rate at this moment') and rateAt(); the five generators and buildCaptureLedgerGroup use the rate in force at each capture. db/seed/generate.ts: SEED_FEE_SCHEDULES (beta-digital 180→165 at 2026-09-06T12:00Z, alpha-retail 245 from 2026-03-01, 225 from 2026-08-01) and mdrRateFor(), used at every fee site (the generator calls, the peak-day and settled-batch fee sums, the seeded outbox fee) and for the March fixture. db/seed/fixtures/marchReconciliation.ts takes the same rate type.
 - Before: db/seed/feeSchedules.e69.test.ts on a fresh local DB (filspay_e69a_215806_19447) with the old seed code → fail (seeded alpha-retail fees used the flat 250 bps). After (fresh DB filspay_e69b_215809_17572): every alpha-retail capture fee equals the schedule rate on its date; the seed self-check (selfVerify.integration.test.ts) still passes; db tsc clean.
 - Dev data only; never run on the live server (E65 guard needs FILSPAY_ALLOW_SEED_RESET=1).
+- check.sh (clean environment): OK.
+
+### E70 — 10:00 PM — seeded outbox events match the seeded history (dev seed only)
+- Changed: db/seed/generate.ts: enqueueAt() stamps each seeded outbox event with the time of what it reports (the reporting worker files events under the Bahrain day of created_at): the seeded capture and void at their transaction times, the merchant's closed batch at its closed_at; and each of the 60 high-volume closed batches now gets its settlement.batch_closed event (like CloseBatch), counted in outboxEventCount.
+- Before: db/seed/outboxHistory.e70.test.ts on a fresh local DB (filspay_e70a_215927_9241) with the old seed → fail (events stamped with the seed run's time; closed batches without a batch_closed event). After (fresh DB filspay_e70c_220006_28998): no event stamped with the run time, every closed batch has its event; E69 test and the seed self-check also pass (3/3); db tsc clean.
+- Dev data only; never run on the live server (E65 guard).
 - check.sh (clean environment): OK.
 
 ## 6. Deploy
