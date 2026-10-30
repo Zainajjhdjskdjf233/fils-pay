@@ -916,3 +916,45 @@ Whole numbers subtract exactly, at any size.
 Small batches are exact in float32. Only big batches (above about 16,777 BD) drift, and only by a few fils.
 
 Commit: 2db05e0
+
+## N25 — The March sweep can be run again safely
+
+### The idea
+The March sweep is a one-time script. It moves tiny rounding leftovers into a special account, like sweeping crumbs into one bin.
+
+### The problem
+Running it twice swept twice.
+- Each run made new ledger rows with a new random id, so the gap doubled.
+- It also used UTC months, so the first 3 hours of March (Bahrain time) were missed and 3 hours of April were included.
+
+### The fix
+- A Postgres lock: two runs cannot happen at the same time.
+- Before posting, it checks if this merchant was already swept for March. If yes, it skips.
+- Month bounds now start at Bahrain midnight.
+
+### The code
+Before (scripts/reconcile_march.ts:72-74):
+```ts
+// am: re-running is safe, entry_group_id dedupes it
+const entryGroupId = randomUUID();
+```
+After:
+```ts
+const already = await client.query(
+  `SELECT 1 FROM ledger_entries
+    WHERE merchant_id = $1 AND account_id = 'scheme_rounding_residue' AND description = $2 LIMIT 1`,
+  [merchant.merchantId, SWEEP_DESCRIPTION],
+);
+if ((already.rowCount ?? 0) > 0) return false;
+```
+A merchant that already has a sweep row is skipped, even from old runs.
+
+### The proof
+- Before: two runs made 4 ledger rows for one merchant.
+- After: two runs make 2 rows; the real script's second run says "skipped".
+
+### If the judges ask
+"Was production swept twice?"
+We cannot see production. A read-only count of sweep rows per merchant answers it: more than 2 rows means it ran more than once.
+
+Commit: PENDING_N25

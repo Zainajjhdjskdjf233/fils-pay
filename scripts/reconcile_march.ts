@@ -13,8 +13,14 @@ import { pathToFileURL } from "node:url";
 import { Client } from "pg";
 import { formatBhd, toFils } from "@filspay/money";
 
+// E16: Bahrain months (UTC+3, no DST), as HANDOVER.md:31-32 asked; the
+// UTC bounds moved the first and last 3 hours of each month.
+const BAHRAIN_OFFSET_MS = 3 * 60 * 60 * 1000;
 export function monthBounds(year: number, month: number): { start: Date; end: Date } {
-  return { start: new Date(Date.UTC(year, month - 1, 1)), end: new Date(Date.UTC(year, month, 1)) };
+  return {
+    start: new Date(Date.UTC(year, month - 1, 1) - BAHRAIN_OFFSET_MS),
+    end: new Date(Date.UTC(year, month, 1) - BAHRAIN_OFFSET_MS),
+  };
 }
 
 export interface ResidueRow {
@@ -33,6 +39,7 @@ interface MerchantResidue {
   merchantId: string;
   lineCount: number;
   residueFils: number;
+  posted?: boolean;
 }
 
 async function fetchResidueRows(client: Client, year: number, month: number): Promise<ResidueRow[]> {
@@ -69,16 +76,54 @@ function groupByMerchant(rows: ResidueRow[]): MerchantResidue[] {
 }
 
 // am: re-running is safe, entry_group_id dedupes it
-async function postResidueCorrection(client: Client, merchant: MerchantResidue, now: Date): Promise<void> {
-  if (merchant.residueFils <= 0) return;
+// E16: it was not (a new random group id every run). A merchant that already
+// has a sweep row for this period is skipped; matching on the description
+// also catches runs made before this fix.
+const SWEEP_DESCRIPTION = "March 2026 scheme rounding residue sweep — manual recon per finance";
+
+async function postResidueCorrection(client: Client, merchant: MerchantResidue, now: Date): Promise<boolean> {
+  if (merchant.residueFils <= 0) return false;
+  const already = await client.query(
+    `SELECT 1 FROM ledger_entries
+      WHERE merchant_id = $1 AND account_id = 'scheme_rounding_residue' AND description = $2
+      LIMIT 1`,
+    [merchant.merchantId, SWEEP_DESCRIPTION],
+  );
+  if ((already.rowCount ?? 0) > 0) return false;
   const entryGroupId = randomUUID();
-  const description = "March 2026 scheme rounding residue sweep — manual recon per finance";
+  const description = SWEEP_DESCRIPTION;
   await client.query(
     `INSERT INTO ledger_entries (entry_group_id, merchant_id, account_id, direction, amount_fils, occurred_at, description)
      VALUES ($1, $2, 'merchant_payable', 'debit', $3, $4, $5),
             ($1, $2, 'scheme_rounding_residue', 'credit', $3, $4, $5)`,
     [entryGroupId, merchant.merchantId, merchant.residueFils, now.toISOString(), description],
   );
+  return true;
+}
+
+/** Posts the residue correction for one month; returns what it posted. */
+export async function runSweep(
+  client: Client,
+  year: number,
+  month: number,
+  now: Date,
+): Promise<{ rows: ResidueRow[]; merchants: MerchantResidue[]; totalResidueFils: number }> {
+  const rows = await fetchResidueRows(client, year, month);
+  const merchantResidues = groupByMerchant(rows);
+  await client.query("BEGIN");
+  try {
+    // E16: one sweep at a time; a second run waits, then sees the first one's rows.
+    await client.query(`SELECT pg_advisory_xact_lock(hashtext('reconcile_march_sweep'))`);
+    for (const merchant of merchantResidues) {
+      merchant.posted = await postResidueCorrection(client, merchant, now);
+    }
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  }
+  const totalResidueFils = merchantResidues.filter((m) => m.posted).reduce((sum, m) => sum + m.residueFils, 0);
+  return { rows, merchants: merchantResidues, totalResidueFils };
 }
 
 async function main(): Promise<void> {
@@ -93,30 +138,18 @@ async function main(): Promise<void> {
   const now = new Date();
 
   try {
-    const rows = await fetchResidueRows(client, 2026, 3);
-    const merchantResidues = groupByMerchant(rows);
-    const totalResidueFils = merchantResidues.reduce((sum, m) => sum + m.residueFils, 0);
+    const { rows, merchants, totalResidueFils } = await runSweep(client, 2026, 3, now);
 
     const { start, end } = monthBounds(2026, 3);
     console.log("=== March 2026 reconciliation sweep ===");
     console.log(`run at: ${now.toISOString()}`);
-    console.log(`window: ${start.toISOString().slice(0, 10)} .. ${end.toISOString().slice(0, 10)}`);
+    console.log(`window: ${start.toISOString()} .. ${end.toISOString()} (Bahrain 2026-03-01 00:00 .. 2026-04-01 00:00)`);
     console.log("");
-
-    await client.query("BEGIN");
-    try {
-      for (const merchant of merchantResidues) {
-        await postResidueCorrection(client, merchant, now);
-        console.log(
-          `merchant ${merchant.merchantId}: ${merchant.lineCount} line(s), residue ${formatBhd(toFils(merchant.residueFils))} BD (${merchant.residueFils} fils)`,
-        );
-      }
-      await client.query("COMMIT");
-    } catch (err) {
-      await client.query("ROLLBACK");
-      throw err;
+    for (const merchant of merchants) {
+      console.log(
+        `merchant ${merchant.merchantId}: ${merchant.lineCount} line(s), residue ${formatBhd(toFils(merchant.residueFils))} BD (${merchant.residueFils} fils)${merchant.posted ? "" : " — skipped (already swept or zero)"}`,
+      );
     }
-
     console.log("---");
     console.log(`total lines matched: ${rows.length}`);
     console.log(`total residue swept: ${formatBhd(toFils(totalResidueFils))} BD (${totalResidueFils} fils)`);

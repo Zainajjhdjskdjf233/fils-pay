@@ -145,3 +145,9 @@ Where: apps/settlement/internal/splits/allocate.go:110 · Commit: 2327ed9
 The daily payout was calculated with a kind of decimal number that only keeps about 7 exact digits. For big shops, the result was off by a few fils. We now subtract the fee from the sales as whole fils, which is always exact. A test with a 135,000 BD day now gives the exact right payout.
 
 Where: apps/settlement/internal/settlement/payable.go:11 · Commit: 2db05e0
+
+## N25 — The March sweep can be run again safely
+
+A one-time clean-up script for March doubled its effect every time it was run, because nothing remembered that it had already run. It also used UTC months, so it missed the first 3 hours of March in Bahrain. Now it checks whether each shop was already cleaned up and skips it, it cannot run twice at the same moment, and it uses Bahrain months. A test that runs it twice now sees only one clean-up.
+
+Where: scripts/reconcile_march.ts:86 · Commit: PENDING_N25

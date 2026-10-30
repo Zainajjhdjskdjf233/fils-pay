@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 10:58 AM (30 Oct 2026)
-Summary: Errors 21/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
+Updated: 11:00 AM (30 Oct 2026)
+Summary: Errors 22/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -217,7 +217,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: high (CASE-FILE Item 02 bullet 2)
 - Proposed fix: deterministic group id per period + pre-check; Bahrain month bounds.
 - Expected result: second run posts nothing.
-- Status: open
+- Status: fixed (see section 5)
 
 ### E17 — Split payouts: children do not add up to the parent
 - Where: apps/settlement/internal/splits/allocate.go:98, :119, :138; shares.go:14
@@ -1089,6 +1089,21 @@ ROLLBACK;
 - Not changed: payout_estimate.go float32 (E24, its own entry).
 - Review: one line, no new logic → no fix-reviewer.
 - Actual result: matches expected.
+
+### E16 — 11:00 AM — March sweep is safe to run twice; Bahrain month
+- Changed (scripts/reconcile_march.ts):
+  - `runSweep(client, year, month, now)` exported (first as an exact move out of `main`, so the red test shows the real behavior).
+  - Inside the transaction: `pg_advisory_xact_lock(hashtext('reconcile_march_sweep'))`, so two runs cannot overlap.
+  - `postResidueCorrection` skips a merchant that already has a `scheme_rounding_residue` row with the sweep's description. Matching on the description also catches production runs made before this fix with random group ids. am's comment "entry_group_id dedupes it" kept, with a correction under it.
+  - `monthBounds` = Bahrain midnights (UTC − 3h), as HANDOVER.md:31-32 asked.
+  - The log prints full UTC times plus the Bahrain dates; skipped merchants are marked.
+- Decision (for Zainab to review): dedupe by "this merchant already has a sweep row for March", not by a deterministic group id — Why: earlier real runs used random ids, so only the description finds them — Alternative: deterministic id (would not see the old runs; a re-run would double them again).
+- Test: scripts/reconcile_march.e16.test.ts. Before: month start `actual: '2026-03-01T00:00:00.000Z', expected: '2026-02-28T21:00:00.000Z'`; two runs `actual: 4` ledger legs, `expected: 2`. After: PASS. scripts/reconcile_march.test.ts:17-18 locked the UTC month (`start.getUTCMonth() === 2`); changed to check the month in Bahrain time (Judge note style: a test guarding the bug).
+- Live: `npx tsx scripts/reconcile_march.ts` twice on test DB filspay_e16_105843_4251 → both runs `skipped (already swept or zero)`, `total residue swept: 0.000 BD`.
+- Regression: full-db-test.sh = baseline (5 known failures); scripts 9 pass.
+- Still a human question (CASE-FILE: "Is it safe to run again?"): with this fix a re-run posts nothing for merchants already swept. Whether production was swept twice must be checked on production with a read-only count of rows with this description per merchant (more than 2 rows per merchant = swept more than once).
+- Review: script only, small → no fix-reviewer; Copilot CLI not installed.
+- Actual result: matches expected (second run posts nothing).
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)
