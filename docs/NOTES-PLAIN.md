@@ -108,4 +108,4 @@ Where: .gitignore:11 · Commit: 3145f24
 
 Each day the system pays a shop its sales minus the fee, but it forgot about refunds. So a shop that gave money back to a customer still got paid for that sale, and FilsPay lost the money. Now the daily count takes away the refunds, marks each one so it is only counted once, and moves any refund that is too big to the next day. A second reviewer also found that a fee recalculation would undo this, and we fixed that too. A real test from refund to payout leaves the shop's balance at exactly zero.
 
-Where: apps/settlement/internal/settlement/batch.go:227 · Commit: PENDING_N18
+Where: apps/settlement/internal/settlement/batch.go:227 · Commit: 6ff2ffb

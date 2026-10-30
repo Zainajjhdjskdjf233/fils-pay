@@ -696,4 +696,4 @@ The payout now drops by the refund, minus the fee we gave back. All in whole fil
 "What if refunds are bigger than the day's sales?"
 We never pay a negative amount. The refund that does not fit waits, and the next day's batch takes it. No fils are lost.
 
-Commit: PENDING_N18
+Commit: 6ff2ffb
