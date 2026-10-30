@@ -204,4 +204,4 @@ Where: apps/settlement/internal/settlement/platform_volume.go:26 · Commit: effa
 
 When the bank sent the same fraud-check message twice, the system saved two identical notes on the payment. A past release said this was fixed, but the code never changed. Now each message is saved only if it has not been saved before, with a lock so two copies arriving together cannot both get in. A test sending three copies now finds one note.
 
-Where: apps/api/src/acquirer/callbacks.ts:50 · Commit: PENDING_N34
+Where: apps/api/src/acquirer/callbacks.ts:50 · Commit: 8fd0c90
