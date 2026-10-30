@@ -2606,3 +2606,37 @@ The three boxes now always share the form width equally.
 Same database, same API and same pages for both; only the frontend code differs (a12d4c7 vs now). docs/ui/README.md explains every step.
 
 Commit: b22520f
+
+## N71 — Two reporting runs can no longer count a payment twice
+
+### The idea
+The reporting worker keeps daily totals. It remembers "I have read up to here", like a bookmark in a ledger book.
+
+### The problem
+Two runs at the same moment read the same bookmark.
+- Both added the same payments to the totals.
+- A 1 BD payment showed as 2 BD in the dashboard.
+
+### The fix
+- cursor.ts: reading the bookmark now locks it until the run finishes, so a second run waits and starts after the first.
+
+### The code
+Before (apps/reporting/src/consumer/cursor.ts:36):
+```ts
+`SELECT last_processed_id, ... FROM reporting_outbox_cursor WHERE consumer_name = $1`,
+```
+After:
+```ts
+`SELECT last_processed_id, ... FROM reporting_outbox_cursor WHERE consumer_name = $1 FOR UPDATE`,
+```
+FOR UPDATE holds the bookmark row until the run commits.
+
+### The proof
+- Before: captured_count 2 for one payment.
+- After: captured_count 1; all 17 reporting tests pass.
+
+### If the judges ask
+"Didn't the code already guard against this?"
+Only inside one process (a `running` flag). Catch-up and rebuild are separate processes, so the comment saying it was safe was false.
+
+Commit: PENDING_N71

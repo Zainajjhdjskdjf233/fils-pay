@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 64 of 133 fixed.
+Summary: 65 of 133 fixed.
 
 ## High (39 of 40 fixed)
 
@@ -60,7 +60,7 @@ Summary: 64 of 133 fixed.
 | E124 | [deep review] Capture replay credits the wrong discount (twice after a zero-discount capture) | Fixed |
 | E45 | [second review] /v1/reporting/export-summary had no login check (always 500) | Fixed |
 
-## Medium (22 of 44 fixed)
+## Medium (23 of 44 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -86,7 +86,7 @@ Summary: 64 of 133 fixed.
 | E58 | Session vs impersonation order may mix identities (FP-198 comment) — not reproduced: a test with both cookies shows no mixing | Skipped |
 | E60 | Reconciliation counts payouts of earlier days as an unexplained gap | Fixed |
 | E61 | Dashboard and admin console cannot reach the API from their own origin (no CORS, no proxy) | Fixed |
-| E62 | [found later] Two reporting passes at the same time count every event twice | Open |
+| E62 | [found later] Two reporting passes at the same time count every event twice | Fixed |
 | E63 | [found later] Admin reporting rebuild double-counts events the worker has not reached | Open |
 | E64 | [found later] Payout trends never show "paid" (settlement.paid not consumed) | Open |
 | E65 | [found later] The seed wipes real tables (incl. admin audit log) with no environment check | Open |

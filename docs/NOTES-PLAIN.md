@@ -421,3 +421,9 @@ Where: apps/api/src/routes/reporting.ts:35 · Commit: 383d417
 On the payment page, the expiry and CVV boxes were wider than the form, so on a phone the CVV box went off the screen and the month box was tiny. We made the three boxes share the row equally, so they fit on any screen. In the dashboard and admin tables, digits now all have the same width, so amounts line up. Before and after screenshots of 13 screens are in docs/ui.
 
 Where: apps/web/src/pages/checkout/CheckoutPage.css:44 · Commit: b22520f
+
+## N71 — Two reporting runs can no longer count a payment twice
+
+The reporting worker keeps a bookmark of how far it has read. When two runs started at the same moment, both read the same bookmark and both added the same payments, so totals doubled. Now the bookmark is locked while one run works, and the other waits its turn. A test runs two at once and shows each payment counted once.
+
+Where: apps/reporting/src/consumer/cursor.ts:40 · Commit: PENDING_N71

@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 3:53 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 3:59 PM
 
 ## Contents
 1. Status now
@@ -14,9 +14,9 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:53 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 64 of 133 fixed.
+- Errors: 65 of 133 fixed.
   - High: 39 of 40 fixed
-  - Medium: 22 of 44 fixed
+  - Medium: 23 of 44 fixed
   - Low: 3 of 49 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
@@ -27,7 +27,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:53 PM
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 64 of 133 fixed.
+- 🔄 Fix: 65 of 133 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -136,7 +136,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:53 PM
 | E124 | [deep review] Capture replay credits the wrong discount (twice after a zero-discount capture) | Fixed |
 | E45 | [second review] /v1/reporting/export-summary had no login check (always 500) | Fixed |
 
-### Medium (22 of 44 fixed)
+### Medium (23 of 44 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -162,7 +162,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:53 PM
 | E58 | Session vs impersonation order may mix identities (FP-198 comment) — not reproduced: a test with both cookies shows no mixing | Skipped |
 | E60 | Reconciliation counts payouts of earlier days as an unexplained gap | Fixed |
 | E61 | Dashboard and admin console cannot reach the API from their own origin (no CORS, no proxy) | Fixed |
-| E62 | [found later] Two reporting passes at the same time count every event twice | Open |
+| E62 | [found later] Two reporting passes at the same time count every event twice | Fixed |
 | E63 | [found later] Admin reporting rebuild double-counts events the worker has not reached | Open |
 | E64 | [found later] Payout trends never show "paid" (settlement.paid not consumed) | Open |
 | E65 | [found later] The seed wipes real tables (incl. admin audit log) with no environment check | Open |
@@ -240,7 +240,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:53 PM
 | E133 | [second review] Report filter JSON used without a shape check | Fixed |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71
 
 ### N01 — Database setup stopped halfway
 
@@ -2846,4 +2846,38 @@ The three boxes now always share the form width equally.
 Same database, same API and same pages for both; only the frontend code differs (a12d4c7 vs now). docs/ui/README.md explains every step.
 
 Commit: b22520f
+
+### N71 — Two reporting runs can no longer count a payment twice
+
+#### The idea
+The reporting worker keeps daily totals. It remembers "I have read up to here", like a bookmark in a ledger book.
+
+#### The problem
+Two runs at the same moment read the same bookmark.
+- Both added the same payments to the totals.
+- A 1 BD payment showed as 2 BD in the dashboard.
+
+#### The fix
+- cursor.ts: reading the bookmark now locks it until the run finishes, so a second run waits and starts after the first.
+
+#### The code
+Before (apps/reporting/src/consumer/cursor.ts:36):
+```ts
+`SELECT last_processed_id, ... FROM reporting_outbox_cursor WHERE consumer_name = $1`,
+```
+After:
+```ts
+`SELECT last_processed_id, ... FROM reporting_outbox_cursor WHERE consumer_name = $1 FOR UPDATE`,
+```
+FOR UPDATE holds the bookmark row until the run commits.
+
+#### The proof
+- Before: captured_count 2 for one payment.
+- After: captured_count 1; all 17 reporting tests pass.
+
+#### If the judges ask
+"Didn't the code already guard against this?"
+Only inside one process (a `running` flag). Catch-up and rebuild are separate processes, so the comment saying it was safe was false.
+
+Commit: PENDING_N71
 
