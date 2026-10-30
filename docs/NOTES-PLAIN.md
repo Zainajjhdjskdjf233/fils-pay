@@ -607,3 +607,45 @@ Where: apps/api/src/config.ts · Commit: 1b8659c
 A suspended shop could still use its logins and API keys. Now only active shops get in. A test suspends a shop and checks both are refused.
 
 Where: apps/api/src/auth/sessions.ts · Commit: 9397d53
+
+## N102 — A webhook archive cannot load all history at once
+
+Saving a copy of a shop's past webhook messages loaded everything into memory at once. Now an archive holds at most 10,000 messages and wider ranges are refused. A test checks the limit.
+
+Where: apps/api/src/webhooks/archiveReplay.ts · Commit: 364058f
+
+## N103 — Health checks on the live site reach the API
+
+The live site's health address showed the web page instead of the API's status. Now it asks the API. We found it with our live end-to-end check.
+
+Where: ops/nginx/nginx.conf · Commit: 3e31313
+
+## N104 — The report filter accepts "partially refunded"
+
+Our own earlier fix left one real status out of the report filter. Now all seven statuses work. The second review found it.
+
+Where: apps/api/src/routes/reporting.ts · Commit: e9f97dd
+
+## N105 — Saved filters need a real name and a proper filter
+
+Saved report filters accepted blank names and lists. Now both are refused. A test checks it.
+
+Where: apps/api/src/routes/reporting.ts · Commit: ebe2652
+
+## N106 — A payment link cannot be for 0 fils
+
+A link for zero crashed the request. Now it is refused with a clear message. A test checks it.
+
+Where: apps/api/src/paymentLinks/create.ts · Commit: 6c74bd0
+
+## N107 — A payment link's end date must be real and say its zone
+
+Impossible dates rolled over and times without a zone were read in the server's zone. Now dates must be real and zoned. A test checks it.
+
+Where: apps/api/src/paymentLinks/create.ts · Commit: 1ff0962
+
+## N108 — Disabled webhooks receive nothing
+
+Messages kept going to a webhook address the shop had switched off. Now they wait. A test checks it.
+
+Where: apps/api/src/webhooks/dispatcher.ts · Commit: PENDING_N108

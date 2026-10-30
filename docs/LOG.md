@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 06:21 PM (30 Oct 2026)
-Summary: Errors 101/175 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 06:23 PM (30 Oct 2026)
+Summary: Errors 102/175 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1267,7 +1267,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 ### E168 — [second review] Webhook dispatch Step B still queues deliveries for disabled endpoints
 - Where: apps/api/src/webhooks/dispatcher.ts:228 (Step B WHERE has no `we.status = 'active'`; Step A at :98 has it).
 - Proof: the second review (items 66, notes received 5:30 PM / 6:15 PM); checked by me in the code (06:18 PM).
-- Severity: medium · Status: open
+- Severity: medium · Status: fixed (see section 5, E168)
 
 ### E169 — [second review] Saved-filter POST accepts an array filter and a whitespace-only name
 - Where: apps/api/src/routes/reporting.ts:59 (name truthy only), :62 (`typeof filter !== "object"` lets [] through).
@@ -2494,6 +2494,12 @@ ROLLBACK;
 - Changed: apps/api/src/paymentLinks/create.ts: isRealDate(expiresAt) before new Date (shared helper; a time needs Z or ±hh:mm), else 400 invalid_expiry. The dashboard sends toISOString() (apps/web/src/format.ts:48), still accepted.
 - Test: routes/paymentLinkCreate.e166.test.ts testE174_expiresAtMustBeRealAndZoned. Before: fail (2099-02-30T10:00:00Z accepted). After: PASS; payment-link tests pass.
 - Found by: the second review (item 85).
+- check.sh: OK.
+
+### E168 — 06:23 PM — webhook dispatch never sends to a disabled endpoint
+- Changed: apps/api/src/webhooks/dispatcher.ts Step B: `AND we.status = 'active'` (Step A already had it). A delivery queued before the endpoint was disabled now waits until it is re-enabled.
+- Test: webhooks/dispatcher.test.ts testE168_noAttemptToADisabledEndpoint. Before: `nothing may be sent to a disabled endpoint` failed. After: PASS; webhook tests 64/65 (the known E54 test).
+- Found by: the second review (item 66).
 - check.sh: OK.
 
 ## 6. Deploy

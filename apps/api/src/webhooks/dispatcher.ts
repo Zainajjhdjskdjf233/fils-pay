@@ -226,6 +226,7 @@ async function attemptDueDeliveries(pool: Pool, transport: WebhookTransport, con
        FROM webhook_deliveries wd
        JOIN webhook_endpoints we ON we.id = wd.endpoint_id
       WHERE wd.status = 'pending' AND wd.next_attempt_at <= now()
+        AND we.status = 'active' -- E168: never send to a disabled endpoint (it waits until re-enabled)
       ORDER BY wd.next_attempt_at ASC
       LIMIT $1`,
     [STEP_B_BATCH_LIMIT],

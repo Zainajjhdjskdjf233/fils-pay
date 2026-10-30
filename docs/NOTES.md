@@ -3637,3 +3637,216 @@ Suspended shops get 401.
 No, they are hidden; re-activating the shop restores them. That is recorded as a known limit.
 
 Commit: 9397d53
+
+## N102 — A webhook archive cannot load all history at once
+
+### The idea
+Admins can save a copy (archive) of a shop's past webhook messages, like photocopying a ledger.
+
+### The problem
+Creating an archive loaded every message ever sent into memory.
+- A busy shop could use up the API's memory.
+
+### The fix
+- archiveReplay.ts: at most 10,000 messages per archive; a wider range is refused (never cut short).
+
+### The code
+Before (apps/api/src/webhooks/archiveReplay.ts:51): no limit.
+After:
+```ts
+if (rows.rows.length > ARCHIVE_MAX_DELIVERIES) {
+  throw new BadRequestError("archive_range_too_large", ...);
+}
+```
+Too-wide ranges get 400.
+
+### The proof
+- Before: 10,001 messages were archived.
+- After: refused with 400.
+
+### If the judges ask
+"Why refuse instead of cutting?"
+An archive must be complete for its dates; a cut-off copy would be misleading.
+
+Commit: 364058f
+
+## N103 — Health checks on the live site reach the API
+
+### The idea
+A health check is a quick "are you alive?" question, like a nurse checking a pulse.
+
+### The problem
+On the public port, /healthz returned the web page.
+- A monitor could never see the API's real state.
+
+### The fix
+- nginx.conf: forward /healthz and /readyz to the API.
+
+### The code
+Before (ops/nginx/nginx.conf): only /v1/ went to the API.
+After:
+```nginx
+location = /healthz { proxy_pass http://api; access_log off; }
+```
+The check now asks the API itself.
+
+### The proof
+- Before: 200 text/html.
+- After: 200 {"status":"ok"} on the local stack.
+
+### If the judges ask
+"How did you find it?"
+Our live end-to-end check, run the way automated tests would.
+
+Commit: 3e31313
+
+## N104 — The report filter accepts "partially refunded"
+
+### The idea
+Reports can filter payments by status, like sorting receipts.
+
+### The problem
+My earlier fix (E133) left "partially_refunded" out of the allowed list.
+- A valid filter was refused.
+
+### The fix
+- reporting.ts: add it to the list, matching the database.
+
+### The code
+Before (apps/api/src/routes/reporting.ts:92): the list had 6 statuses.
+After:
+```ts
+const REPORT_STATUSES = ["authorized", "captured", "partially_captured", "voided", "partially_refunded", "refunded", "chargeback"];
+```
+All seven real statuses are allowed.
+
+### The proof
+- Before: 400 for partially_refunded.
+- After: 200.
+
+### If the judges ask
+"Who found it?"
+The second review; it was a regression from our own fix, and we say so.
+
+Commit: e9f97dd
+
+## N105 — Saved filters need a real name and a proper filter
+
+### The idea
+Shops can save report filters with a name, like bookmarks.
+
+### The problem
+A name of only spaces and a list instead of a filter were saved.
+
+### The fix
+- reporting.ts: the name must have text; the filter must be an object.
+
+### The code
+Before (apps/api/src/routes/reporting.ts:59): name only had to be truthy.
+After:
+```ts
+if (typeof name !== "string" || name.trim() === "") {
+```
+Blank names and list filters get 400.
+
+### The proof
+- Before: both were stored.
+- After: both refused; a normal filter still saves.
+
+### If the judges ask
+"Is this security?"
+No, data quality; bad input gets a clear 400.
+
+Commit: ebe2652
+
+## N106 — A payment link cannot be for 0 fils
+
+### The idea
+A payment link asks a buyer to pay a set amount.
+
+### The problem
+A 0-fils link crashed the request (500) at a database rule.
+
+### The fix
+- create.ts: amounts must be above 0.
+
+### The code
+Before (apps/api/src/paymentLinks/create.ts:38): only toFils was called.
+After:
+```ts
+if (amountFils <= 0) {
+  throw new BadRequestError("invalid_amount", ...);
+}
+```
+Zero amounts get 400.
+
+### The proof
+- Before: 500.
+- After: 400.
+
+### If the judges ask
+"Why didn't toFils catch it?"
+Zero is a valid number of fils in general; only a payment needs it above 0.
+
+Commit: 6c74bd0
+
+## N107 — A payment link's end date must be real and say its zone
+
+### The idea
+A link expires at a set time.
+
+### The problem
+"30 February" rolled over to March, and a time without a zone used the server's zone.
+
+### The fix
+- create.ts: the shared strict date check runs first.
+
+### The code
+Before (apps/api/src/paymentLinks/create.ts:43):
+```ts
+const expiresAtDate = new Date(input.expiresAt);
+```
+After:
+```ts
+if (!isRealDate(input.expiresAt)) { throw new BadRequestError("invalid_expiry", ...); }
+```
+Bad dates get 400.
+
+### The proof
+- Before: 2099-02-30 accepted.
+- After: refused; the dashboard's format still works.
+
+### If the judges ask
+"Does the dashboard still work?"
+Yes; it sends dates with a Z.
+
+Commit: 1ff0962
+
+## N108 — Disabled webhooks receive nothing
+
+### The idea
+A shop can switch off a webhook address, like unplugging a doorbell.
+
+### The problem
+Messages queued before it was switched off were still sent.
+
+### The fix
+- dispatcher.ts: the sending step skips disabled addresses.
+
+### The code
+Before (apps/api/src/webhooks/dispatcher.ts:228): only the message status was checked.
+After:
+```sql
+AND we.status = 'active'
+```
+Nothing goes to a switched-off address.
+
+### The proof
+- Before: the message was sent.
+- After: nothing sent; it waits until re-enabled.
+
+### If the judges ask
+"Are those messages lost?"
+No, they stay pending and go out if the shop switches the address back on.
+
+Commit: PENDING_N108

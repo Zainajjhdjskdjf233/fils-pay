@@ -408,3 +408,26 @@ test("a disabled endpoint gets no delivery row for a new event", async () => {
   ]);
   assert.equal(rows.rows.length, 0);
 });
+
+// E168 [second review, item 66]: Step B must not send to a disabled endpoint.
+// Step A only queues for active endpoints, but a delivery queued before the
+// endpoint was disabled was still sent.
+test("testE168_noAttemptToADisabledEndpoint", async () => {
+  const merchantId = await createMerchant("e168");
+  const url = `https://example.com/e168-${randomUUID()}`;
+  const endpoint = await createEndpoint(merchantId, url);
+  const event = await enqueueCaptured(merchantId);
+  await runDispatchPass(pool, alwaysRespond(500), config); // queued, first attempt fails, stays pending
+  const delivery = await getDelivery(String((event as { id: string | bigint }).id), endpoint.id);
+  assert.equal(delivery.status, "pending");
+  await pool.query(`UPDATE webhook_endpoints SET status = 'disabled' WHERE id = $1`, [endpoint.id]);
+  await forceDueNow(delivery.id);
+  const sent: string[] = [];
+  const always200 = alwaysRespond(200);
+  const recording: WebhookTransport = async (req: WebhookTransportRequest) => {
+    sent.push(req.url);
+    return always200(req);
+  };
+  await runDispatchPass(pool, recording, config);
+  assert.equal(sent.filter((u) => u === url).length, 0, "nothing may be sent to a disabled endpoint");
+});

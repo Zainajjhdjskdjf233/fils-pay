@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 6:19 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 6:23 PM
 
 ## Contents
 1. Status now
@@ -14,10 +14,10 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 6:19 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 97 of 175 fixed.
+- Errors: 102 of 175 fixed.
   - High: 46 of 46 fixed
-  - Medium: 33 of 60 fixed
-  - Low: 18 of 69 fixed
+  - Medium: 35 of 60 fixed
+  - Low: 21 of 69 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
@@ -27,7 +27,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 6:19 PM
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 97 of 175 fixed.
+- 🔄 Fix: 102 of 175 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -74,6 +74,10 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 6:19 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- 1ff0962 fix(E174): payment-link expiresAt must be a real date with a zone
+- 6c74bd0 fix(E166): payment-link create refuses amount 0 (400, not 500)
+- ebe2652 fix(E169): saved-filter POST refuses an array filter and a blank name
+- e9f97dd fix(E170): report filter accepts partially_refunded (regression from my E133 list)
 - 3e31313 fix(E164): public /healthz and /readyz proxy to the API (they returned the web page)
 - 364058f fix(E144): webhook archive create refuses more than 10,000 deliveries; N101 hash
 - 9397d53 fix(E128): a suspended or closed merchant's sessions and API keys stop working; notes N97-N101
@@ -85,10 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 6:19 PM
 - 7a8b0e6 fix(E145): signup checks field types, businessType, country and password length (partly: email, PATCH path open)
 - d3788b8 fix(E130): a failed payment-link capture voids the card authorization
 - 5543ef2 fix(E131): a discount error after a paid link is logged for retry, not a 500 to the buyer (partly: durable retry open)
-- 1354970 fix(E129): capture idempotency hash includes the transaction id
-- dda38bd fix(E140): balance adjustment delta must be a safe integer within a cap (400, not 500)
-- d8d42bf fix(E141): credit base amount capped at 1,000,000,000 BD (400, not 500); notes N85-N90
-- a394c96 fix(E153): a refund with no amount and nothing left is not refundable (409)
 
 ## 7. All errors
 ## High (46 of 46 fixed)
@@ -142,7 +142,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 6:19 PM
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-### Medium (33 of 60 fixed)
+### Medium (35 of 60 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -203,11 +203,11 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 6:19 PM
 | E163 | [second review] API config never refuses bad settings (prefixes, booleans, NODE_ENV typo turns off security defaults, no ranges) | Partly fixed |
 | E165 | [second review] Authorize and capture accept a zero or negative amount: 0 reaches the acquirer then the DB CHECK (500); negative makes toFils throw (500) | Open |
 | E167 | [second review] Merchant OTP promotion keeps the pending session token (session fixation); the admin half is E47 | Open |
-| E168 | [second review] Webhook dispatch Step B still queues deliveries for disabled endpoints | Open |
-| E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Open |
+| E168 | [second review] Webhook dispatch Step B still queues deliveries for disabled endpoints | Fixed |
+| E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Open |
 
-### Low (18 of 69 fixed)
+### Low (21 of 69 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -274,15 +274,15 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 6:19 PM
 | E160 | [second review] The adjustment-import list pages on created_at text with no tie-breaker | Open |
 | E161 | [second review] Recent ledger activity includes the exclusive end date (one extra day) | Fixed |
 | E164 | [found later] /healthz and /readyz on the public port return the web page | Fixed |
-| E166 | [second review] Payment-link create with amount 0 gives a DB error (500) | Open |
-| E169 | [second review] Saved-filter POST accepts an array filter and a whitespace-only name | Open |
+| E166 | [second review] Payment-link create with amount 0 gives a DB error (500) | Fixed |
+| E169 | [second review] Saved-filter POST accepts an array filter and a whitespace-only name | Fixed |
 | E172 | [second review] Webhook archive/replay date ranges take any `new Date` (rollover, zone-less, numbers) | Open |
 | E173 | [second review] Admin run-batch and MDR recalc: dates checked by regex only, a reversed range is a silent no-op, a missing merchant gives 500 | Open |
-| E174 | [second review] Payment-link expiresAt rolls over (2026-02-30) or is read zone-less | Open |
+| E174 | [second review] Payment-link expiresAt rolls over (2026-02-30) or is read zone-less | Fixed |
 | E175 | [second review] Webhook URLs with embedded credentials are accepted but never deliverable | Open |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101 · N102 · N103 · N104 · N105 · N106 · N107 · N108
 
 ### N01 — Database setup stopped halfway
 
@@ -3919,4 +3919,217 @@ Suspended shops get 401.
 No, they are hidden; re-activating the shop restores them. That is recorded as a known limit.
 
 Commit: 9397d53
+
+### N102 — A webhook archive cannot load all history at once
+
+#### The idea
+Admins can save a copy (archive) of a shop's past webhook messages, like photocopying a ledger.
+
+#### The problem
+Creating an archive loaded every message ever sent into memory.
+- A busy shop could use up the API's memory.
+
+#### The fix
+- archiveReplay.ts: at most 10,000 messages per archive; a wider range is refused (never cut short).
+
+#### The code
+Before (apps/api/src/webhooks/archiveReplay.ts:51): no limit.
+After:
+```ts
+if (rows.rows.length > ARCHIVE_MAX_DELIVERIES) {
+  throw new BadRequestError("archive_range_too_large", ...);
+}
+```
+Too-wide ranges get 400.
+
+#### The proof
+- Before: 10,001 messages were archived.
+- After: refused with 400.
+
+#### If the judges ask
+"Why refuse instead of cutting?"
+An archive must be complete for its dates; a cut-off copy would be misleading.
+
+Commit: 364058f
+
+### N103 — Health checks on the live site reach the API
+
+#### The idea
+A health check is a quick "are you alive?" question, like a nurse checking a pulse.
+
+#### The problem
+On the public port, /healthz returned the web page.
+- A monitor could never see the API's real state.
+
+#### The fix
+- nginx.conf: forward /healthz and /readyz to the API.
+
+#### The code
+Before (ops/nginx/nginx.conf): only /v1/ went to the API.
+After:
+```nginx
+location = /healthz { proxy_pass http://api; access_log off; }
+```
+The check now asks the API itself.
+
+#### The proof
+- Before: 200 text/html.
+- After: 200 {"status":"ok"} on the local stack.
+
+#### If the judges ask
+"How did you find it?"
+Our live end-to-end check, run the way automated tests would.
+
+Commit: 3e31313
+
+### N104 — The report filter accepts "partially refunded"
+
+#### The idea
+Reports can filter payments by status, like sorting receipts.
+
+#### The problem
+My earlier fix (E133) left "partially_refunded" out of the allowed list.
+- A valid filter was refused.
+
+#### The fix
+- reporting.ts: add it to the list, matching the database.
+
+#### The code
+Before (apps/api/src/routes/reporting.ts:92): the list had 6 statuses.
+After:
+```ts
+const REPORT_STATUSES = ["authorized", "captured", "partially_captured", "voided", "partially_refunded", "refunded", "chargeback"];
+```
+All seven real statuses are allowed.
+
+#### The proof
+- Before: 400 for partially_refunded.
+- After: 200.
+
+#### If the judges ask
+"Who found it?"
+The second review; it was a regression from our own fix, and we say so.
+
+Commit: e9f97dd
+
+### N105 — Saved filters need a real name and a proper filter
+
+#### The idea
+Shops can save report filters with a name, like bookmarks.
+
+#### The problem
+A name of only spaces and a list instead of a filter were saved.
+
+#### The fix
+- reporting.ts: the name must have text; the filter must be an object.
+
+#### The code
+Before (apps/api/src/routes/reporting.ts:59): name only had to be truthy.
+After:
+```ts
+if (typeof name !== "string" || name.trim() === "") {
+```
+Blank names and list filters get 400.
+
+#### The proof
+- Before: both were stored.
+- After: both refused; a normal filter still saves.
+
+#### If the judges ask
+"Is this security?"
+No, data quality; bad input gets a clear 400.
+
+Commit: ebe2652
+
+### N106 — A payment link cannot be for 0 fils
+
+#### The idea
+A payment link asks a buyer to pay a set amount.
+
+#### The problem
+A 0-fils link crashed the request (500) at a database rule.
+
+#### The fix
+- create.ts: amounts must be above 0.
+
+#### The code
+Before (apps/api/src/paymentLinks/create.ts:38): only toFils was called.
+After:
+```ts
+if (amountFils <= 0) {
+  throw new BadRequestError("invalid_amount", ...);
+}
+```
+Zero amounts get 400.
+
+#### The proof
+- Before: 500.
+- After: 400.
+
+#### If the judges ask
+"Why didn't toFils catch it?"
+Zero is a valid number of fils in general; only a payment needs it above 0.
+
+Commit: 6c74bd0
+
+### N107 — A payment link's end date must be real and say its zone
+
+#### The idea
+A link expires at a set time.
+
+#### The problem
+"30 February" rolled over to March, and a time without a zone used the server's zone.
+
+#### The fix
+- create.ts: the shared strict date check runs first.
+
+#### The code
+Before (apps/api/src/paymentLinks/create.ts:43):
+```ts
+const expiresAtDate = new Date(input.expiresAt);
+```
+After:
+```ts
+if (!isRealDate(input.expiresAt)) { throw new BadRequestError("invalid_expiry", ...); }
+```
+Bad dates get 400.
+
+#### The proof
+- Before: 2099-02-30 accepted.
+- After: refused; the dashboard's format still works.
+
+#### If the judges ask
+"Does the dashboard still work?"
+Yes; it sends dates with a Z.
+
+Commit: 1ff0962
+
+### N108 — Disabled webhooks receive nothing
+
+#### The idea
+A shop can switch off a webhook address, like unplugging a doorbell.
+
+#### The problem
+Messages queued before it was switched off were still sent.
+
+#### The fix
+- dispatcher.ts: the sending step skips disabled addresses.
+
+#### The code
+Before (apps/api/src/webhooks/dispatcher.ts:228): only the message status was checked.
+After:
+```sql
+AND we.status = 'active'
+```
+Nothing goes to a switched-off address.
+
+#### The proof
+- Before: the message was sent.
+- After: nothing sent; it waits until re-enabled.
+
+#### If the judges ask
+"Are those messages lost?"
+No, they stay pending and go out if the shop switches the address back on.
+
+Commit: PENDING_N108
 
