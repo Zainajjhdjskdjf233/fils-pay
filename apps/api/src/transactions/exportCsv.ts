@@ -1,6 +1,10 @@
 import type { Pool } from "pg";
 import { formatBhd, toFils } from "@filspay/money";
 import type { TransactionRow } from "./serialize.js";
+import { AppError } from "../lib/errors.js";
+
+/** E39: at most this many rows per export; above it the caller must narrow the range. */
+export const MAX_EXPORT_ROWS = 50_000;
 
 export interface TransactionsExportFilters {
   merchantId: string;
@@ -10,6 +14,11 @@ export interface TransactionsExportFilters {
 }
 
 function csvEscape(value: string): string {
+  // E39: a cell starting with = + - @ (or tab / CR) is run as a formula by
+  // spreadsheets; a leading ' makes it plain text.
+  if (/^[=+\-@\t\r]/.test(value)) {
+    value = `'${value}`;
+  }
   if (value.includes(",") || value.includes('"') || value.includes("\n")) {
     return `"${value.replace(/"/g, '""')}"`;
   }
@@ -31,7 +40,11 @@ function toCsvRow(row: TransactionRow): string {
 export async function buildTransactionsExportCsv(
   pool: Pool,
   filters: TransactionsExportFilters,
+  options: { maxRows?: number } = {},
 ): Promise<string> {
+  // E39: the whole CSV is built in memory, so cap the rows (read one extra
+  // to detect "too many") instead of loading an unlimited range.
+  const maxRows = options.maxRows ?? MAX_EXPORT_ROWS;
   const statusArray = filters.status && filters.status.length > 0 ? filters.status : null;
   const result = await pool.query<TransactionRow>(
     `SELECT * FROM transactions
@@ -39,9 +52,13 @@ export async function buildTransactionsExportCsv(
         AND ($2::timestamptz IS NULL OR occurred_at >= $2)
         AND ($3::timestamptz IS NULL OR occurred_at <  $3)
         AND ($4::text[] IS NULL OR status = ANY($4))
-      ORDER BY occurred_at ASC`,
-    [filters.merchantId, filters.from ?? null, filters.to ?? null, statusArray],
+      ORDER BY occurred_at ASC, id ASC
+      LIMIT $5`,
+    [filters.merchantId, filters.from ?? null, filters.to ?? null, statusArray, maxRows + 1],
   );
+  if (result.rows.length > maxRows) {
+    throw new AppError(413, "export_too_large", `more than ${maxRows} rows; narrow the date range`);
+  }
 
   const header = "id,status,amount_bhd,captured_bhd,reference,occurred_at";
   const lines = result.rows.map(toCsvRow);

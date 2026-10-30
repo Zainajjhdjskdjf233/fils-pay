@@ -1540,3 +1540,40 @@ Safe by default: a forgotten setting now hides the code instead of showing it.
 Developers set OTP_DEV_EXPOSE=true in their own environment; all tests already do.
 
 Commit: f588a09
+
+## N42 — The CSV export is safe to open and cannot eat all memory
+
+### The idea
+Shops download their payments as a CSV file and open it in Excel. A cell that starts with "=" is run by Excel as a formula, like a hidden instruction.
+
+### The problem
+- A payment reference like =HYPERLINK("http://evil...") went into the file unchanged, so opening it could run the attacker's formula (CSV injection).
+- The export loaded every row into memory with no limit, so a huge export could crash the server.
+
+### The fix
+- exportCsv.ts: cells starting with = + - @ get a leading ' so Excel shows them as text.
+- exportCsv.ts: at most 50,000 rows; above that the answer is 413 "narrow the date range".
+
+### The code
+Before (apps/api/src/transactions/exportCsv.ts:12-13):
+```ts
+function csvEscape(value: string): string {
+  if (value.includes(",") || value.includes('"') || value.includes("\n")) {
+```
+After:
+```ts
+if (/^[=+\-@\t\r]/.test(value)) {
+  value = `'${value}`;
+}
+```
+The leading ' tells the spreadsheet "this is text".
+
+### The proof
+- Before: the =HYPERLINK cell was written as a live formula; no row limit.
+- After: it starts with '; 3 rows with a limit of 2 gives 413.
+
+### If the judges ask
+"Why a limit and not streaming?"
+A limit is the smallest safe change. The old streaming code was unused and skips rows with the same time; switching to it is marked for Zainab to decide.
+
+Commit: PENDING_N42

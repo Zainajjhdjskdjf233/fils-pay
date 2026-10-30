@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 11:40 AM (30 Oct 2026)
-Summary: Errors 39/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
+Updated: 11:42 AM (30 Oct 2026)
+Summary: Errors 40/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -424,7 +424,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Proof: blame 7310bc3 (Mahmood Khalil, 2025-10-06). CHANGELOG 1.8.0 "Streams rows": false.
 - Severity: medium (case file: "Has anyone tried uploading a really large export?")
 - Proposed fix: use the streaming version with an (occurred_at, id) cursor, or cap the range.
-- Status: open
+- Status: fixed with a row cap (see section 5)
 
 ### E40 — `withTransaction`: a failing ROLLBACK hides the real error
 - Where: apps/api/src/db/withTransaction.ts:11-14, :34; apps/reporting/src/db/withTransaction.ts:31
@@ -1251,6 +1251,14 @@ ROLLBACK;
 - Regression: full-db-test.sh = baseline (5 known failures).
 - Review: default + condition only → no fix-reviewer.
 - Note for /deploy: the hosted box must not set OTP_DEV_EXPOSE.
+- Actual result: matches expected.
+
+### E39 — 11:42 AM — CSV export: formulas neutralized, rows capped
+- Changed: apps/api/src/transactions/exportCsv.ts: `csvEscape` prefixes `'` to a cell starting with `=`, `+`, `-`, `@`, tab or CR; `buildTransactionsExportCsv` reads at most `MAX_EXPORT_ROWS` (50,000) + 1 rows (`ORDER BY occurred_at, id LIMIT`) and throws 413 `export_too_large` above the cap.
+- Decision (for Zainab to review): cap the export instead of switching to streaming — Why: smallest safe change; the existing `streamTransactionsExportCsv` is unused and has its own bug (cursor on occurred_at alone skips rows with equal timestamps) — Alternative: stream with an (occurred_at, id) cursor through reply.raw (bigger change; no limit needed).
+- Test: apps/api/src/transactions/exportCsv.e39.test.ts. Before: `formula cell not neutralized: "=HYPERLINK(""http://evil.test"",""x"")"`; no 413 with maxRows 2. After: 2/2 PASS; exportCsv.test.ts passes.
+- Regression: full-db-test.sh = baseline (5 known failures).
+- Review: small, well-tested → no fix-reviewer.
 - Actual result: matches expected.
 
 ## 6. Deploy
