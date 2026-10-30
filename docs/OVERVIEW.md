@@ -74,6 +74,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:57 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- 93d09b2 fix(E123): card shape checked in both payment routes before the link is claimed (400, not 500)
 - c06b7eb fix(E122): link pay gives back its lock slot, frees the link and voids when pool.connect fails
 - c973988 fix(E119): CSV adjustment import capped at the two-person threshold (per row and total)
 - fb945fa fix(E118): a business day can only be closed after it has ended — early close stranded later captures
@@ -88,7 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:57 PM
 - 107618c fix(E50): payment-link checkout applies the negotiated discount like the card API
 - 376bc49 fix(E19): MDR recalculation uses fee schedules and the tier bonus stored at close
 - ad4a77b fix(E60): reconciliation ledger figure excludes payout lines — next-day payouts looked like a gap
-- 976d166 fix(E44): reconciliation pending fee uses the settlement formula (schedule, tier, integer)
 
 ## 7. All errors
 ## High (35 of 39 fixed)
@@ -2610,5 +2610,5 @@ The card is checked and cleaned (spaces removed) before the link is touched.
 "Why also check in the card API route?"
 It has the same gap (only checks that a card exists), and a crash there is also a 500. One shared helper fixes both.
 
-Commit: PENDING_N64
+Commit: 93d09b2
 

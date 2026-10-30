@@ -2376,4 +2376,4 @@ The card is checked and cleaned (spaces removed) before the link is touched.
 "Why also check in the card API route?"
 It has the same gap (only checks that a card exists), and a crash there is also a 500. One shared helper fixes both.
 
-Commit: PENDING_N64
+Commit: 93d09b2

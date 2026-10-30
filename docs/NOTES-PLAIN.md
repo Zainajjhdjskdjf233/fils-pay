@@ -384,4 +384,4 @@ Where: apps/api/src/paymentLinks/pay.ts:141 · Commit: c06b7eb
 
 When someone sent a card with missing parts, the server crashed after it had already reserved the payment link. The buyer saw an error, and the link stayed "busy" for a minute so the real buyer could not pay. Now both payment routes check the card first and answer "bad card" (400) before touching anything. Card numbers typed with spaces still work. A test sends seven broken cards to both routes and then pays normally.
 
-Where: apps/api/src/routes/paymentLinks.ts:163 · Commit: PENDING_N64
+Where: apps/api/src/routes/paymentLinks.ts:163 · Commit: 93d09b2
