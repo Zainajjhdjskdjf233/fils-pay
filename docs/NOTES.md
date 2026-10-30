@@ -5069,3 +5069,205 @@ Every row is exported once.
 It is the obvious way to stream a big export later; it should not lose rows when someone wires it.
 
 Commit: 9d753ab
+
+## N145 — The truth about webhook replays
+
+### The idea
+Staff can resend old webhook messages to a shop. Like reprinting a receipt: is it the same receipt number or a new one?
+
+### The problem
+The admin guide said a replay keeps the old id.
+- The code gives each replay a new id, on purpose.
+- A shop following the guide would be surprised.
+
+### The fix
+- docs/ADMIN.md: a correction under the false line.
+- The code stays as it is (a decision for review).
+
+### The code
+Before (apps/api/src/webhooks/replay.ts:48):
+```ts
+const newDeliveryEventId = randomUUID();
+```
+After: unchanged; only the guide changed.
+The guide now matches what the code does.
+
+### The proof
+- Before: ADMIN.md said "reuses the original delivery ids".
+- After: ADMIN.md explains a replay has a new id and why.
+
+### If the judges ask
+"Why not keep the old id?"
+A shop that already handled the old id would silently drop the replay, which defeats the point of resending.
+
+Commit: ac8951e
+
+## N146 — Slow down password guessing
+
+### The idea
+Logging in checks a password with a deliberately slow method. Like a door that takes a second to unlock, so guessing is slow.
+
+### The problem
+There was no limit on attempts.
+- A loop could guess passwords or fill the server with slow work.
+
+### The fix
+- New ipRateLimit.ts: at most 120 login or signup calls per address per minute.
+- app.ts: read the real client address from nginx.
+
+### The code
+Before (apps/api/src/routes/auth.ts:54):
+```ts
+app.post<{ Body: LoginBody }>("/login", async (request, reply) => {
+```
+After:
+```ts
+app.post<{ Body: LoginBody }>("/login", { preHandler: app.authRateLimit }, async (request, reply) => {
+```
+Too many tries from one address get 429 with a wait time.
+
+### The proof
+- Before: the 6th try (limit 5) was still checked.
+- After: 429 with Retry-After; another address is not affected.
+
+### If the judges ask
+"Can someone fake their address?"
+No: nginx replaces the address header with the real one, and only nginx is reachable from outside.
+
+Commit: 88ed92d
+
+## N147 — Dashboard days are Bahrain days
+
+### The idea
+The shop filters transactions by date. A day should start at midnight in Bahrain, like the payouts.
+
+### The problem
+The filter started days at midnight UTC.
+- Payments from 00:00 to 03:00 in Bahrain showed under the day before.
+
+### The fix
+- format.ts: midnight Bahrain; impossible dates are not sent.
+- The old test pinned the UTC rule and was updated.
+
+### The code
+Before (apps/web/src/format.ts:37):
+```ts
+return dateValue ? `${dateValue}T00:00:00.000Z` : undefined;
+```
+After:
+```ts
+const instant = new Date(`${dateValue}T00:00:00.000+03:00`);
+```
+The list and the payouts now agree on what "a day" is.
+
+### The proof
+- Before: 2026-09-12 started at 2026-09-12T00:00Z.
+- After: it starts at 2026-09-11T21:00Z.
+
+### If the judges ask
+"A comment said this was already fixed."
+It was false; the code still used UTC, and the test locked it in.
+
+Commit: b7e67cf
+
+## N148 — No forms from other sites
+
+### The idea
+When you are logged in, your browser sends your login cookie automatically. Another page could try to use that, like someone signing a form in your name.
+
+### The problem
+Pages on other parts of the same site could make your browser act.
+- For example log out, or resend a code.
+
+### The fix
+- New csrfOrigin.ts: a request that changes something, carries our cookie, and comes from another site is refused.
+
+### The code
+Before (apps/api/src/app.ts): no check.
+After:
+```ts
+if (!originHost || !host || originHost !== host) {
+  throw new ForbiddenError("cross_origin_request", "This request must come from the FilsPay site itself.");
+}
+```
+Only our own pages can act with your cookie.
+
+### The proof
+- Before: a POST from another origin was processed.
+- After: 403; our own pages and server clients still work.
+
+### If the judges ask
+"Why ignore the port?"
+nginx forwards the host without the port, and the admin console runs on 8081; the same machine counts as one site.
+
+Commit: 65dd9b1
+
+## N149 — Do not ask a charged buyer to pay again
+
+### The idea
+Two buyers can pay the same invoice at the same moment. Only one can win; the other's card may already be charged.
+
+### The problem
+The losing buyer saw "try again shortly".
+- They might pay again and lose the reference for their refund.
+
+### The fix
+- CheckoutPage.tsx: a clear final message with the reference.
+
+### The code
+Before (apps/web/src/pages/checkout/CheckoutPage.tsx:77):
+```tsx
+} else if (statusCode === 409) {
+  setPayState({ kind: "declined", message: "...Please try again shortly.", retryable: true });
+```
+After:
+```tsx
+} else if (statusCode === 409 && body.error === "payment_link_reservation_lost") {
+  setPayState({ kind: "terminal", message: `Your card was charged ... Do not pay again ...${ref}` });
+```
+The buyer knows not to pay twice and keeps the reference.
+
+### The proof
+- Before: "try again shortly" for a charged buyer.
+- After: web typecheck clean, web tests 13/13; the server side is tested by the E29 test.
+
+### If the judges ask
+"Who refunds them?"
+The server logs "refund needed" with the transaction id, and the merchant refunds from the dashboard.
+
+Commit: 4513457
+
+## N150 — Expired means expired
+
+### The idea
+A payment link can be held for a minute while someone pays. Like a seat held during checkout.
+
+### The problem
+If a hold timed out after the link expired, the link looked open again.
+- The buyer saw a Pay form forever.
+
+### The fix
+- status.ts: a timed-out hold on an expired link reads "expired".
+- pay.ts: paying such a link gives 410 expired.
+
+### The code
+Before (apps/api/src/paymentLinks/status.ts:40):
+```ts
+return stillReserved ? "processing" : "active";
+```
+After:
+```ts
+if (stillReserved) return "processing";
+return row.expiresAt.getTime() <= Date.now() ? "expired" : "active";
+```
+An expired link stays expired.
+
+### The proof
+- Before: "active" and 409.
+- After: "expired" and 410.
+
+### If the judges ask
+"Is everything in E101 fixed?"
+Not the merchant's Cancel button for such a link; it is harmless now because nobody can pay it.
+
+Commit: f788901

@@ -865,3 +865,39 @@ Where: apps/api/src/payments/refundValidation.ts · Commit: c0350b1
 The streaming export could skip rows that share the same time at a page edge. Now it uses time plus id as its bookmark. A test with three same-time rows proves none is lost.
 
 Where: apps/api/src/transactions/exportCsv.ts · Commit: 9d753ab
+
+## N145 — The truth about webhook replays
+
+The admin guide said a resent webhook keeps its old id, but the code gives it a new one on purpose. We corrected the guide and kept the code. The choice is listed for review.
+
+Where: docs/ADMIN.md:91 · Commit: ac8951e
+
+## N146 — Slow down password guessing
+
+There was no limit on login or signup attempts. Now one address can try 120 times a minute, then waits. A test proves the limit and that other addresses are not affected.
+
+Where: apps/api/src/lib/ipRateLimit.ts · Commit: 88ed92d
+
+## N147 — Dashboard days are Bahrain days
+
+The dashboard date filter started days at midnight UTC, three hours off. Now it uses midnight Bahrain, like payouts. The old test that locked in UTC was updated.
+
+Where: apps/web/src/format.ts · Commit: b7e67cf
+
+## N148 — No forms from other sites
+
+A page on another part of the site could make a logged-in browser act. Now such requests are refused unless they come from our own pages. A test proves it.
+
+Where: apps/api/src/plugins/csrfOrigin.ts · Commit: 65dd9b1
+
+## N149 — Do not ask a charged buyer to pay again
+
+When two buyers paid one invoice at once, the losing buyer was told to try again although their card was charged. Now they see a clear message and their reference.
+
+Where: apps/web/src/pages/checkout/CheckoutPage.tsx · Commit: 4513457
+
+## N150 — Expired means expired
+
+An expired payment link could look open again after an old hold timed out. Now it shows expired and cannot be paid. Tests prove both. The merchant's Cancel button for such links is still open.
+
+Where: apps/api/src/paymentLinks/status.ts · Commit: f788901

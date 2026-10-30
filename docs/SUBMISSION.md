@@ -283,7 +283,7 @@ Not changed (recorded): money columns are still left-aligned (29 cells in 10 fil
 ### Every error entry
 
 <!-- errors:start (generated from docs/ERRORS.md) -->
-All 176 entries from docs/ERRORS.md (141 of 176 fixed.). Each ID has its error (section 2) and, when fixed, its fix (section 5) in docs/LOG.md.
+All 176 entries from docs/ERRORS.md (142 of 176 fixed.). Each ID has its error (section 2) and, when fixed, its fix (section 5) in docs/LOG.md.
 
 | ID | Title | Level | Status |
 |---|---|---|---|
@@ -386,8 +386,8 @@ All 176 entries from docs/ERRORS.md (141 of 176 fixed.). Each ID has its error (
 | E97 | [found later] Reporting config accepts bad numbers ("15s" → 15 ms) | Low | Fixed |
 | E98 | [found later] Raw Postgres error text in logs and dead letters (my E53 code) | Low | Fixed |
 | E99 | [found later] Dashboard capture makes a new Idempotency-Key on every click (double capture on retry) | High | Fixed |
-| E100 | [found later] Checkout tells a charged buyer to try again (reservation_lost) | Medium | Open |
-| E101 | [found later] Expired link with stale reservation: Pay form forever, cannot cancel | Medium | Open |
+| E100 | [found later] Checkout tells a charged buyer to try again (reservation_lost) | Medium | Fixed |
+| E101 | [found later] Expired link with stale reservation: Pay form forever, cannot cancel | Medium | Partly fixed |
 | E102 | [found later] Merchant dashboard logs out after 10 minutes and does not notice | High | Fixed |
 | E103 | [found later] View as merchant cannot work end to end | Medium | Open |
 | E104 | [found later] Bulk Approve KYC approves hidden merchants; server checks no status | High | Fixed |

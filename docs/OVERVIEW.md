@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 7:45 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 7:48 PM
 
 ## Contents
 1. Status now
@@ -14,20 +14,20 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:45 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 141 of 176 fixed.
+- Errors: 142 of 176 fixed.
   - High: 46 of 46 fixed
-  - Medium: 47 of 60 fixed
+  - Medium: 48 of 60 fixed
   - Low: 48 of 70 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
 - Dilmune Cloud: live
-- Decisions waiting for Zainab: 37 (search "for Zainab to review" in LOG.md)
+- Decisions waiting for Zainab: 39 (search "for Zainab to review" in LOG.md)
 - Fork: needs a push (VS Code: Git: Push to... → mine)
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 141 of 176 fixed.
+- 🔄 Fix: 142 of 176 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -74,6 +74,8 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:45 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- f788901 fix(E101): expired link with a stale reservation reads expired and pay gives 410 (partly fixed)
+- 4513457 fix(E100): checkout tells a charged buyer not to pay again and shows the reference; E82 marked for review
 - 65dd9b1 fix(E84): refuse cookie-carrying state-changing requests from another origin
 - b7e67cf fix(E76): dashboard date filter uses midnight Bahrain, not UTC
 - 88ed92d fix(E146): login and signup rate limited per client IP (429 + Retry-After)
@@ -87,8 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:45 PM
 - 3ef0efb fix(E46): KYC PDF-only rule checks the bytes, not the filename
 - fed085a fix(E66): expire_holds re-checks status in the DELETE; a released hold is kept
 - a056bec fix(E80): scheme export fallback prints exactly two truncated decimals
-- 9f6cb49 fix(E77): batch detail progress bar uses integer math, no float on fils
-- db9c444 fix(E81): admin Run batch date defaults to yesterday in Bahrain
 
 ## 7. All errors
 ## High (46 of 46 fixed)
@@ -142,7 +142,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:45 PM
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-### Medium (47 of 60 fixed)
+### Medium (48 of 60 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -180,8 +180,8 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:45 PM
 | E91 | [found later] Every service connects as one Postgres superuser | Fixed |
 | E92 | [found later] Ledger immutability claim false; audit log unprotected | Partly fixed |
 | E93 | [found later] sqlFilter builds DELETE with no WHERE for null/undefined filters | Fixed |
-| E100 | [found later] Checkout tells a charged buyer to try again (reservation_lost) | Open |
-| E101 | [found later] Expired link with stale reservation: Pay form forever, cannot cancel | Open |
+| E100 | [found later] Checkout tells a charged buyer to try again (reservation_lost) | Fixed |
+| E101 | [found later] Expired link with stale reservation: Pay form forever, cannot cancel | Partly fixed |
 | E103 | [found later] View as merchant cannot work end to end | Open |
 | E105 | [found later] Refund drawer keeps its key after a definite 4xx (my F01f bug) | Fixed |
 | E106 | [found later] Reconciliation and batch pages leave out refund parts | Fixed |
@@ -283,7 +283,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:45 PM
 | E176 | [deep review] A redeploy stops settlement after 10 s, although it waits 30 s for a running batch | Fixed |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101 · N102 · N103 · N104 · N105 · N106 · N107 · N108 · N109 · N110 · N111 · N112 · N113 · N114 · N115 · N116 · N117 · N118 · N119 · N120 · N121 · N122 · N123 · N124 · N125 · N126 · N127 · N128 · N129 · N130 · N131 · N132 · N133 · N134 · N135 · N136 · N137 · N138 · N139 · N140 · N141 · N142 · N143 · N144
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101 · N102 · N103 · N104 · N105 · N106 · N107 · N108 · N109 · N110 · N111 · N112 · N113 · N114 · N115 · N116 · N117 · N118 · N119 · N120 · N121 · N122 · N123 · N124 · N125 · N126 · N127 · N128 · N129 · N130 · N131 · N132 · N133 · N134 · N135 · N136 · N137 · N138 · N139 · N140 · N141 · N142 · N143 · N144 · N145 · N146 · N147 · N148 · N149 · N150
 
 ### N01 — Database setup stopped halfway
 
@@ -5352,4 +5352,206 @@ Every row is exported once.
 It is the obvious way to stream a big export later; it should not lose rows when someone wires it.
 
 Commit: 9d753ab
+
+### N145 — The truth about webhook replays
+
+#### The idea
+Staff can resend old webhook messages to a shop. Like reprinting a receipt: is it the same receipt number or a new one?
+
+#### The problem
+The admin guide said a replay keeps the old id.
+- The code gives each replay a new id, on purpose.
+- A shop following the guide would be surprised.
+
+#### The fix
+- docs/ADMIN.md: a correction under the false line.
+- The code stays as it is (a decision for review).
+
+#### The code
+Before (apps/api/src/webhooks/replay.ts:48):
+```ts
+const newDeliveryEventId = randomUUID();
+```
+After: unchanged; only the guide changed.
+The guide now matches what the code does.
+
+#### The proof
+- Before: ADMIN.md said "reuses the original delivery ids".
+- After: ADMIN.md explains a replay has a new id and why.
+
+#### If the judges ask
+"Why not keep the old id?"
+A shop that already handled the old id would silently drop the replay, which defeats the point of resending.
+
+Commit: ac8951e
+
+### N146 — Slow down password guessing
+
+#### The idea
+Logging in checks a password with a deliberately slow method. Like a door that takes a second to unlock, so guessing is slow.
+
+#### The problem
+There was no limit on attempts.
+- A loop could guess passwords or fill the server with slow work.
+
+#### The fix
+- New ipRateLimit.ts: at most 120 login or signup calls per address per minute.
+- app.ts: read the real client address from nginx.
+
+#### The code
+Before (apps/api/src/routes/auth.ts:54):
+```ts
+app.post<{ Body: LoginBody }>("/login", async (request, reply) => {
+```
+After:
+```ts
+app.post<{ Body: LoginBody }>("/login", { preHandler: app.authRateLimit }, async (request, reply) => {
+```
+Too many tries from one address get 429 with a wait time.
+
+#### The proof
+- Before: the 6th try (limit 5) was still checked.
+- After: 429 with Retry-After; another address is not affected.
+
+#### If the judges ask
+"Can someone fake their address?"
+No: nginx replaces the address header with the real one, and only nginx is reachable from outside.
+
+Commit: 88ed92d
+
+### N147 — Dashboard days are Bahrain days
+
+#### The idea
+The shop filters transactions by date. A day should start at midnight in Bahrain, like the payouts.
+
+#### The problem
+The filter started days at midnight UTC.
+- Payments from 00:00 to 03:00 in Bahrain showed under the day before.
+
+#### The fix
+- format.ts: midnight Bahrain; impossible dates are not sent.
+- The old test pinned the UTC rule and was updated.
+
+#### The code
+Before (apps/web/src/format.ts:37):
+```ts
+return dateValue ? `${dateValue}T00:00:00.000Z` : undefined;
+```
+After:
+```ts
+const instant = new Date(`${dateValue}T00:00:00.000+03:00`);
+```
+The list and the payouts now agree on what "a day" is.
+
+#### The proof
+- Before: 2026-09-12 started at 2026-09-12T00:00Z.
+- After: it starts at 2026-09-11T21:00Z.
+
+#### If the judges ask
+"A comment said this was already fixed."
+It was false; the code still used UTC, and the test locked it in.
+
+Commit: b7e67cf
+
+### N148 — No forms from other sites
+
+#### The idea
+When you are logged in, your browser sends your login cookie automatically. Another page could try to use that, like someone signing a form in your name.
+
+#### The problem
+Pages on other parts of the same site could make your browser act.
+- For example log out, or resend a code.
+
+#### The fix
+- New csrfOrigin.ts: a request that changes something, carries our cookie, and comes from another site is refused.
+
+#### The code
+Before (apps/api/src/app.ts): no check.
+After:
+```ts
+if (!originHost || !host || originHost !== host) {
+  throw new ForbiddenError("cross_origin_request", "This request must come from the FilsPay site itself.");
+}
+```
+Only our own pages can act with your cookie.
+
+#### The proof
+- Before: a POST from another origin was processed.
+- After: 403; our own pages and server clients still work.
+
+#### If the judges ask
+"Why ignore the port?"
+nginx forwards the host without the port, and the admin console runs on 8081; the same machine counts as one site.
+
+Commit: 65dd9b1
+
+### N149 — Do not ask a charged buyer to pay again
+
+#### The idea
+Two buyers can pay the same invoice at the same moment. Only one can win; the other's card may already be charged.
+
+#### The problem
+The losing buyer saw "try again shortly".
+- They might pay again and lose the reference for their refund.
+
+#### The fix
+- CheckoutPage.tsx: a clear final message with the reference.
+
+#### The code
+Before (apps/web/src/pages/checkout/CheckoutPage.tsx:77):
+```tsx
+} else if (statusCode === 409) {
+  setPayState({ kind: "declined", message: "...Please try again shortly.", retryable: true });
+```
+After:
+```tsx
+} else if (statusCode === 409 && body.error === "payment_link_reservation_lost") {
+  setPayState({ kind: "terminal", message: `Your card was charged ... Do not pay again ...${ref}` });
+```
+The buyer knows not to pay twice and keeps the reference.
+
+#### The proof
+- Before: "try again shortly" for a charged buyer.
+- After: web typecheck clean, web tests 13/13; the server side is tested by the E29 test.
+
+#### If the judges ask
+"Who refunds them?"
+The server logs "refund needed" with the transaction id, and the merchant refunds from the dashboard.
+
+Commit: 4513457
+
+### N150 — Expired means expired
+
+#### The idea
+A payment link can be held for a minute while someone pays. Like a seat held during checkout.
+
+#### The problem
+If a hold timed out after the link expired, the link looked open again.
+- The buyer saw a Pay form forever.
+
+#### The fix
+- status.ts: a timed-out hold on an expired link reads "expired".
+- pay.ts: paying such a link gives 410 expired.
+
+#### The code
+Before (apps/api/src/paymentLinks/status.ts:40):
+```ts
+return stillReserved ? "processing" : "active";
+```
+After:
+```ts
+if (stillReserved) return "processing";
+return row.expiresAt.getTime() <= Date.now() ? "expired" : "active";
+```
+An expired link stays expired.
+
+#### The proof
+- Before: "active" and 409.
+- After: "expired" and 410.
+
+#### If the judges ask
+"Is everything in E101 fixed?"
+Not the merchant's Cancel button for such a link; it is harmless now because nobody can pay it.
+
+Commit: f788901
 
