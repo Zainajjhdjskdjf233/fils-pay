@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 08:14 PM (30 Oct 2026)
-Summary: Errors 152/176 fixed (+12 partly: E50, E92, E101, E131, E145, E163, E48, E67, E86, E94, E96, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 08:15 PM (30 Oct 2026)
+Summary: Errors 152/176 fixed (+10 partly: E50, E92, E131, E145, E163, E48, E67, E78, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -713,7 +713,8 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/settlement/internal/balances/cache.go:25-35 + batch.go (cache moves by net at close/payout) vs ledger/rebuild.go:110-113 (full merchant_payable incl. unbatched captures), button since E18
 - Error: after a rebuild, closing unbatched captures adds them again; the admin balance drifts (display only; payouts use net_payout_fils).
 - Proof: code read (ADR check agent (12:58 PM); checked by me).
-- Severity: medium · Status: open
+- Severity: medium · Status: open — for Zainab to review (08:16 PM)
+- What needs deciding: the incremental cache moves by each batch's net at close and payout (balances/cache.go:25-45), while the rebuild sets it to the full merchant_payable ledger sum, including captures not yet in a batch (ledger/rebuild.go:110-113). After a rebuild, closing those captures adds them a second time. Options: (a) the rebuild computes only batched money (exclude ledger groups without a settlement batch) — matches the incremental meaning; (b) the incremental path also moves at capture time — matches the ledger meaning, more writes. Display only: payouts use net_payout_fils. Not changed tonight.
 
 ### E75 — [found later] The March sweep posts the opposite legs from ADR-0002 and charges merchants for the residue
 - Where: scripts/reconcile_march.ts:97-98 (debit merchant_payable / credit scheme_rounding_residue) vs ADR-0002 (credit card_scheme_clearing / debit scheme_rounding_residue)
@@ -737,7 +738,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/config.ts:244 (30_000 ms); apps/settlement/internal/ledger/rebuild.go:96-133 (3 queries per merchant, TODO no lock)
 - Error: long rebuild aborts; a concurrent CloseBatch increment can be overwritten (open since E18).
 - Proof: code read (ADR check agent (12:58 PM); checked by me).
-- Severity: low · Status: open
+- Severity: low · Status: partly fixed (see section 5, E78; timeout and missing-row case open)
 
 ### E79 — [found later] Dead helpers with float or wrong-scale money math
 - Where: discountAdjustment.ts:13-17 parsePromotionalDiscountFils (×100); fees/estimate.ts (float, unused since E44); scheme_export.go:29-31 SchemeAmountBD (unused since E14); settlementClient.ts:296 (/10, H34); capture.ts:14-41 recordCaptureMetric (UTC date); v1/fees/calculateFee.ts:29
@@ -2873,6 +2874,13 @@ ROLLBACK;
 - Changed: apps/web TransactionListPage.tsx, PaymentLinkListPage.tsx, SettlementBatchListPage.tsx, WebhookEndpointDetailPage.tsx (loadDeliveries) and apps/admin MerchantListPage.tsx: each load gets a number from a useRef counter; after the await, a result, an error or the loading flag from an older request is ignored. Same three-line pattern in all five.
 - Proof: UI-only, no browser test setup for this race; web and admin tsc clean; web tests 13/13.
 - check.sh (clean environment): OK. Needs a redeploy.
+
+### E78 — 08:15 PM — the balance rebuild locks each merchant's balance row before recomputing it (timeout part still open)
+- Changed: apps/settlement/internal/ledger/rebuild.go: the cached-balance read is FOR UPDATE, before the ledger sum. A concurrent CloseBatch (balances.ApplyBatchClose updates the same row) now waits and adds its delta after the rebuild commits, instead of being overwritten. This closes YA's TODO at the same place.
+- Proof: no deterministic race test; all Go packages pass on the DB.
+- Still open: a merchant with no merchant_balances row yet has nothing to lock; a long rebuild can still exceed the API's 30 s call timeout (config.ts:244).
+- E74 (same commit, docs only): what the cached balance should mean is recorded with two options, for Zainab to review.
+- check.sh (clean environment): OK. Needs a redeploy (settlement image).
 
 ## 6. Deploy
 

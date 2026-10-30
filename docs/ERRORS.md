@@ -154,7 +154,7 @@ Summary: 152 of 176 fixed.
 | E71 | [found later] Re-seeding leaves old dead letters with reused outbox ids | Open |
 | E72 | [found later] reconcile_march uses authorization time and running-total residue (suspected) | Open |
 | E77 | [found later] Float and toFixed on money in the batch detail page | Fixed |
-| E78 | [found later] Balance rebuild may hit the 30 s timeout; no row lock (suspected) | Open |
+| E78 | [found later] Balance rebuild may hit the 30 s timeout; no row lock (suspected) | Partly fixed |
 | E79 | [found later] Dead helpers with float or wrong-scale money math | Open |
 | E80 | [found later] Scheme export fallback can print more than 2 decimals | Fixed |
 | E81 | [found later] Admin Run batch default date uses the UTC day | Fixed |
