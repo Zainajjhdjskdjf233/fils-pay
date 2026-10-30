@@ -2961,6 +2961,11 @@ A fresh clone of the fork, built and started from nothing but the repo.
 - Over ssh: uptime 2:40 (no reboot); api, nginx, settlement healthy and reporting up for 45 minutes (since redeploy 2), postgres healthy for 2 hours, migrate Exited (0); server at d3e4fd1; memory 1.3 GB available. Nothing was down, so no redeploy.
 - Organizers confirmed: IP only, no domain and no SSL needed. So the live URLs stay http://139.59.57.26/ and http://139.59.57.26:8081/.
 
+### Final regression before the code freeze — 08:06 PM
+- \`scratchpad/full-db-test.sh\` on a fresh, freshly migrated database (filspay_full_200557_10151; migrations up to 0085 applied from zero) at commit 8acf5d2: api 519/519, money 44/44, events 4/4, reporting 21/21, web 13/13, scripts 11/11, Go 84 pass (1 skip), failing 0.
+- docs/CONTRIBUTIONS.md and the README block regenerated (python3 docs/tools/contributions.py, built at 8acf5d2); SUBMISSION member lines copied from it.
+- Live server: still at d3e4fd1; every fix after it (E95 onward, migration 0085, nginx CSP, API listen host, settlement notify) goes live at the 9:00 PM redeploy, after Zainab pushes.
+
 ## 7. Judge notes
 
 ### Live deploy — 06:12 PM (30 Oct 2026)

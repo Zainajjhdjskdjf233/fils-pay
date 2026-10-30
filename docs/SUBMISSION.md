@@ -5,8 +5,8 @@
 **Team:** Case Closed
 
 **Members and what each owned**
-<!-- members:start (regenerated from docs/CONTRIBUTIONS.md after the code freeze) -->
-- Zainab — built the AI setup: 24 files in .claude/ and CLAUDE.md (`git ls-files .claude CLAUDE.md`); directed and checked the fixes: 226 commits after the inherited history (`git shortlog -sn a12d4c7^..HEAD`); led the case investigation (docs/CASE-MAP.md); her setup recorded 148 of 175 error entries (docs/ERRORS.md minus the second-review entries in docs/CONTRIBUTIONS.md section 4).
+<!-- members:start (copied from docs/CONTRIBUTIONS.md, built at the code freeze) -->
+- Zainab — built the AI setup: 24 files in .claude/ and CLAUDE.md (`git ls-files .claude CLAUDE.md`); directed and checked the fixes: 299 commits after the inherited history (`git shortlog -sn a12d4c7^..HEAD`); led the case investigation (docs/CASE-MAP.md); her setup recorded 149 of 176 error entries (docs/ERRORS.md minus the second-review entries in docs/CONTRIBUTIONS.md section 4).
 - Lulwa — reviewed the code independently in a separate copy: 91 items (docs/COMPARE.md); its findings that were new to us became 27 entries in this fork (items with one root cause share an entry; listed by ID in docs/CONTRIBUTIONS.md section 4); her code changes are not in this fork: 0 commits (`git shortlog -sn a12d4c7^..HEAD`); her notes state her tests could not be run.
 <!-- members:end -->
 
@@ -29,10 +29,10 @@
 We inherited FilsPay: a Fastify/TypeScript payments API, a Go settlement service, a reporting worker, two React apps (merchant dashboard and checkout, admin console) and a Postgres database. On arrival it could not be installed: migrations stopped at 0054 (E01) and `docker compose up` failed (E02).
 
 What we did, with sources:
-- **Errors:** 176 entries recorded with file:line proof (docs/ERRORS.md, docs/LOG.md section 2). 141 fixed, 9 partly fixed, 2 skipped with a recorded reason, 24 open (7 Medium, 17 Low). All 46 High entries are fixed (docs/ERRORS.md, "High (46 of 46 fixed)").
+- **Errors:** 176 entries recorded with file:line proof (docs/ERRORS.md, docs/LOG.md section 2). 148 fixed, 12 partly fixed, 2 skipped with a recorded reason, 14 open (4 Medium, 10 Low). All 46 High entries are fixed (docs/ERRORS.md, "High (46 of 46 fixed)").
 - **Hidden things:** 40 entries in docs/LOG.md section 3 (false comments, planted AI instruction files, a staged git history, missing commits).
 - **Features from the case file:** both done. F01 (refund flow end to end) and F02 (live on Dilmune Cloud) (docs/LOG.md section 4).
-- **Tests:** every fix started with a test that failed for the right reason. Last full regression on a fresh database (commit ceacc85): API 498/498, money 44/44, events 4/4, reporting 18/18, web 13/13, scripts 10/10, Go 80 pass, 0 failures (docs/LOG.md section 5, E88).
+- **Tests:** every fix started with a test that failed for the right reason, except a few UI-only and timing-race fixes where LOG says so. Final full regression on a fresh database (commit 8acf5d2, 08:06 PM): API 519/519, money 44/44, events 4/4, reporting 21/21, web 13/13, scripts 11/11, Go 84 pass, 0 failures (docs/LOG.md section 6).
 - **Live check:** 45 public and 29 logged-in checks against the live server, including a full refund (10.000 BD) and a partial refund (4.000 BD), with a reconciliation gap of 0 (docs/LOG.md section 6).
 - **Case:** the inherited history was staged after 12 Sep 2026. Main actor: Mahmood Khalil (medium confidence). Full reasoning: docs/CASE-MAP.md.
 
@@ -191,7 +191,7 @@ Each finding below follows the same pattern: symptom, how it was found and repro
 - **OTP on the live demo server.** There is no SMS or email sender. To let judges log in, the live server sets `OTP_DEV_EXPOSE=true`, so the login response shows the code. The code default is off (E37). This is set only in the server's ops/.env.docker. Safeguard: in a real deployment OTP goes by SMS or email and this flag stays off.
 - **Limits chosen by us (for review):** balance adjustment and credit caps (E140, E141), CSV import 1,000 rows (E158), webhook archive 10,000 deliveries (E144), 50 saved filters (E171), 20 KYC documents per merchant (E148, a lifetime limit because no code deletes documents), password minimum (E145), credits back-dated at most 90 days (E134), login and signup 120 calls per IP per minute (E146), reporting settings ranges (E97).
 - **Left as designed (for review):** E150 (a balance adjustment for a merchant with no balance row returns 404; recorded by MK as a choice, three tests assert it); admin impersonation still works for a suspended merchant (E128); API keys can save report filters (E88); a webhook replay gets a new delivery id, as the code intends (E143, docs/ADMIN.md corrected); the seed needs FILSPAY_ALLOW_SEED_RESET=1 (E65).
-- **Open risks (24 open entries, 7 Medium and 17 Low, docs/ERRORS.md):** among them E63 (the admin reporting rebuild can double-count events the worker has not reached; analysis and options in LOG, for review), E82 (admin "rotate API key" shows staff a full-power merchant key), E83 (legal name and CR number editable after KYC approval), E100/E101 (checkout messages after a lost reservation), E89 (unsalted hash of card data in the simulator), E47 (no Content-Security-Policy yet). The Origin check (E84) does not cover very old browsers that send no Origin header.
+- **Open risks (14 open entries, 4 Medium and 10 Low, plus 12 partly fixed; docs/ERRORS.md):** among them E63 (the admin reporting rebuild can double-count events the worker has not reached; analysis and options in LOG, for review), E82 (admin "rotate API key" shows staff a full-power merchant key; options in LOG, for review), E74 (balance cache and ledger rebuild measure different things), E103 ("view as merchant" cannot work end to end), E108 (list pages can mix rows from an old filter). Partly fixed items list what is left in docs/LOG.md (for example E101: a merchant cannot cancel an expired link that kept a stale reservation; E67: no job refreshes the refund summary view). The Origin check (E84) does not cover very old browsers that send no Origin header. Old idempotency rows written before E89 still hold the old card hashes until they are cleared.
 - **Existing data:** fixes change future behaviour. Rows written wrongly before a fix are not rewritten; finance would correct them from the ledger history.
 - **Live version:** the server runs d3e4fd1 (redeploy 2, 07:12 PM); one more redeploy at the code freeze.
 
