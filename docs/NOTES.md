@@ -1761,4 +1761,4 @@ Only real activity (sales, fees, refunds, corrections) is compared with the batc
 "Why not exclude every line with a batch id?"
 Fee recalculation lines also have a batch id, and they really change what the shop is owed, so they must count.
 
-Commit: PENDING_N47
+Commit: ad4a77b

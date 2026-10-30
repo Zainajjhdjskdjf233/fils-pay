@@ -282,4 +282,4 @@ Where: apps/api/src/settlement/query.ts:374 · Commit: 976d166
 
 Each day's batch is paid out the next day, and the money check counted that payout as if it were the next day's own activity. So the day after every payout looked like money was missing. Now the check leaves payout lines out and compares only real activity with the batches. A test over three different date ranges now always balances.
 
-Where: apps/api/src/settlement/query.ts:314 · Commit: PENDING_N47
+Where: apps/api/src/settlement/query.ts:314 · Commit: ad4a77b
