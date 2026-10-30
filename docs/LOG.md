@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 05:25 PM (30 Oct 2026)
-Summary: Errors 91/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 05:26 PM (30 Oct 2026)
+Summary: Errors 92/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -963,7 +963,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/auth/requireMerchantAuth.ts:129-134 (impersonation recorded as merchant_session)
 - Error: defence in depth on top of E10/E35: every route using it today also requires owner/finance (paymentLinks.ts:77,101; webhooks.ts:58-165; transactions; refunds), and impersonation is "support", so it is not reachable now.
 - Proof: a second review with another AI tool (pasted by Zainab, 2:30 PM); checked by me in the code.
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E116)
 
 ### E117 — [deep review] The OTP guess limit was per code, not per user (brute-forceable second factor)
 - Where: apps/api/src/routes/auth.ts:81-96 and routes/adminAuth.ts:74-89 (each login inserted a new challenge via issueChallenge/issueAdminChallenge, auth/otp.ts:38-58, adminAuth/otp.ts:25-45); nothing ended older live codes or pending sessions, and nothing counted guesses per user.
@@ -2371,6 +2371,11 @@ ROLLBACK;
 ### E111 — 05:25 PM — CSV export quotes cells with a carriage return
 - Changed: apps/api/src/transactions/exportCsv.ts csvEscape: a value with \\r is quoted too (only , " and \\n were).
 - Test: apps/api/src/transactions/exportCsv.e111.test.ts (reference "order\\r42"). Before: fail (unquoted). After: PASS; export tests 9/9.
+- check.sh: OK.
+
+### E116 — 05:26 PM — requireMerchantWriterActor refuses an impersonation actor
+- Changed: apps/api/src/auth/requireMerchantAuth.ts:129-134: actorType admin_impersonation → 403 (it was labelled a merchant_session writer). Defence in depth: every route using it already requires owner/finance.
+- Test: apps/api/src/auth/requireMerchantAuth.e116.test.ts. Before: no exception. After: PASS; admin tests (incl. impersonation) 43/43.
 - check.sh: OK.
 
 ## 6. Deploy
