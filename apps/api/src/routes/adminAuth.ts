@@ -51,7 +51,7 @@ interface AdminUserRow {
  * an ordinary merchant dashboard user.
  */
 export async function adminAuthRoutes(app: FastifyInstance): Promise<void> {
-  app.post<{ Body: LoginBody }>("/login", async (request, reply) => {
+  app.post<{ Body: LoginBody }>("/login", { preHandler: app.authRateLimit }, async (request, reply) => { // E146
     const { email, password } = request.body ?? {};
     if (!email || !password) {
       throw new BadRequestError("invalid_request", "email and password are required");

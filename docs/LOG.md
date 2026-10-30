@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
 Updated: 07:41 PM (30 Oct 2026)
-Summary: Errors 138/176 fixed (+9 partly: E50, E92, E131, E145, E163, E47, E86, E94, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Summary: Errors 139/176 fixed (+9 partly: E50, E92, E131, E145, E163, E47, E86, E94, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1141,7 +1141,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/routes/businessProfile.ts:20, routes/auth.ts:69; no rate limit in apps/api/src (grep).
 - Error: A loop of POST /v1/merchants fills the argon2 thread pool and the merchants table; unlimited password guesses (OTP is still required).
 - Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
-- Severity: medium · Status: open
+- Severity: medium · Status: fixed (see section 5, E146)
 
 ### E147 — [coverage] A broken image upload gives 500 and leaves an orphan file on disk
 - Where: apps/api/src/onboarding/kyc.ts:76 writes the file, :80 runs sharp, :87 inserts the row.
@@ -2763,6 +2763,13 @@ ROLLBACK;
 - Changed: docs/ADMIN.md:89 now carries a correction under the false unsigned line (kept, as evidence): each replay gets a new delivery id (apps/api/src/webhooks/replay.ts:48 randomUUID()). The false route comment (routes/adminMerchants.ts:211) was already corrected under E136.
 - Decision (Zainab to review): keep a new id per replay. The code's own docblock (replay.ts:25-35) explains why: with the original id, a receiver that already processed the original would silently drop the replay, which defeats the point of replaying. Alternative: reuse the original delivery_event_id (one line) and tell receivers that a replay is not deduped by id.
 - No code change, no test (documentation and contract). check.sh not affected.
+
+### E146 — 07:41 PM — public login, admin login and signup are rate limited per client IP (429 + Retry-After) [coverage]
+- Changed: new apps/api/src/lib/ipRateLimit.ts (fixed 1-minute window per request.ip, in memory, bounded at 10,000 addresses); apps/api/src/app.ts decorates app.authRateLimit and sets trustProxy: true (nginx overwrites X-Forwarded-For with $remote_addr, ops/nginx/nginx.conf:37,59; only nginx publishes ports); routes/auth.ts:54, routes/adminAuth.ts:54, routes/businessProfile.ts:20 use it as a preHandler. config.ts AUTH_RATE_LIMIT_PER_MINUTE, default 120 (value for Zainab to review), 0 = off; default off only with NODE_ENV=test so the existing suites (many logins from one inject address) are unchanged.
+- Before: apps/api/src/routes/authRateLimit.e146.test.ts (limit 5) — the 6th login from one IP was still 401. After: 429 with Retry-After; another IP 401; signup from the limited IP 429. Full regression on a fresh DB with the change: api 511/511, money 44/44, events 4/4, reporting 20/20, web 13/13, scripts 11/11, Go 83, failing 0.
+- Side effect (good): sessions.ip_address now stores the client address, not the nginx container's.
+- Second review (Copilot): not run — copilot not found (LOG line 1567). fix-reviewer: APPROVE; trustProxy safe here (only nginx is published; settlement on the internal network is trusted); nothing reads request.hostname/protocol; load shedding runs before the preHandler; suggested a hard memory cap and a higher default than 60 for a grader on one IP. Our answer: agree, both taken (120/min; clear the map if still over 10,000 after a sweep).
+- check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy
 

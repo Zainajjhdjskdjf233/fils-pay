@@ -21,6 +21,7 @@ import { reportingRoutes } from "./routes/reporting.js";
 import { adminRoutes, type AdminRoutesOptions } from "./routes/admin.js";
 import { acquirerCallbackRoutes } from "./routes/acquirerCallbacks.js";
 import { createFetchTransport, type WebhookTransport } from "./webhooks/transport.js";
+import { createIpRateLimiter } from "./lib/ipRateLimit.js";
 
 export interface BuildAppOptions {
   /** Test seam for the admin plane's cross-process settlement calls only —
@@ -40,10 +41,12 @@ export interface BuildAppOptions {
  * tests use `app.inject(...)` against this — no real socket needed.
  */
 export function buildApp(config: Config, pool: Pool, options: BuildAppOptions = {}): FastifyInstance {
-  const app = Fastify({ logger: { level: config.logLevel } });
+  // E146: trust X-Forwarded-For from nginx (it overwrites it with $remote_addr) so request.ip is the client.
+  const app = Fastify({ logger: { level: config.logLevel }, trustProxy: true });
 
   app.decorate("db", pool);
   app.decorate("config", config);
+  app.decorate("authRateLimit", createIpRateLimiter(config.authRateLimitPerMinute)); // E146
   app.decorate("acquirer", createAcquirerSimulator(config));
   app.decorate("webhookTransport", options.webhookTransport ?? createFetchTransport({ blockPrivateAddresses: config.nodeEnv === "production" }));
 

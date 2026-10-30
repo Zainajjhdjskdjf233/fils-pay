@@ -17,6 +17,8 @@ export interface Config {
   /** E117: OTP guesses allowed per user across all codes in the window, then login is refused. */
   otpUserMaxAttemptsPerWindow: number;
   otpUserWindowMinutes: number;
+  /** E146: login/signup calls per client IP per minute; 0 = off (default off only in NODE_ENV=test). */
+  authRateLimitPerMinute: number;
   /** Load shedding: requests handled at once before new ones get 503. */
   maxInFlightRequests: number;
   /** Load shedding: event-loop p99 delay (ms) above which new requests get 503; 0 = off. */
@@ -228,6 +230,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     pgPoolMax: parseIntEnv(env.PG_POOL_MAX, 5),
     otpUserMaxAttemptsPerWindow: parseIntEnv(env.OTP_USER_MAX_ATTEMPTS_PER_WINDOW, 10),
     otpUserWindowMinutes: parseIntEnv(env.OTP_USER_WINDOW_MINUTES, 15),
+    authRateLimitPerMinute: parseIntEnv(env.AUTH_RATE_LIMIT_PER_MINUTE, nodeEnv === "test" ? 0 : 120),
     maxInFlightRequests: parseIntEnv(env.MAX_IN_FLIGHT_REQUESTS, 64),
     shedEventLoopDelayMs: parseIntEnv(env.SHED_EVENT_LOOP_DELAY_MS, 0),
     logLevel: env.LOG_LEVEL ?? "info",

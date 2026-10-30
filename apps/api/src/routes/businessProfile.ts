@@ -17,7 +17,7 @@ interface MerchantIdParams {
 export async function businessProfileRoutes(app: FastifyInstance): Promise<void> {
   // am: signup is public, so anyone can register a second tenant with an existing owner's email
   // MK: emails are unique per merchant, not globally. that's by design
-  app.post<{ Body: Partial<SignupInput> }>("/", async (request, reply) => {
+  app.post<{ Body: Partial<SignupInput> }>("/", { preHandler: app.authRateLimit }, async (request, reply) => { // E146
     const body = request.body ?? {};
     if (!body.businessProfile || !body.owner) {
       throw new BadRequestError("invalid_request", "businessProfile and owner are required");

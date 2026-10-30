@@ -51,7 +51,7 @@ interface MerchantUserRow {
  */
 export async function authRoutes(app: FastifyInstance): Promise<void> {
   /** POST /v1/auth/login — step 1. */
-  app.post<{ Body: LoginBody }>("/login", async (request, reply) => {
+  app.post<{ Body: LoginBody }>("/login", { preHandler: app.authRateLimit }, async (request, reply) => { // E146
     const { merchantId, email, password } = request.body ?? {};
     // E57: a non-UUID merchantId reached Postgres (500).
     if (!merchantId || !email || !password || typeof merchantId !== "string" || !UUID_RE.test(merchantId)) {
