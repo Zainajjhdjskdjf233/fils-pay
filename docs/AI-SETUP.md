@@ -1,7 +1,7 @@
 # AI setup — how we used AI and how we checked it
 
-Team: Zainab (cybersecurity student) with Claude Code. A second AI tool did an
-independent review. All files below are in the repository (`.claude/`, `CLAUDE.md`).
+Author: Zainab (cybersecurity student). Tools: Claude Code did the work under her
+rules; a second AI tool did an independent review. All files below are in the repository (`.claude/`, `CLAUDE.md`).
 CASE-FILE Item 05: "We care about how you checked what the AI told you."
 
 ## 1. The one rule behind everything
