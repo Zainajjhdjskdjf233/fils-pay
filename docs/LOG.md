@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 06:12 PM (30 Oct 2026)
-Summary: Errors 96/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 06:17 PM (30 Oct 2026)
+Summary: Errors 97/164 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1243,6 +1243,12 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Proof: the second review (items 32-45, pasted by Zainab at 4:23 PM); checked by me in the code (04:30 PM).
 - Severity: medium · Status: partly fixed (see section 5, E163; OTP/argon2/timer ranges still open)
 
+### E164 — [found later] /healthz and /readyz on the public port return the web page, not the API's health
+- Where: ops/nginx/nginx.conf: only /v1/ is proxied to the API, so /healthz and /readyz fell through to `try_files … /index.html`.
+- Error: the live check `curl http://139.59.57.26/healthz` → 200 text/html (the web app), never the API's state; an automated health test reads HTML and cannot see a dead API.
+- Proof: live end-to-end check (06:17 PM); local stack before the fix: `200 text/html`.
+- Severity: low · Status: fixed (see section 5, E164)
+
 ## 3. Hidden things
 
 - Extended (04:46 PM, second review items 47-51, 53-57): parseFloatEnv (config.ts:148-155) accepts "0.5oops" and no 0-1 range for ACQUIRER_FAILURE_RATE; parseBoolEnv (:157-160) reads "treu" as false; no bounds on PG pool, acquirer latency, OTP TTL/attempts/length, argon2 costs, webhook attempts/timers, settlement and payment-link timeouts.
@@ -2404,6 +2410,12 @@ ROLLBACK;
 - Changed: apps/api/src/webhooks/archiveReplay.ts: ARCHIVE_MAX_DELIVERIES = 10_000 (for Zainab to review); the query reads at most 10,001 rows and refuses (400 archive_range_too_large) instead of loading an endpoint's whole history; never truncates, so an archive stays complete for its range. False comment at routes/adminMerchants.ts:53-57 ("pages of 500 rows, memory stays flat") corrected.
 - Test: webhooks/archiveReplay.test.ts testE144_archiveOverTheCapIsRefused (10,001 deliveries). Before: `Missing expected rejection`. After: PASS; archive and replay tests pass.
 - check.sh: OK.
+
+### E164 — 06:17 PM — /healthz and /readyz on the public port reach the API
+- Changed: ops/nginx/nginx.conf (public server): `location = /healthz` and `location = /readyz` proxy to the API.
+- Test: no automated test for nginx config; proof on the local Docker stack: before `200 text/html` (index.html), after `{"status":"ok",…}` 200 application/json and `{"status":"ready"}`; / still serves the web app; /v1/admin still 404.
+- Live: needs a redeploy (ops/deploy.sh) after Zainab pushes.
+- Found by: the live end-to-end check (45 public + 29 logged-in checks; this was the only real failure).
 
 ## 6. Deploy
 
