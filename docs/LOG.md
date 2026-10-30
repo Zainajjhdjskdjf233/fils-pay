@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 07:59 PM (30 Oct 2026)
-Summary: Errors 147/176 fixed (+10 partly: E50, E92, E101, E131, E145, E163, E86, E94, E96, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 08:01 PM (30 Oct 2026)
+Summary: Errors 148/176 fixed (+10 partly: E50, E92, E101, E131, E145, E163, E86, E94, E96, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1059,7 +1059,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 ### E132 — [deep review] Reconciliation reads its six figures from different snapshots
 - Where: apps/api/src/settlement/query.ts:304 `Promise.all([...pool.query...])`: each query may use a different connection and moment.
 - Error: a batch closing during the report can be counted in one figure and not another, so a one-off false gap appears. Re-running fixes it.
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E132)
 
 ### E133 — [second review] Report filter JSON is used without a shape check
 - Where: apps/api/src/routes/reporting.ts:31 `parsed = JSON.parse(request.query.filter)` goes straight to resolveReportMerchantId (reporting/scope.ts:3) and runTransactionsReport (reporting/transactionsReportQuery.ts:42-53).
@@ -2830,6 +2830,12 @@ ROLLBACK;
 - Changed: new apps/api/src/lib/listenHost.ts (HOST if set; else 0.0.0.0 in production, 127.0.0.1 otherwise); apps/api/src/index.ts uses it instead of the fixed 0.0.0.0. ops/docker-compose.yml api: HOST: 0.0.0.0 set explicitly, so the container keeps listening for nginx even if NODE_ENV changes (`docker compose config` → api HOST = 0.0.0.0). db/seed/generate.ts:916 prints only the first 12 characters of each issued key.
 - Before: index.ts listened on 0.0.0.0 everywhere (scratchpad/api-run3.txt 'Server listening at http://192.168.100.103:3000'); the seed printed full fp_test_ keys. After: apps/api/src/lib/listenHost.e55.test.ts 1/1 (dev/test → 127.0.0.1, production → 0.0.0.0, HOST wins).
 - check.sh (clean environment): OK. Needs a redeploy (api image); the HOST line keeps the live container reachable.
+
+### E132 — 08:01 PM — the reconciliation report reads all eight figures from one database snapshot [deep review]
+- Changed: apps/api/src/settlement/query.ts getReconciliationReport: the eight queries run on one connection inside BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY … COMMIT (rollback on error, connection always released), instead of Promise.all on the pool (each query could use another connection at another moment).
+- Proof: no deterministic failing test (the race needs a batch to close between two of the queries); reconciliation and settlement route suites 19/19 on the test DB; full regression on a fresh DB: api 518/518, money 44/44, events 4/4, reporting 21/21, web 13/13, scripts 11/11, Go 83, failing 0.
+- Note: a first targeted run picked up 14 webhook-dispatch tests by mistake (a zsh glob fell back to every file mentioning 'reconciliation') and they failed on the shared, already-used e121 DB; the fresh-DB run above passes all of them.
+- check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy
 

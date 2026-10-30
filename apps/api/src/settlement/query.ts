@@ -312,8 +312,16 @@ export async function getReconciliationReport(
   const windowStart = bahrainLocalMidnightUtc(input.from);
   const windowEnd = bahrainLocalMidnightUtc(input.to);
 
-  const [ledgerResult, settlementResult, pendingResult, merchantResult, pendingRefundResult, otherPeriodRefundResult, pendingCreditResult, otherPeriodCreditResult] = await Promise.all([
-    pool.query<{ net: string }>(
+  // E132: all eight figures from ONE snapshot (one connection, REPEATABLE
+  // READ, read only). With Promise.all on the pool each query could run on a
+  // different connection at a different moment, so a batch closing during
+  // the report could be counted in one figure and not another (a false gap).
+  const snap = await pool.connect();
+  let results;
+  try {
+    await snap.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY");
+    results = await Promise.all([
+    snap.query<{ net: string }>(
       `SELECT COALESCE(SUM(CASE WHEN direction = 'credit' THEN amount_fils ELSE -amount_fils END), 0) AS net
          FROM ledger_entries
         WHERE merchant_id = $1 AND account_id = 'merchant_payable'
@@ -325,14 +333,14 @@ export async function getReconciliationReport(
           AND description NOT LIKE 'settlement payout:%'`,
       [input.merchantId, windowStart, windowEnd],
     ),
-    pool.query<{ total: string }>(
+    snap.query<{ total: string }>(
       `SELECT COALESCE(SUM(net_payout_fils), 0) AS total
          FROM settlement_batches
         WHERE merchant_id = $1 AND batch_date >= $2 AND batch_date < $3
           AND status IN ('closed', 'paid')`,
       [input.merchantId, input.from, input.to],
     ),
-    pool.query<{ amount_fils: string | number; occurred_at: Date }>(
+    snap.query<{ amount_fils: string | number; occurred_at: Date }>(
       `SELECT te.amount_fils, te.occurred_at
          FROM transaction_events te
          JOIN transactions t ON t.id = te.transaction_id
@@ -341,11 +349,11 @@ export async function getReconciliationReport(
           AND te.occurred_at >= $2 AND te.occurred_at < $3`,
       [input.merchantId, windowStart, windowEnd],
     ),
-    pool.query<{ mdr_bps: number; negotiated_discount_bps: number }>(
+    snap.query<{ mdr_bps: number; negotiated_discount_bps: number }>(
       `SELECT mdr_bps, negotiated_discount_bps FROM merchants WHERE id = $1`,
       [input.merchantId],
     ),
-    pool.query<{ total: string }>(
+    snap.query<{ total: string }>(
       `SELECT COALESCE(SUM(r.amount_fils - r.fee_reversed_fils), 0) AS total
          FROM refunds r
          LEFT JOIN settlement_batches b ON b.id = r.settlement_batch_id AND b.status IN ('closed', 'paid')
@@ -354,7 +362,7 @@ export async function getReconciliationReport(
           AND (b.id IS NULL OR b.batch_date < $4 OR b.batch_date >= $5)`,
       [input.merchantId, windowStart, windowEnd, input.from, input.to],
     ),
-    pool.query<{ total: string }>(
+    snap.query<{ total: string }>(
       `SELECT COALESCE(SUM(r.amount_fils - r.fee_reversed_fils), 0) AS total
          FROM refunds r
          JOIN settlement_batches b ON b.id = r.settlement_batch_id
@@ -365,7 +373,7 @@ export async function getReconciliationReport(
     ),
     // E121: credits and balance adjustments (signed) in this window that no
     // batch in this window paid yet — pending, like unbatched refunds.
-    pool.query<{ total: string }>(
+    snap.query<{ total: string }>(
       `SELECT COALESCE(SUM(CASE WHEN le.direction = 'credit' THEN le.amount_fils ELSE -le.amount_fils END), 0) AS total
          FROM ledger_entries le
          LEFT JOIN settlement_batch_ledger_groups g ON g.entry_group_id = le.entry_group_id
@@ -377,7 +385,7 @@ export async function getReconciliationReport(
       [input.merchantId, windowStart, windowEnd, input.from, input.to, PAYABLE_ADJUSTMENT_DESCRIPTIONS],
     ),
     // E121: credits a batch in this window paid that happened in another period.
-    pool.query<{ total: string }>(
+    snap.query<{ total: string }>(
       `SELECT COALESCE(SUM(g.amount_fils), 0) AS total
          FROM settlement_batch_ledger_groups g
          JOIN settlement_batches b ON b.id = g.settlement_batch_id
@@ -388,7 +396,15 @@ export async function getReconciliationReport(
                              AND le.occurred_at >= $2 AND le.occurred_at < $3)`,
       [input.merchantId, windowStart, windowEnd, input.from, input.to],
     ),
-  ]);
+    ]);
+    await snap.query("COMMIT");
+  } catch (err) {
+    await snap.query("ROLLBACK").catch(() => undefined);
+    throw err;
+  } finally {
+    snap.release();
+  }
+  const [ledgerResult, settlementResult, pendingResult, merchantResult, pendingRefundResult, otherPeriodRefundResult, pendingCreditResult, otherPeriodCreditResult] = results;
 
   // MK: merchants.mdr_bps is kept in sync with the current fee_schedules row by the 0046 trigger,
   // so reading it here is the same as resolving the schedule
