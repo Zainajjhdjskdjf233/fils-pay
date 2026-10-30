@@ -193,6 +193,14 @@ export async function payPaymentLink(
     if (captureResult.statusCode !== 200) {
       await releaseReservation(linkClient, link.id, link.reservationToken);
       await linkClient.query("COMMIT");
+      linkClient.release(); // do not hold two connections while voiding
+      clientReleased = true;
+      // E130: free the buyer's card hold now; a retry authorizes afresh.
+      await voidTransaction(pool, { transactionId: txnId, merchantId: link.merchantId, actor: { type: "system", id: link.id } })
+        .then((v) => {
+          if (v.statusCode !== 200) console.error(`payPaymentLink: void after failed capture refused for ${txnId}`, v.body);
+        })
+        .catch((err: unknown) => console.error(`payPaymentLink: void after failed capture failed for ${txnId}`, err));
       return {
         statusCode: captureResult.statusCode,
         body: { stage: "capture", ...(captureResult.body as Record<string, unknown>) },

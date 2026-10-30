@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 05:19 PM (30 Oct 2026)
-Summary: Errors 89/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 05:21 PM (30 Oct 2026)
+Summary: Errors 90/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1046,7 +1046,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 ### E130 — [deep review] A failed link capture leaves the card authorization open
 - Where: apps/api/src/paymentLinks/pay.ts:193-199: on a capture failure the link is released but the authorization is not voided.
 - Error: the buyer's card keeps a hold until it expires; a retry authorizes again (a second hold).
-- Severity: medium · Status: open
+- Severity: medium · Status: fixed (see section 5, E130)
 
 ### E131 — [deep review] A discount error after a paid link gives the buyer a 500
 - Where: apps/api/src/paymentLinks/pay.ts:246 `await applyCaptureDiscountAdjustment(...)` runs after the link is finalized and COMMITTED, outside any try.
@@ -2347,6 +2347,12 @@ ROLLBACK;
 - Changed: apps/api/src/paymentLinks/pay.ts:246-256: applyCaptureDiscountAdjustment is wrapped in try/catch after the commit; on error it logs "discount adjustment failed for transaction … — retry needed" and still answers 200 paid (the card was charged).
 - Test: apps/api/src/paymentLinks/pay.e131.test.ts. Before: `Error: discount db down` (the route would answer 500). After: PASS; payment-link tests 29/29.
 - fix-reviewer: APPROVE, with a condition we accept: a missed adjustment is not recoverable today (a replay of the pay request gets 409 already_paid; nothing else re-runs it). So E131 is PARTLY fixed. Open follow-up: a durable retry — a job that re-runs applyCaptureDiscountAdjustment where adjustments < capture events (safe: the E124 count rule makes it idempotent).
+- check.sh: OK.
+
+### E130 — 05:21 PM — a failed link capture voids the card authorization
+- Changed: apps/api/src/paymentLinks/pay.ts:194-206: after the failed-capture COMMIT the link client is released and voidTransaction runs (best effort; a refusal or an error is logged; the capture error stays the answer).
+- Test: apps/api/src/paymentLinks/pay.e130.test.ts (acquirer capture "error" → 502). Before: transactions [ 'authorized' ] (hold left open). After: PASS ([ 'voided' ], link active); payment-link tests pass.
+- fix-reviewer: APPROVE (void.ts only voids 'authorized', so a captured payment is never voided; thrown idempotency 409/422 go to the catch with no void, correct while another capture may run; no double release). Took its hardening: log a refused void. Noted: an API caller retrying the SAME pay key after a 502 now gets 409 not_capturable (the web UI never reuses a key); a real acquirer's unknown 502 outcome is an existing design limit (capture.ts already treats error as not captured).
 - check.sh: OK.
 
 ## 6. Deploy
