@@ -102,4 +102,4 @@ Where: apps/api/src/webhooks/dispatcher.ts:31 · Commit: 079aeea
 
 A settings file with a real secret (the key that proves a message came from the card acquirer) was saved in git, even though a comment in it said it was not. A developer had trusted an AI tool that said the `.env` rule also covers `.env.docker`; it does not. We told git to stop tracking the file and to ignore it, and we added an example file with only the names. Git now shows the file as ignored. The secret is still in old history, so a person must change it.
 
-Where: .gitignore:11 · Commit: PENDING_N17
+Where: .gitignore:11 · Commit: 3145f24

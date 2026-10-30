@@ -657,4 +657,4 @@ The old rule `.env` matches only a file named exactly .env. The new line names t
 "Is the secret safe now?"
 No. It is still in old commits since 669af52, so a human must rotate it. Untracking only stops new copies.
 
-Commit: PENDING_N17
+Commit: 3145f24
