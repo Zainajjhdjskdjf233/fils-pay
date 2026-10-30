@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { getPayoutTrends, getTopLinks, getVolumes } from "../../api/analytics.js";
 import { describeError } from "../../api/client.js";
 import { StalenessBadge } from "../../components/StalenessBadge.js";
-import { bhd, dash, dateTime, statusLabel } from "../../format.js";
+import { bhd, dash, dateTime, statusLabel, businessDate } from "../../format.js";
 import { formatCount } from "../../utils/helpers.js";
 import type { PayoutTrendsResponse, TopLinksResponse, VolumesResponse } from "../../types.js";
 
@@ -109,19 +109,19 @@ export function OverviewPage() {
         <thead>
           <tr>
             <th>Date</th>
-            <th>Captured</th>
+            <th className="dash-num">Captured</th>
             <th className="dash-num">Gross</th>
-            <th>Voided</th>
+            <th className="dash-num">Voided</th>
             <th />
           </tr>
         </thead>
         <tbody>
           {volumes?.points.map((point) => (
             <tr key={point.date}>
-              <td>{point.date}</td>
-              <td>{formatCount(point.capturedCount)}</td>
+              <td>{businessDate(point.date)}</td>
+              <td className="dash-num">{formatCount(point.capturedCount)}</td>
               <td className="dash-num">{bhd(point.capturedGrossFils)}</td>
-              <td>{formatCount(point.voidedCount)}</td>
+              <td className="dash-num">{formatCount(point.voidedCount)}</td>
               <td className="dash-bar-cell">
                 {/* A plain CSS bar, scaled to the window's own peak — no
                     charting library, no new dependency. */}
@@ -159,7 +159,7 @@ export function OverviewPage() {
           {payouts?.points.map((point) => (
             <tr key={point.settlementBatchId}>
               <td>
-                <Link to={`/dashboard/settlement/${point.settlementBatchId}`}>{point.batchDate}</Link>
+                <Link to={`/dashboard/settlement/${point.settlementBatchId}`}>{businessDate(point.batchDate)}</Link>
               </td>
               <td>
                 <span className={`dash-status dash-status-${point.status}`}>{statusLabel(point.status)}</span>

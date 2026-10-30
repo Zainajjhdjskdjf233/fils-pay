@@ -1,3 +1,4 @@
+import { businessDate } from "../../lib/format.js";
 import { useState } from "react";
 import { formatBhd, toFils } from "@filspay/money";
 import { rebuildAnalytics, rebuildBalances, runBatch } from "../../api/settlement.js";
@@ -397,7 +398,7 @@ export function SettlementPage() {
               <tbody>
                 {mdrAdjusted.map((adjustment) => (
                   <tr key={adjustment.batchId}>
-                    <td>{adjustment.batchDate}</td>
+                    <td>{businessDate(adjustment.batchDate)}</td>
                     <td>{adjustment.status}</td>
                     <td className="num">{bhd(adjustment.oldFeeFils)}</td>
                     <td className="num">{bhd(adjustment.newFeeFils)}</td>

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getSettlementBatch, getSettlementBatchTransactions } from "../../api/settlement.js";
 import { ApiError, describeError } from "../../api/client.js";
-import { bhd, dash, dateTime, statusLabel } from "../../format.js";
+import { bhd, dash, dateTime, statusLabel, businessDate } from "../../format.js";
 import type { SettlementBatchDetailDto, SettlementBatchTransactionDto } from "../../types.js";
 
 type LoadState =
@@ -95,7 +95,7 @@ export function SettlementBatchDetailPage() {
   return (
     <section>
       <p><Link to="/dashboard/settlement">← Settlement batches</Link></p>
-      <h1>Settlement batch {batch.batchDate}</h1>
+      <h1>Settlement batch {businessDate(batch.batchDate)}</h1>
       {batch.status === "closed" && (
         <div className="dash-progress-bar" style={{ width: "100%", background: "#e0e0e0", height: 6, borderRadius: 3 }}>
           <div style={{ width: `${Math.min(displayProgress, 100)}%`, background: "#2563eb", height: 6, borderRadius: 3 }} />

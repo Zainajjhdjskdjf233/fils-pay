@@ -1,4 +1,4 @@
-import { bahrainDateTime, bahrainDate, label } from "../../lib/format.js";
+import { bahrainDateTime, bahrainDate, label, businessDate } from "../../lib/format.js";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { formatBhd, parseBhdToFils, toFils } from "@filspay/money";
@@ -619,7 +619,7 @@ export function MerchantDetailPage() {
           <tbody>
             {batches.map((batch) => (
               <tr key={batch.id}>
-                <td>{batch.batchDate}</td>
+                <td>{businessDate(batch.batchDate)}</td>
                 <td>{label(batch.status)}</td>
                 <td className="num">{bhd(batch.grossFils)}</td>
                 <td className="num">{bhd(batch.feeFils)}</td>

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { getReconciliation } from "../../api/settlement.js";
 import { ApiError, describeError } from "../../api/client.js";
-import { bhd } from "../../format.js";
+import { bhd, businessDate } from "../../format.js";
 import type { ReconciliationReport } from "../../types.js";
 
 /**
@@ -119,7 +119,7 @@ export function ReconciliationPage() {
           <dl className="dash-dl">
             <dt>Period</dt>
             <dd>
-              {report.periodFrom} to {report.periodTo} (exclusive)
+              {businessDate(report.periodFrom)} to {businessDate(report.periodTo)} (not included)
             </dd>
             <dt>Ledger merchant payable (net)</dt>
             <dd className="dash-num">{bhd(report.ledgerMerchantPayableNetFils)}</dd>

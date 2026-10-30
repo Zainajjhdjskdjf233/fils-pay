@@ -88,3 +88,13 @@ export function localDateTimeToIso(value: string): string | null {
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
 }
+
+const BUSINESS_DATE = new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" });
+
+/** UX: a Bahrain business date (YYYY-MM-DD, no time) in the same style as
+ *  every other date ("30 Oct 2026"). Read as a calendar day, no zone shift. */
+export function businessDate(ymd: string | null | undefined): string {
+  if (!ymd || !/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return ymd ?? "—";
+  const d = new Date(`${ymd}T00:00:00Z`);
+  return Number.isNaN(d.getTime()) ? ymd : BUSINESS_DATE.format(d);
+}

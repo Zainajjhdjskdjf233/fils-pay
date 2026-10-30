@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { listSettlementBatches } from "../../api/settlement.js";
 import { describeError } from "../../api/client.js";
 import { Pagination } from "../../components/Pagination.js";
-import { bhd, dateTime, statusLabel } from "../../format.js";
+import { bhd, dateTime, statusLabel, businessDate } from "../../format.js";
 import type { SettlementBatchDto, SettlementBatchStatus } from "../../types.js";
 
 const STATUSES: SettlementBatchStatus[] = ["open", "closed", "paid"];
@@ -117,7 +117,7 @@ export function SettlementBatchListPage() {
           {batches.map((batch) => (
             <tr key={batch.id}>
               <td>
-                <Link to={`/dashboard/settlement/${batch.id}`}>{batch.batchDate}</Link>
+                <Link to={`/dashboard/settlement/${batch.id}`}>{businessDate(batch.batchDate)}</Link>
               </td>
               <td>
                 <span className={`dash-status dash-status-${batch.status}`}>{statusLabel(batch.status)}</span>
