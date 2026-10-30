@@ -283,7 +283,7 @@ Not changed (recorded): money columns are still left-aligned (29 cells in 10 fil
 ### Every error entry
 
 <!-- errors:start (generated from docs/ERRORS.md) -->
-All 176 entries from docs/ERRORS.md (131 of 176 fixed.). Each ID has its error (section 2) and, when fixed, its fix (section 5) in docs/LOG.md.
+All 176 entries from docs/ERRORS.md (133 of 176 fixed.). Each ID has its error (section 2) and, when fixed, its fix (section 5) in docs/LOG.md.
 
 | ID | Title | Level | Status |
 |---|---|---|---|
@@ -332,7 +332,7 @@ All 176 entries from docs/ERRORS.md (131 of 176 fixed.). Each ID has its error (
 | E43 | refund_merchant_summary view joins on the wrong column | Medium | Fixed |
 | E44 | Reconciliation "pending" estimate uses float and the wrong rate | Medium | Fixed |
 | E45 | [second review] /v1/reporting/export-summary had no login check (always 500) | High | Fixed |
-| E46 | KYC "PDF only" rule checks the filename, not the content | Low | Open |
+| E46 | KYC "PDF only" rule checks the filename, not the content | Low | Fixed |
 | E47 | Admin console: session not rotated after OTP; no CSP | Low | Partly fixed |
 | E48 | Admin run-batch sends no payout notification; split payouts skip the lifetime estimate | Low | Open |
 | E49 | settlement rebuild-balances --merchant never writes the cache | Low | Fixed |
@@ -438,7 +438,7 @@ All 176 entries from docs/ERRORS.md (131 of 176 fixed.). Each ID has its error (
 | E149 | [coverage] Credit effectiveDate "0000-01-01" passes validation; Postgres likely refuses it (500) | Low | Fixed |
 | E150 | [coverage] Balance adjustment returns 404 for a merchant with no balance row yet | Low | Skipped |
 | E151 | [coverage] Defence in depth: validateRefundRequest trusts its caller's numbers | Low | Open |
-| E152 | [coverage] Go ApplyRateFils: int64 overflow wraps silently (TS throws) | Low | Open |
+| E152 | [coverage] Go ApplyRateFils: int64 overflow wraps silently (TS throws) | Low | Fixed |
 | E153 | [coverage] A fully refunded, partly captured row refunded again with no amount gives 422 instead of 409 | Low | Fixed |
 | E154 | [coverage] adjustMerchantBalanceJournaled is dead code | Low | Open |
 | E155 | [coverage] Webhook PATCH with a bad status gives 500 | Low | Fixed |
