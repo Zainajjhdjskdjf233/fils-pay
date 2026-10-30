@@ -993,4 +993,4 @@ One source of truth for the balance: the ledger.
 "Why keep the old function?"
 Nothing calls it now. We do not delete code without Zainab's OK; it is recorded in the log.
 
-Commit: PENDING_N26
+Commit: b15f944
