@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 08:34 PM (30 Oct 2026)
-Summary: Errors 162/177 fixed (+6 partly: E50, E131, E48, E67, E78, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 08:36 PM (30 Oct 2026)
+Summary: Errors 163/177 fixed (+6 partly: E50, E131, E48, E67, E78, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -738,7 +738,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/config.ts:244 (30_000 ms); apps/settlement/internal/ledger/rebuild.go:96-133 (3 queries per merchant, TODO no lock)
 - Error: long rebuild aborts; a concurrent CloseBatch increment can be overwritten (open since E18).
 - Proof: code read (ADR check agent (12:58 PM); checked by me).
-- Severity: low · Status: partly fixed (see section 5, E78; timeout and missing-row case open)
+- Severity: low · Status: fixed (see section 5, E78)
 
 ### E79 — [found later] Dead helpers with float or wrong-scale money math
 - Where: discountAdjustment.ts:13-17 parsePromotionalDiscountFils (×100); fees/estimate.ts (float, unused since E44); scheme_export.go:29-31 SchemeAmountBD (unused since E14); settlementClient.ts:296 (/10, H34); capture.ts:14-41 recordCaptureMetric (UTC date); v1/fees/calculateFee.ts:29
@@ -2956,6 +2956,13 @@ ROLLBACK;
 - With the earlier part (ff78296) E48 is now fully fixed.
 - check.sh (clean environment): OK. Needs a redeploy (settlement image).
 
+### E78 — 08:36 PM — (rest) the rebuild also locks merchants with no balance row yet, and the admin path allows a long rebuild
+- Changed: apps/settlement/internal/ledger/rebuild.go: INSERT … ON CONFLICT DO NOTHING (cached 0, same as the old 'no row = 0') before the FOR UPDATE, so every merchant's row can be locked. apps/api/src/config.ts: SETTLEMENT_INTERNAL_REQUEST_TIMEOUT_MS default 30 s → 120 s (range 1-600 s since E163; value for Zainab to review). ops/nginx/nginx.conf, admin server /v1/: proxy_read_timeout 60 s → 150 s, so nginx does not cut the call before the API's limit.
+- My own mistake, caught locally: I first ADDED a second proxy_read_timeout line in that location; nginx refuses a duplicate directive and the local container went into a restart loop (port 8081 and 8080 gave 000). Fixed by changing the existing line; local rebuild then: running healthy, `nginx -t` successful, :8081 200, :8080/healthz 200. The live server was never touched.
+- Proof: all Go packages pass; config and settlementClient suites 16/16.
+- With the earlier part (a6027dc) E78 is now fully fixed.
+- check.sh (clean environment): OK. Needs a redeploy (api, settlement, nginx).
+
 ## 6. Deploy
 
 ### Official submission rules (04:28 PM, from Zainab; they override older plans)
@@ -3251,3 +3258,4 @@ The inherited `.gitignore` had `.claude/` on line 8, added in the very first com
 Zainab asked for speed without losing safety. Two read-only agents now plan ahead (next open entry each): they read the code and write a fix plan and the failing test into the scratchpad, and never edit the repo. Only Claude Code edits code, one entry at a time: check the plan against the code, run the test red, fix, run the full regression, commit. If a fix breaks a test that cannot be fixed in a few minutes, only that entry's files are restored (`git show HEAD:<file> > <file>`, because `git checkout --` is not allowed) and the entry is marked skipped. Low entries get a one-paragraph note. First result: E62 planned by an agent, verified and committed.
 - Judge note (07:03 PM): check.sh said TESTS FAILED three times (E47, E90, E88). I first wrote 'possible flaky test'. The real cause was my own shell: DATABASE_URL was still set, so check.sh ran the full suite on a dirty shared test DB. Clean runs and a fresh-DB regression (0 failures) prove the code was fine. Lesson: run check.sh in a clean environment.
 - Judge note (07:33 PM): the fix-reviewer stopped a regression in my own E139 fix. I changed the status rule in capture, but two later lines still used the status label to mean "fully captured"; a card hold would have stayed active. Fixed before the commit, with asserts on the hold and the event.
+- Judge note (08:37 PM): a one-line nginx change of mine (a second proxy_read_timeout in the same location) crashed the local nginx into a restart loop. Because every nginx change is rebuilt and checked locally before a redeploy, the live site was never affected. Fixed by editing the existing line; nginx -t and both ports verified.

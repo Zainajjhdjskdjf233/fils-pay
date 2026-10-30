@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 162 of 177 fixed.
+Summary: 163 of 177 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -131,7 +131,7 @@ Summary: 162 of 177 fixed.
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-## Low (62 of 71 fixed)
+## Low (63 of 71 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -154,7 +154,7 @@ Summary: 162 of 177 fixed.
 | E71 | [found later] Re-seeding leaves old dead letters with reused outbox ids | Fixed |
 | E72 | [found later] reconcile_march uses authorization time and running-total residue (suspected) | Open |
 | E77 | [found later] Float and toFixed on money in the batch detail page | Fixed |
-| E78 | [found later] Balance rebuild may hit the 30 s timeout; no row lock (suspected) | Partly fixed |
+| E78 | [found later] Balance rebuild may hit the 30 s timeout; no row lock (suspected) | Fixed |
 | E79 | [found later] Dead helpers with float or wrong-scale money math | Open |
 | E80 | [found later] Scheme export fallback can print more than 2 decimals | Fixed |
 | E81 | [found later] Admin Run batch default date uses the UTC day | Fixed |

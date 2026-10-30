@@ -100,6 +100,16 @@ func RebuildAllBalances(ctx context.Context, db *pgxpool.Pool) (map[uuid.UUID]Re
 	diffs := make(map[uuid.UUID]RebuildDiff, len(merchantIDs))
 
 	for _, merchantID := range merchantIDs {
+		// E78: make sure the row exists so FOR UPDATE below has something to
+		// lock (a merchant with no balance row yet could race CloseBatch's
+		// INSERT … ON CONFLICT). Inserting 0 matches the old "no row = 0".
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO merchant_balances (merchant_id, cached_payable_fils, updated_at)
+			VALUES ($1, 0, now())
+			ON CONFLICT (merchant_id) DO NOTHING
+		`, merchantID); err != nil {
+			return nil, fmt.Errorf("ledger: RebuildAllBalances: ensure balance row for %s: %w", merchantID, err)
+		}
 		var cachedBefore int64
 		err := tx.QueryRow(ctx, `
 			SELECT COALESCE(cached_payable_fils, 0) FROM merchant_balances WHERE merchant_id = $1 FOR UPDATE

@@ -290,7 +290,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
 
     settlementInternalUrl: env.SETTLEMENT_INTERNAL_URL ?? "http://settlement:8091",
     settlementInternalToken,
-    settlementInternalRequestTimeoutMs: parseRangedIntEnv("SETTLEMENT_INTERNAL_REQUEST_TIMEOUT_MS", env.SETTLEMENT_INTERNAL_REQUEST_TIMEOUT_MS, 30_000, 1000, 600000),
+    settlementInternalRequestTimeoutMs: parseRangedIntEnv("SETTLEMENT_INTERNAL_REQUEST_TIMEOUT_MS", env.SETTLEMENT_INTERNAL_REQUEST_TIMEOUT_MS, 120_000, 1000, 600000) /* E78: a full balance rebuild can take longer than 30 s */,
 
     checkoutBaseUrl: env.CHECKOUT_BASE_URL ?? "http://localhost:5173",
     paymentLinkReservationTimeoutSeconds: parseRangedIntEnv("PAYMENT_LINK_RESERVATION_TIMEOUT_SECONDS", env.PAYMENT_LINK_RESERVATION_TIMEOUT_SECONDS, 60, 0, 3600),
