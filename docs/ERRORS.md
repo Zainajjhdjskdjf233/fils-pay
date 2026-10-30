@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 135 of 176 fixed.
+Summary: 136 of 176 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -131,7 +131,7 @@ Summary: 135 of 176 fixed.
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-## Low (45 of 70 fixed)
+## Low (46 of 70 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -186,7 +186,7 @@ Summary: 135 of 176 fixed.
 | E133 | [second review] Report filter JSON used without a shape check | Fixed |
 | E149 | [coverage] Credit effectiveDate "0000-01-01" passes validation; Postgres likely refuses it (500) | Fixed |
 | E150 | [coverage] Balance adjustment returns 404 for a merchant with no balance row yet | Skipped |
-| E151 | [coverage] Defence in depth: validateRefundRequest trusts its caller's numbers | Open |
+| E151 | [coverage] Defence in depth: validateRefundRequest trusts its caller's numbers | Fixed |
 | E152 | [coverage] Go ApplyRateFils: int64 overflow wraps silently (TS throws) | Fixed |
 | E153 | [coverage] A fully refunded, partly captured row refunded again with no amount gives 422 instead of 409 | Fixed |
 | E154 | [coverage] adjustMerchantBalanceJournaled is dead code | Open |

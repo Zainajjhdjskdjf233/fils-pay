@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 07:35 PM (30 Oct 2026)
-Summary: Errors 135/176 fixed (+9 partly: E50, E92, E131, E145, E163, E47, E86, E94, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 07:37 PM (30 Oct 2026)
+Summary: Errors 136/176 fixed (+9 partly: E50, E92, E131, E145, E163, E47, E86, E94, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -653,7 +653,9 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/admin/reportingRebuild.ts:11-55 (truncate + rebuild from transaction_events/refunds; never moves reporting_outbox_cursor); route comment admin.ts:233-240 "replays the outbox" is false.
 - Error: a committed capture the worker has not consumed yet is counted by the rebuild and again by the worker.
 - Proof: code read (second bug hunt, bug-hunter agent (12:55 PM); checked by me in the code).
-- Severity: medium · Status: open
+- Severity: medium · Status: open — for Zainab to review (07:36 PM)
+- Analysis (07:36 PM): moving reporting_outbox_cursor inside the rebuild is not enough. The rebuild sees one snapshot; the worker only takes outbox rows with txid < pg_snapshot_xmin (apps/reporting/src/consumer/runConsumerPass.ts:55). A transaction that committed before the rebuild's snapshot can still have txid >= xmin (an older transaction still open), so it is counted by the rebuild AND later by the worker. A single watermark cannot describe "everything this snapshot saw".
+- Options: (a) the rebuild takes the cursor row FOR UPDATE (pauses the worker), waits until no older transaction is open (pg_snapshot_xmin = txid_current), then rebuilds and sets the cursor to the newest outbox row — exact, but can wait on a long transaction; (b) the rebuild counts only events whose outbox row is at or before the cursor and leaves the rest to the worker — exact, needs a join from transaction_events to outbox_events; (c) document "run the rebuild only with the reporting worker stopped". Recommended: (b). Not started (time).
 
 ### E64 — [found later] Payout trends never show "paid"
 - Where: apps/reporting/src/consumer/runConsumerPass.ts REPORTING_EVENT_TYPES (no `settlement.paid`); applyEvent.ts:93-118 copies status/paid_at only at batch_closed time (always closed/NULL).
@@ -1170,7 +1172,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/payments/refundValidation.ts:21-23, 38-48.
 - Error: amount 1.5 → ok; refundable above captured → ok. Not reachable today (route and processRefund check).
 - Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E151)
 
 ### E152 — [coverage] Go ApplyRateFils: int64 overflow wraps silently (TS throws)
 - Where: apps/settlement/internal/money/fils.go:16, :28, :51-56.
@@ -2744,6 +2746,13 @@ ROLLBACK;
 - Before: no guard existed (the new test db/seed/guard.e65.test.ts failed with ERR_MODULE_NOT_FOUND); `npm run seed` truncated merchants, transactions, admin_users and, by CASCADE, admin_audit_log with no question. After: 1/1; `npx tsx db/seed/index.ts` without the flag stops with 'seed: this wipes merchants, transactions, admin users and the admin audit log. Set FILSPAY_ALLOW_SEED_RESET=1 …' (command output).
 - The live server never runs the seed (LOG §6 rules; the compose 'seed' service only echoes, profile dev).
 - check.sh (clean environment): OK. No redeploy needed (dev tool).
+
+### E151 — 07:37 PM — validateRefundRequest no longer trusts its caller's numbers [coverage] [deep review]
+- Changed: apps/api/src/payments/refundValidation.ts: the refundable figure is capped at capturedFils, and the amount must be a safe whole number of fils (else refund_amount_invalid).
+- Before: apps/api/src/payments/refundValidation.e151.test.ts — 1.5 fils passed, and refundable 10000 on a 4000 capture allowed refunding 6000. After: both refused; no amount → at most the captured 4000. Refund validation 12/12; payment and refund suites 60/60.
+- Second review (Copilot): not run — copilot not found (LOG line 1567). fix-reviewer: APPROVE; the only caller (processRefund.ts:93-101) passes captured − refunded, so the cap never refuses a real refund; a fractional amount now gets 422, which refunds.f01b.test.ts:94-99 already accepts; suggested computing refundableAmount once. Our answer: agree, taken.
+- E63 (same commit, docs only): analysis and options recorded, marked for Zainab to review.
+- check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy
 

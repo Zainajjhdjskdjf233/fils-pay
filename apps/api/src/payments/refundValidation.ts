@@ -35,14 +35,17 @@ export function validateRefundRequest(
     return { ok: false, code: "transaction_not_refundable", status: txn.status };
   }
 
-  const refundable = refundableAmount(txn);
+  // E151 (defence in depth): never trust the caller's figures. Refundable is
+  // capped at what was captured, and the amount must be a whole number of fils.
+  const raw = refundableAmount(txn);
+  const refundable = compareFils(raw, txn.capturedFils) > 0 ? txn.capturedFils : raw;
   // E153: nothing left and no amount given → not refundable (409), not 422.
   if (requestedAmountFils === undefined && compareFils(refundable, ZERO_FILS) <= 0) {
     return { ok: false, code: "transaction_not_refundable", status: txn.status };
   }
   const requested = requestedAmountFils ?? refundable;
 
-  if (compareFils(requested, ZERO_FILS) <= 0) {
+  if (!Number.isSafeInteger(requested as unknown as number) || compareFils(requested, ZERO_FILS) <= 0) {
     return { ok: false, code: "refund_amount_invalid" };
   }
   if (compareFils(requested, refundable) > 0) {
