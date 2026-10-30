@@ -3140,6 +3140,14 @@ A fresh clone of the fork, built and started from nothing but the repo.
 ### Deadline extended — 08:38 PM (organizers' written announcement, from Zainab)
 - Deadline: 12:00 AM. Code freeze: 11:00 PM (was 10:00 PM). Fixes continue until then, quickest first, one per commit, tests green; the final regression, CONTRIBUTIONS, SUBMISSION counts and the redeploy move to the new freeze.
 
+### Live demo prepared and rehearsed — 09:20 PM (docs/DEMO.md)
+- Created on the live server through the public API (login + OTP, payment link, card payment; no scripts/, no reset), demo shop b84b79da-a262-4c15-a553-2286b019dd12:
+  - demo-partial-refund: transaction eb2fd0ad-03b1-44a0-937b-f9fb790863a0, 10.000 BD, paid (link plink_z9ylVgVcEzpUoXaSyfzbpY).
+  - demo-full-refund: transaction 31eaaf5a-0c3b-4267-b467-4ff179db7875, 10.000 BD, paid (link plink_erBENKBlrGyEsXW9SSMQ3p).
+  - demo-checkout: unpaid link plink_YBZmrrqbXxSjaQ3VhxmRcJ, 4.750 BD, active, expires in 3 days.
+- Rehearsed every step on a second, identical set (rehearsal-partial, rehearsal-full, rehearsal-checkout) so the judges' set stays untouched: login + OTP 200; partial refund 4.000 → partially_refunded 10000/4000; full refund → refunded 10000/10000; settlement batches 200; reconciliation today gap 0 (ledger 41681), 30-day default window gap 0; checkout active → paid; pages 200; headless Chrome rendered the checkout (shop name, 4.750 BHD, card form, "Pay 4.750") and the login form. After the rehearsal the demo set was still captured with nothing refunded and the checkout link active.
+- No password was printed or written; the demo credentials stay in the mode-600 file on the server.
+
 ## 7. Judge notes
 
 ### Live deploy — 06:12 PM (30 Oct 2026)

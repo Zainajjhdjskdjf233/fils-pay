@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 8:47 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 9:24 PM
 
 ## Contents
 1. Status now
@@ -14,20 +14,20 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:47 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 165 of 178 fixed.
+- Errors: 167 of 178 fixed.
   - High: 46 of 46 fixed
-  - Medium: 55 of 60 fixed
+  - Medium: 57 of 60 fixed
   - Low: 64 of 72 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
 - Dilmune Cloud: live
-- Decisions waiting for Zainab: 45 (search "for Zainab to review" in LOG.md)
+- Decisions waiting for Zainab: 43 (search "for Zainab to review" in LOG.md)
 - Fork: needs a push (VS Code: Git: Push to... → mine)
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 165 of 178 fixed.
+- 🔄 Fix: 167 of 178 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -74,6 +74,9 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:47 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- fbc85bd fix(E63): reporting rebuild counts each event once and moves the worker cursor (decided)
+- f7c6f5b fix(E82): admin revokes merchant API keys and never receives a new one (decided)
+- 199e03d fix(E178): discount adjustments use the rate recorded at capture (partly fixed); notes N174-N177
 - c5d7416 fix(E131): missed discount adjustments retried by a 60 s sweep (E131 fully fixed); new entry E178
 - 7c6ce65 fix(E67): refund summary becomes a plain view, always current (migration 0087; E67 fully fixed); LOG: freeze 11:00 PM
 - 4cdc8ae fix(E78): rebuild locks every balance row; admin path allows a long rebuild (E78 fully fixed)
@@ -86,9 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:47 PM
 - dba5b93 fix(E163): webhook timers and timeouts range-checked at boot (E163 fully fixed)
 - fb851fb fix(E163): security-relevant API settings range-checked at boot (partly fixed)
 - 8794b16 fix(E145): owner email checked and stored lower-case; login case-insensitive (E145 fully fixed); new entry E177
-- dc99f19 fix(E56): Go DB test packages take turns on the shared database (advisory lock in TestMain)
-- 8060c5e fix(E68,E71): seed sums the lifetime estimate in integer fils and resets reporting dead letters
-- a6027dc fix(E78): balance rebuild locks each balance row first (partly fixed); E74 marked for review
 
 ## 7. All errors
 ## High (46 of 46 fixed)
@@ -142,7 +142,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:47 PM
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-### Medium (55 of 60 fixed)
+### Medium (57 of 60 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -165,17 +165,17 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:47 PM
 | E44 | Reconciliation "pending" estimate uses float and the wrong rate | Fixed |
 | E50 | Fee at capture ignores the negotiated discount that settlement applies | Partly fixed |
 | E53 | One malformed outbox event stops the whole reporting consumer | Fixed |
-| E58 | Session vs impersonation order may mix identities (FP-198 comment) — not reproduced: a test with both cookies shows no mixing | Skipped |
+| E58 | Session vs impersonation order may mix identities (FP-198 comment) — closed: not a bug, testE58 (admin.test.ts) locks it | Skipped |
 | E60 | Reconciliation counts payouts of earlier days as an unexplained gap | Fixed |
 | E61 | Dashboard and admin console cannot reach the API from their own origin (no CORS, no proxy) | Fixed |
 | E62 | [found later] Two reporting passes at the same time count every event twice | Fixed |
-| E63 | [found later] Admin reporting rebuild double-counts events the worker has not reached | Open |
+| E63 | [found later] Admin reporting rebuild double-counts events the worker has not reached | Fixed |
 | E64 | [found later] Payout trends never show "paid" (settlement.paid not consumed) | Fixed |
 | E65 | [found later] The seed wipes real tables (incl. admin audit log) with no environment check | Fixed |
 | E74 | [found later] Balance cache and ledger rebuild measure different things (drift after rebuild) | Open |
 | E75 | [found later] March sweep posts the opposite legs from ADR-0002, charging merchants | Fixed |
 | E76 | [found later] Dashboard date filter uses UTC days, not Bahrain days | Fixed |
-| E82 | [found later] Admin "rotate API key" hands staff a full-power merchant key | Open |
+| E82 | [found later] Admin "rotate API key" hands staff a full-power merchant key | Fixed |
 | E83 | [found later] Legal name and CR number editable after KYC approval, no re-review | Fixed |
 | E91 | [found later] Every service connects as one Postgres superuser | Fixed |
 | E92 | [found later] Ledger immutability claim false; audit log unprotected | Fixed |
