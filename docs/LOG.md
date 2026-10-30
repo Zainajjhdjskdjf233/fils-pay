@@ -2253,6 +2253,8 @@ ROLLBACK;
 
 ### Official submission rules (04:28 PM, from Zainab; they override older plans)
 - Deadline: Friday 30 Oct 2026, 11:00 PM. Nothing can change after that (code, server, docs). (Earlier plan said 9:30 PM; this replaces it.)
+- Update (04:42 PM): the Day 1 deck says Friday 10:00 PM, the submission guidelines say 11:00 PM. Plan for the earlier one, 10:00 PM: code freeze 8:30 PM, final push 9:30 PM.
+- Team name: Case Closed. PDFs: "Case Closed_FilsPay_Submission.pdf" and "Case Closed_FilsPay_Slides.pdf".
 - The fork must be PUBLIC and include the AI setup files (.claude/, CLAUDE.md, hooks, commands, permission rules, helper scripts), checked for secrets. Status: .claude/ tracked since 25b827d (scanned: no secrets); CLAUDE.md tracked; making the fork public is Zainab's action on GitHub.
 - Live demo must pass: a FULL and a PARTIAL refund end to end, with correct amounts in the merchant dashboard AND the settlement report. Check: see "Refund demo check" below.
 - New question: how a redeploy avoids interrupting a settlement run (answered in docs/SUBMISSION.md section 2, from the code and compose).

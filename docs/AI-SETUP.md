@@ -1,5 +1,7 @@
 # AI setup — how we used AI and how we checked it
 
+"Knowing what your AI did, and why, is what wins." (Day 1 deck)
+
 Designed and built by Zainab. The setup lives in [`.claude/`](../.claude/) (rules, hooks, agents, commands, skill) and [`CLAUDE.md`](../CLAUDE.md).
 
 Author: Zainab (cybersecurity student). Tools: Claude Code did the work under her

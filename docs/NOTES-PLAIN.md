@@ -474,4 +474,4 @@ Where: apps/api/src/admin/creditRequestValidation.ts · Commit: f078974
 
 Downloading transactions builds the whole file in memory, and four big downloads at once crashed the server, even with our earlier row limit. Now only one runs at a time and the next one is told to retry. A test starts two at once and shows one runs and one is asked to wait.
 
-Where: apps/api/src/transactions/exportCsv.ts · Commit: PENDING_N79
+Where: apps/api/src/transactions/exportCsv.ts · Commit: e7b8b1b
