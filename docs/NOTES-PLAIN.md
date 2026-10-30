@@ -691,3 +691,33 @@ Where: apps/api/src/onboarding/kyc.ts · Commit: af7cbc4
 Uploading two files kept only the last one without saying so. Now a second file is refused. A test checks it.
 
 Where: apps/api/src/routes/kyc.ts · Commit: 045afc1
+
+## N116 — The retry timer test
+
+A test checked the exact wait before a webhook is sent again. The code adds a small random part on purpose, so the test failed every time. We gave the test a fixed value with no random part. Now the whole test suite passes with no failures.
+
+Where: apps/api/src/webhooks/dispatcher.test.ts:195 · Commit: 49e0c14
+
+## N117 — New key after the code
+
+After the one-time code, the shop's login token stayed the same. Someone who saw it before login could use it after. Now the server gives a new token at that moment, and the old one stops working. A test proves the old token is refused.
+
+Where: apps/api/src/auth/sessions.ts:50 · Commit: aa35616
+
+## N118 — At most 50 saved filters
+
+A shop could save report filters without any limit, although a comment said there was one. Now a shop can keep 50. Requests take turns, so many at once cannot pass the limit. A test with ten parallel saves proves it.
+
+Where: apps/api/src/reporting/savedFilters.ts · Commit: ef20f9d
+
+## N119 — At most 20 KYC documents
+
+A shop could upload documents until the disk was full, and the database uses the same disk. Now a shop can store 20, and the server checks before writing anything. A test proves the 21st is refused and nothing is written.
+
+Where: apps/api/src/onboarding/kyc.ts · Commit: 09c7707
+
+## N120 — New key after the code (admin)
+
+The same token problem as N117 existed for staff in the admin console. A staff member had reported it and it was left open. Now staff also get a new token after the code. A test proves the old token is refused.
+
+Where: apps/api/src/adminAuth/sessions.ts · Commit: e8c9454

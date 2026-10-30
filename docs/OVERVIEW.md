@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 6:34 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 6:52 PM
 
 ## Contents
 1. Status now
@@ -14,20 +14,20 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 6:34 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 109 of 175 fixed.
+- Errors: 114 of 175 fixed.
   - High: 46 of 46 fixed
-  - Medium: 37 of 60 fixed
-  - Low: 26 of 69 fixed
+  - Medium: 40 of 60 fixed
+  - Low: 28 of 69 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
 - Dilmune Cloud: not yet
-- Decisions waiting for Zainab: 32 (search "for Zainab to review" in LOG.md)
+- Decisions waiting for Zainab: 33 (search "for Zainab to review" in LOG.md)
 - Fork: needs a push (VS Code: Git: Push to... → mine)
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 109 of 175 fixed.
+- 🔄 Fix: 114 of 175 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -74,6 +74,12 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 6:34 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- e8c9454 fix(E47,E113): admin OTP verify issues a new session token; promotion checks the session state
+- 09c7707 fix(E148): KYC uploads capped at 20 per merchant, refused before any disk write
+- ef20f9d fix(E171): saved filters are capped at 50 per merchant under a per-merchant lock
+- aa35616 fix(E167): merchant OTP verify issues a new session token; E150 recorded as a decision for review
+- 49e0c14 fix(E54): backoff test passes the neutral jitter; full suite now has 0 failures; N115 hash
+- 045afc1 fix(E157): a KYC upload with several files is refused (400 too_many_files); notes N109-N115
 - af7cbc4 fix(E147): a broken image upload is refused with 422 before anything is written to disk
 - c4445c3 fix(E173): admin run-batch and MDR recalc refuse impossible dates, reversed ranges and unknown merchants
 - b6bfae5 fix(E172): webhook archive and replay date ranges must be real dates with a zone
@@ -83,12 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 6:34 PM
 - 4553c70 fix(E168): webhook dispatch never sends to a disabled endpoint; notes N102-N108
 - 1ff0962 fix(E174): payment-link expiresAt must be a real date with a zone
 - 6c74bd0 fix(E166): payment-link create refuses amount 0 (400, not 500)
-- ebe2652 fix(E169): saved-filter POST refuses an array filter and a blank name
-- e9f97dd fix(E170): report filter accepts partially_refunded (regression from my E133 list)
-- 3e31313 fix(E164): public /healthz and /readyz proxy to the API (they returned the web page)
-- 364058f fix(E144): webhook archive create refuses more than 10,000 deliveries; N101 hash
-- 9397d53 fix(E128): a suspended or closed merchant's sessions and API keys stop working; notes N97-N101
-- 1b8659c fix(E13): leaked acquirer callback secret refused at boot (hash check) and replaced by gen-env.sh; history kept, value dead
 
 ## 7. All errors
 ## High (46 of 46 fixed)
@@ -142,7 +142,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 6:34 PM
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-### Medium (37 of 60 fixed)
+### Medium (40 of 60 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -199,25 +199,25 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 6:34 PM
 | E145 | [coverage] Signup: no password rule and no type checks; bad input gives 500 | Partly fixed |
 | E146 | [coverage] Public signup and login have no rate limit; each call runs argon2 | Open |
 | E147 | [coverage] A broken image upload gives 500 and leaves an orphan file on disk | Fixed |
-| E148 | [coverage] No limit on KYC uploads per merchant: the shared disk can be filled | Open |
+| E148 | [coverage] No limit on KYC uploads per merchant: the shared disk can be filled | Fixed |
 | E163 | [second review] API config never refuses bad settings (prefixes, booleans, NODE_ENV typo turns off security defaults, no ranges) | Partly fixed |
 | E165 | [second review] Authorize and capture accept a zero or negative amount: 0 reaches the acquirer then the DB CHECK (500); negative makes toFils throw (500) | Fixed |
-| E167 | [second review] Merchant OTP promotion keeps the pending session token (session fixation); the admin half is E47 | Open |
+| E167 | [second review] Merchant OTP promotion keeps the pending session token (session fixation); the admin half is E47 | Fixed |
 | E168 | [second review] Webhook dispatch Step B still queues deliveries for disabled endpoints | Fixed |
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
-| E171 | [second review] No cap on saved filters per merchant; the list returns every row | Open |
+| E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-### Low (26 of 69 fixed)
+### Low (28 of 69 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
 | E38 | Public payment link page exposes the merchant's API key hash and prefix | Fixed |
 | E40 | withTransaction: a failing ROLLBACK hides the real error | Open |
 | E46 | KYC "PDF only" rule checks the filename, not the content | Open |
-| E47 | Admin console: session not rotated after OTP; no CSP | Open |
+| E47 | Admin console: session not rotated after OTP; no CSP | Partly fixed |
 | E48 | Admin run-batch sends no payout notification; split payouts skip the lifetime estimate | Open |
 | E49 | settlement rebuild-balances --merchant never writes the cache | Fixed |
-| E54 | Webhook backoff test always fails: test expects no jitter, code adds random ±10 % | Open |
+| E54 | Webhook backoff test always fails: test expects no jitter, code adds random ±10 % | Fixed |
 | E55 | Seed prints API keys; API listens on every network interface | Open |
 | E56 | Go DB tests are flaky when packages run in parallel | Open |
 | E57 | Bad input gives 500 instead of 400 (invalid JSON body, malformed UUID) | Fixed |
@@ -252,7 +252,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 6:34 PM
 | E110 | [second review] Streaming CSV export pages on occurred_at only (unused code) | Open |
 | E111 | [second review] CSV quoting ignores carriage returns | Fixed |
 | E112 | [second review] Invalid date filters reach the DB (500 instead of 400) | Fixed |
-| E113 | [second review] Session promotion after OTP updates by id only (defence in depth) | Open |
+| E113 | [second review] Session promotion after OTP updates by id only (defence in depth) | Fixed |
 | E114 | [second review] Concurrent OTP resends can rotate the challenge twice | Open |
 | E115 | [second review] Impossible dates like 2026-02-30 are accepted | Fixed |
 | E116 | [second review] Writer actor does not reject impersonation (defence in depth) | Fixed |
@@ -261,7 +261,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 6:34 PM
 | E132 | [deep review] Reconciliation reads its figures from different snapshots | Open |
 | E133 | [second review] Report filter JSON used without a shape check | Fixed |
 | E149 | [coverage] Credit effectiveDate "0000-01-01" passes validation; Postgres likely refuses it (500) | Fixed |
-| E150 | [coverage] Balance adjustment returns 404 for a merchant with no balance row yet | Open |
+| E150 | [coverage] Balance adjustment returns 404 for a merchant with no balance row yet | Skipped |
 | E151 | [coverage] Defence in depth: validateRefundRequest trusts its caller's numbers | Open |
 | E152 | [coverage] Go ApplyRateFils: int64 overflow wraps silently (TS throws) | Open |
 | E153 | [coverage] A fully refunded, partly captured row refunded again with no amount gives 422 instead of 409 | Fixed |
@@ -282,7 +282,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 6:34 PM
 | E175 | [second review] Webhook URLs with embedded credentials are accepted but never deliverable | Fixed |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101 · N102 · N103 · N104 · N105 · N106 · N107 · N108 · N109 · N110 · N111 · N112 · N113 · N114 · N115
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101 · N102 · N103 · N104 · N105 · N106 · N107 · N108 · N109 · N110 · N111 · N112 · N113 · N114 · N115 · N116 · N117 · N118 · N119 · N120
 
 ### N01 — Database setup stopped halfway
 
@@ -4360,5 +4360,174 @@ The shop is told to send one file.
 "Why not use the upload library's limit?"
 We tried; it closed the stream early and gave 500, so we check in our loop.
 
-Commit: PENDING_N115
+Commit: 045afc1
+
+### N116 — The retry timer test
+
+#### The idea
+A failed webhook is sent again later, with a small random wait added. It is like a bus that comes "about every 10 minutes", not exactly 10.
+
+#### The problem
+One test expected the exact wait.
+- It failed on every run (1084 ms instead of 1000 ms).
+- A red test hides real failures.
+
+#### The fix
+- dispatcher.test.ts: the test passes a fixed "random" value (0.5) that adds nothing. The code stays as it is.
+
+#### The code
+Before (apps/api/src/webhooks/dispatcher.test.ts:195):
+```ts
+const expectedDelay1 = backoffDelayMs(1, config);
+```
+After:
+```ts
+const expectedDelay1 = backoffDelayMs(1, config, () => 0.5);
+```
+The test now asks for the wait with no random part, so the answer is exact.
+
+#### The proof
+- Before: actual 1084, expected 1000.
+- After: 9/9, three runs; the whole suite has 0 failures.
+
+#### If the judges ask
+"Did you change the test to make it pass?"
+Yes, because the test was wrong; the random wait is wanted (dispatcher.ts:57-65) and the code is unchanged.
+
+Commit: 49e0c14
+
+### N117 — New key after the code
+
+#### The idea
+Logging in has two steps: password, then a one-time code. It is like a hotel giving you a new room key after you show your ID.
+
+#### The problem
+The session token stayed the same after the code step.
+- Someone who saw the token before login could use it after login (session fixation).
+
+#### The fix
+- auth/sessions.ts: promoting a session writes a new token, and only if the session is still pending, not revoked and not expired.
+- routes/auth.ts: the cookie gets the new token.
+
+#### The code
+Before (apps/api/src/auth/sessions.ts:57):
+```ts
+UPDATE sessions SET authenticated = true ... WHERE id = $1
+```
+After:
+```ts
+UPDATE sessions SET authenticated = true, ..., token_hash = $3
+ WHERE id = $1 AND authenticated = false AND revoked_at IS NULL AND expires_at > now()
+```
+The old token stops working. A session in the wrong state is not promoted.
+
+#### The proof
+- Before: the token after verify was the same as at login.
+- After: the old token gets 401, the new one 200. Auth tests 21/21.
+
+#### If the judges ask
+"The attacker still needs the code. Why does it matter?"
+The victim types the code, not the attacker; without a new token the attacker rides on the victim's login.
+
+Commit: aa35616
+
+### N118 — At most 50 saved filters
+
+#### The idea
+A shop can save report filters to reuse. It is like a phone that keeps a fixed number of favourites.
+
+#### The problem
+There was no limit.
+- A comment promised a database rule that does not exist.
+- One shop could store rows without end.
+
+#### The fix
+- savedFilters.ts: count and insert under one lock per shop; the 51st gets 409.
+
+#### The code
+Before (apps/api/src/reporting/savedFilters.ts:30): a plain INSERT.
+After:
+```ts
+await client.query(`SELECT pg_advisory_xact_lock(hashtext('saved_filters:' || $1))`, [input.merchantId]);
+if (count.rows[0]!.n >= MAX_SAVED_FILTERS) throw new ConflictError("too_many_saved_filters");
+```
+Requests from one shop wait in line, so ten at once cannot all pass.
+
+#### The proof
+- Before: 45 saved, 10 at once, all 10 stored.
+- After: 5 stored, 5 refused, 50 in total.
+
+#### If the judges ask
+"Why a lock and not just a count?"
+Two requests can both count 49 and both insert; the lock makes them take turns.
+
+Commit: ef20f9d
+
+### N119 — At most 20 KYC documents
+
+#### The idea
+A shop uploads ID papers for review. It is like a drop box with a fixed size.
+
+#### The problem
+A shop could upload without end.
+- The files sit on the same disk as the database.
+- A full disk stops the database.
+
+#### The fix
+- onboarding/kyc.ts: count before writing to disk; count again inside the transaction with the shop row locked; the 21st gets 409.
+
+#### The code
+Before (apps/api/src/onboarding/kyc.ts:85): the file was written with no count.
+After:
+```ts
+if (already.rows[0]!.n >= MAX_KYC_DOCUMENTS_PER_MERCHANT) {
+  throw new ConflictError("too_many_documents");
+}
+```
+Nothing is written once a shop has 20 documents.
+
+#### The proof
+- Before: the 21st upload was stored; 5 at once were all stored.
+- After: 409 and no file; 1 of 5 stored.
+
+#### If the judges ask
+"What if a shop is rejected many times?"
+No code deletes documents, so 20 is a lifetime limit; this is a decision for review.
+
+Commit: 09c7707
+
+### N120 — New key after the code (admin)
+
+#### The idea
+Staff log in to the admin console with password and code. Same hotel-key idea as N117, for staff.
+
+#### The problem
+The admin token stayed the same after the code step.
+- A staff member found it before (FP-198); the reply was "unresolved".
+
+#### The fix
+- adminAuth/sessions.ts: the same new-token and state check as N117.
+- routes/adminAuth.ts: the cookie gets the new token.
+
+#### The code
+Before (apps/api/src/adminAuth/sessions.ts:74):
+```ts
+UPDATE admin_sessions SET authenticated = true ... WHERE id = $1
+```
+After:
+```ts
+UPDATE admin_sessions SET ..., token_hash = $3
+ WHERE id = $1 AND authenticated = false AND revoked_at IS NULL AND expires_at > now()
+```
+The pre-login admin token stops working.
+
+#### The proof
+- Before: the admin token after verify was the same as at login.
+- After: old token 401, new token 200. Admin tests 80/80.
+
+#### If the judges ask
+"Why did eight test files change?"
+Their login helpers kept the old cookie; now they take the new one, as a browser does.
+
+Commit: e8c9454
 
