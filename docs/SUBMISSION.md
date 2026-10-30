@@ -16,6 +16,8 @@
 - Admin console: http://139.59.57.26:8081/
 - Demo accounts: a demo merchant owner and a super_admin exist on the server. Their passwords are not in this document or in git; they are in a mode-600 file on the server and are handed to the organizers on request.
 
+- Access is by IP over plain HTTP: the organizers confirmed no domain and no SSL are needed.
+
 **Fork:** https://github.com/Zainajjhdjskdjf233/fils-pay
 
 **Last commit ID:** TODO at the code freeze (draft written at d3e4fd1)

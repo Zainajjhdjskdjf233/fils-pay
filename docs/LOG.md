@@ -2926,6 +2926,11 @@ A fresh clone of the fork, built and started from nothing but the repo.
 - Logged-in checks on the server (~/live-e2e.sh): 29 OK, FAILS: 0 — login + OTP; two checkouts paid; FULL refund 200 (dashboard: refunded 10000/10000); PARTIAL refund 4.000 BD 200 (partially_refunded 10000/4000); over-refund 422; refund of a fully refunded payment 409; reconciliation today: ledger 16331 = pending 16331, gap 0; settlement summary and batches 200; bad dates and ids 400.
 - Next redeploy: at the code freeze (9:00 PM), as Zainab planned.
 
+### Outage check — 07:56 PM (Dilmune reported a hosting outage at 7:25 PM)
+- From the Mac: /healthz 200 (0.62 s), /readyz 200 (0.60 s), / 200, :8081/ 200 (curl).
+- Over ssh: uptime 2:40 (no reboot); api, nginx, settlement healthy and reporting up for 45 minutes (since redeploy 2), postgres healthy for 2 hours, migrate Exited (0); server at d3e4fd1; memory 1.3 GB available. Nothing was down, so no redeploy.
+- Organizers confirmed: IP only, no domain and no SSL needed. So the live URLs stay http://139.59.57.26/ and http://139.59.57.26:8081/.
+
 ## 7. Judge notes
 
 ### Live deploy — 06:12 PM (30 Oct 2026)

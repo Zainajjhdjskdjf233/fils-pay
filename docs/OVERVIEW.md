@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 7:48 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 7:55 PM
 
 ## Contents
 1. Status now
@@ -14,10 +14,10 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:48 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 142 of 176 fixed.
+- Errors: 145 of 176 fixed.
   - High: 46 of 46 fixed
-  - Medium: 48 of 60 fixed
-  - Low: 48 of 70 fixed
+  - Medium: 49 of 60 fixed
+  - Low: 50 of 70 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
@@ -27,7 +27,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:48 PM
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 142 of 176 fixed.
+- 🔄 Fix: 145 of 176 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -74,6 +74,10 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:48 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- f9f833b fix(E89): authorize idempotency hash excludes the full card number and CVV
+- 0715011 fix(E85): impersonation grants stop on admin disable or logout, with audit rows
+- 129b6bd fix(E96): reporting parks events with zero or negative amounts (partly fixed)
+- a3675a0 fix(E83): legal identity locked during and after KYC review
 - f788901 fix(E101): expired link with a stale reservation reads expired and pay gives 410 (partly fixed)
 - 4513457 fix(E100): checkout tells a charged buyer not to pay again and shows the reference; E82 marked for review
 - 65dd9b1 fix(E84): refuse cookie-carrying state-changing requests from another origin
@@ -85,10 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:48 PM
 - 319790f fix(E65): the seed refuses to wipe tables without FILSPAY_ALLOW_SEED_RESET=1, never in production
 - 7c4a68d fix(E109): checkout paid time readable, credits load-more guarded, import total worded correctly (partly fixed)
 - 640afe2 fix(E139): capture uses the shared refund status rule; hold release and event type use the captured amount
-- ecd0bf8 fix(E152): Go fee math refuses int64 overflow with an error in settlement paths
-- 3ef0efb fix(E46): KYC PDF-only rule checks the bytes, not the filename
-- fed085a fix(E66): expire_holds re-checks status in the DELETE; a released hold is kept
-- a056bec fix(E80): scheme export fallback prints exactly two truncated decimals
 
 ## 7. All errors
 ## High (46 of 46 fixed)
@@ -142,7 +142,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:48 PM
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-### Medium (48 of 60 fixed)
+### Medium (49 of 60 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -176,7 +176,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:48 PM
 | E75 | [found later] March sweep posts the opposite legs from ADR-0002, charging merchants | Fixed |
 | E76 | [found later] Dashboard date filter uses UTC days, not Bahrain days | Fixed |
 | E82 | [found later] Admin "rotate API key" hands staff a full-power merchant key | Open |
-| E83 | [found later] Legal name and CR number editable after KYC approval, no re-review | Open |
+| E83 | [found later] Legal name and CR number editable after KYC approval, no re-review | Fixed |
 | E91 | [found later] Every service connects as one Postgres superuser | Fixed |
 | E92 | [found later] Ledger immutability claim false; audit log unprotected | Partly fixed |
 | E93 | [found later] sqlFilter builds DELETE with no WHERE for null/undefined filters | Fixed |
@@ -207,7 +207,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:48 PM
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-### Low (48 of 70 fixed)
+### Low (50 of 70 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -235,15 +235,15 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:48 PM
 | E80 | [found later] Scheme export fallback can print more than 2 decimals | Fixed |
 | E81 | [found later] Admin Run batch default date uses the UTC day | Fixed |
 | E84 | [found later] CSRF from same-site pages (Lax only, text/plain accepted) | Fixed |
-| E85 | [found later] Impersonation grant survives admin disable/logout | Open |
+| E85 | [found later] Impersonation grant survives admin disable/logout | Fixed |
 | E86 | [found later] Dashboard dev proxy forwards /v1/admin; shared cookie jar | Partly fixed |
 | E87 | [found later] No anti-framing headers on dashboard and checkout | Fixed |
 | E88 | [found later] Read-only impersonation and API keys can write saved filters | Fixed |
-| E89 | [found later] Unsalted SHA-256 of card number and CVV stored | Open |
+| E89 | [found later] Unsalted SHA-256 of card number and CVV stored | Fixed |
 | E90 | [found later] KYC download puts the raw filename into a header | Fixed |
 | E94 | [found later] Settlement internal API: plain HTTP on all interfaces; weak token accepted | Partly fixed |
 | E95 | [found later] Internal settlement errors returned to admin browsers | Fixed |
-| E96 | [found later] Reporting trusts payload merchant/amounts; negative amounts pass (my E53 check) | Open |
+| E96 | [found later] Reporting trusts payload merchant/amounts; negative amounts pass (my E53 check) | Partly fixed |
 | E97 | [found later] Reporting config accepts bad numbers ("15s" → 15 ms) | Fixed |
 | E98 | [found later] Raw Postgres error text in logs and dead letters (my E53 code) | Fixed |
 | E107 | [found later] Expired payment links shown as active with Cancel | Fixed |
