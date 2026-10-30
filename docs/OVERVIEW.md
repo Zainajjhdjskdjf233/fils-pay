@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 3:02 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 3:04 PM
 
 ## Contents
 1. Status now
@@ -14,10 +14,10 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:02 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 61 of 127 fixed.
+- Errors: 61 of 132 fixed.
   - High: 37 of 39 fixed
-  - Medium: 22 of 40 fixed
-  - Low: 2 of 48 fixed
+  - Medium: 22 of 44 fixed
+  - Low: 2 of 49 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
@@ -27,7 +27,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:02 PM
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 61 of 127 fixed.
+- 🔄 Fix: 61 of 132 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ⬜ UI and UX, before/after screenshots
@@ -135,7 +135,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:02 PM
 | E123 | [deep review] Malformed card gives 500 after the link is claimed (link blocked 60 s) | Fixed |
 | E124 | [deep review] Capture replay credits the wrong discount (twice after a zero-discount capture) | Fixed |
 
-### Medium (22 of 40 fixed)
+### Medium (22 of 44 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -179,8 +179,12 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:02 PM
 | E105 | [found later] Refund drawer keeps its key after a definite 4xx (my F01f bug) | Fixed |
 | E106 | [found later] Reconciliation and batch pages leave out refund parts | Open |
 | E125 | [second review] Filters without a time zone read in the server's local zone | Open |
+| E128 | [deep review] Suspended merchant keeps sessions and API keys | Open |
+| E129 | [deep review] Capture idempotency hash ignores the transaction id | Open |
+| E130 | [deep review] Failed link capture leaves the card authorization open | Open |
+| E131 | [deep review] Discount error after a paid link gives the buyer a 500 | Open |
 
-### Low (2 of 48 fixed)
+### Low (2 of 49 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -232,6 +236,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:02 PM
 | E116 | [second review] Writer actor does not reject impersonation (defence in depth) | Open |
 | E126 | [second review] Pagination limits parsed with parseInt; NaN reaches SQL | Open |
 | E127 | [second review] Settlement date filters accept impossible dates | Open |
+| E132 | [deep review] Reconciliation reads its figures from different snapshots | Open |
 
 ## 8. Every fix explained
 Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66

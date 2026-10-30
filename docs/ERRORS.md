@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 61 of 127 fixed.
+Summary: 61 of 132 fixed.
 
 ## High (37 of 39 fixed)
 
@@ -59,7 +59,7 @@ Summary: 61 of 127 fixed.
 | E123 | [deep review] Malformed card gives 500 after the link is claimed (link blocked 60 s) | Fixed |
 | E124 | [deep review] Capture replay credits the wrong discount (twice after a zero-discount capture) | Fixed |
 
-## Medium (22 of 40 fixed)
+## Medium (22 of 44 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -103,8 +103,12 @@ Summary: 61 of 127 fixed.
 | E105 | [found later] Refund drawer keeps its key after a definite 4xx (my F01f bug) | Fixed |
 | E106 | [found later] Reconciliation and batch pages leave out refund parts | Open |
 | E125 | [second review] Filters without a time zone read in the server's local zone | Open |
+| E128 | [deep review] Suspended merchant keeps sessions and API keys | Open |
+| E129 | [deep review] Capture idempotency hash ignores the transaction id | Open |
+| E130 | [deep review] Failed link capture leaves the card authorization open | Open |
+| E131 | [deep review] Discount error after a paid link gives the buyer a 500 | Open |
 
-## Low (2 of 48 fixed)
+## Low (2 of 49 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -156,3 +160,4 @@ Summary: 61 of 127 fixed.
 | E116 | [second review] Writer actor does not reject impersonation (defence in depth) | Open |
 | E126 | [second review] Pagination limits parsed with parseInt; NaN reaches SQL | Open |
 | E127 | [second review] Settlement date filters accept impossible dates | Open |
+| E132 | [deep review] Reconciliation reads its figures from different snapshots | Open |

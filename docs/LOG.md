@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 03:02 PM (30 Oct 2026)
-Summary: Errors 61/127 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 03:04 PM (30 Oct 2026)
+Summary: Errors 61/132 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1028,6 +1028,32 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Error: after two partial captures where only one adjustment was written (e.g. a crash between capture and adjustment), a replay of either capture writes an adjustment sized from the latest fee; the counts never tie a credit to its capture. Merchant fee revenue is wrong.
 - Proof: deep-review agent (payments, 2:45 PM); red tests `payments/discountAdjustment.e124.test.ts`: `actual: [ 10, 10 ]` (want [10, 20]) and `actual: [ 20, 20 ]` (want [20], a double credit).
 - Severity: high · Status: fixed (see section 5)
+
+### E128 — [deep review] A suspended merchant keeps its sessions and API keys
+- Where: apps/api/src/auth/users.ts:19 and routes/auth.ts:63 check `m.status = 'active'` only at login; apps/api/src/payments/authorize.ts:87 checks only `onboarding_status`. Session and API-key checks never read merchants.status.
+- Error: a merchant set to 'suspended' or 'closed' (0002_merchants.sql:8) can keep using a live session or API key, including taking payments. Lens rule 5.
+- Limit: no code path sets status = 'suspended' today (grep `UPDATE merchants`), so only a direct DB change reaches it. That is why it is Medium, not High.
+- Severity: medium · Status: open
+
+### E129 — [deep review] The capture idempotency hash ignores the transaction id
+- Where: apps/api/src/payments/capture.ts:92 `hashRequest({ amountFils: input.amountFils ?? null })`.
+- Error: the same Idempotency-Key used to capture transaction B after A returns A's cached 200; B is never captured, and the caller sees success (with A's id in the body).
+- Severity: medium · Status: open
+
+### E130 — [deep review] A failed link capture leaves the card authorization open
+- Where: apps/api/src/paymentLinks/pay.ts:193-199: on a capture failure the link is released but the authorization is not voided.
+- Error: the buyer's card keeps a hold until it expires; a retry authorizes again (a second hold).
+- Severity: medium · Status: open
+
+### E131 — [deep review] A discount error after a paid link gives the buyer a 500
+- Where: apps/api/src/paymentLinks/pay.ts:246 `await applyCaptureDiscountAdjustment(...)` runs after the link is finalized and COMMITTED, outside any try.
+- Error: if it throws, the buyer was charged and the link is paid, but the buyer sees 500 and may try another card.
+- Severity: medium · Status: open
+
+### E132 — [deep review] Reconciliation reads its six figures from different snapshots
+- Where: apps/api/src/settlement/query.ts:304 `Promise.all([...pool.query...])`: each query may use a different connection and moment.
+- Error: a batch closing during the report can be counted in one figure and not another, so a one-off false gap appears. Re-running fixes it.
+- Severity: low · Status: open
 
 ## 3. Hidden things
 
