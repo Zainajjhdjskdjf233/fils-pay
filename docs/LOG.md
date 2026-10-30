@@ -1,6 +1,6 @@
 # LOG
 Mode: Competition
-Updated: 03:52 PM (30 Oct 2026)
+Updated: 03:53 PM (30 Oct 2026)
 Summary: Errors 64/133 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
@@ -2171,4 +2171,7 @@ How we got it:
 
 ### J28 — 03:11 PM — the second review changed a test to keep a bug; we did not
 The second review kept the old API key working after rotation (E07) because an existing test expected it. We had changed that test at 1:08 AM (commit 9da617a) after checking every source: no document defines a grace period, `revoke_after` is never read, and the only support was a comment in the test itself. The rule "never change tests" comes from AGENTS.md:29-31, one of the repo's planted AI instruction files. Lesson: a test is evidence of what someone wanted, not proof it is right. Two tools can disagree, and the code and the case file decide (docs/COMPARE.md).
+
+### J29 — 03:53 PM — the original repo hid AI config from git
+The inherited `.gitignore` had `.claude/` on line 8, added in the very first commit (669af52, "bootstrap monorepo and tooling", 2025-08-03). So our hooks, agents, commands, the handover skill and check.sh worked on this laptop but never reached git, even though the judges require AI setup files in the repository (CASE-FILE Item 05, "AI usage and setup"). Zainab spotted it. We removed the line, kept only `.claude/settings.local.json` ignored (personal permissions), scanned all 23 files for secrets first (grep for passwords, tokens, key patterns and DB URLs: only instruction text matched), and committed them. Lesson: a quiet ignore rule can hide the tooling that explains how the work was checked.
 

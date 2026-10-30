@@ -5,7 +5,8 @@ dist/
 .env.local
 npm-debug.log*
 .DS_Store
-.claude/
+# AI setup files are tracked (judging: AI usage and setup); only personal Claude Code settings stay local
+.claude/settings.local.json
 
 # E13: compose env file holds secrets; only the .example is tracked
 ops/.env.docker
