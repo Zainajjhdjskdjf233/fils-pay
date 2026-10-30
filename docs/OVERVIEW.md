@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 7:20 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 7:29 PM
 
 ## Contents
 1. Status now
@@ -14,10 +14,10 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:20 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 128 of 176 fixed.
+- Errors: 133 of 176 fixed.
   - High: 46 of 46 fixed
   - Medium: 42 of 60 fixed
-  - Low: 40 of 70 fixed
+  - Low: 45 of 70 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
@@ -27,7 +27,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:20 PM
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 128 of 176 fixed.
+- 🔄 Fix: 133 of 176 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -74,6 +74,11 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:20 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- ecd0bf8 fix(E152): Go fee math refuses int64 overflow with an error in settlement paths
+- 3ef0efb fix(E46): KYC PDF-only rule checks the bytes, not the filename
+- fed085a fix(E66): expire_holds re-checks status in the DELETE; a released hold is kept
+- a056bec fix(E80): scheme export fallback prints exactly two truncated decimals
+- 9f6cb49 fix(E77): batch detail progress bar uses integer math, no float on fils
 - db9c444 fix(E81): admin Run batch date defaults to yesterday in Bahrain
 - 5cd0d37 fix(E107): dashboard shows expired payment links as expired, without Cancel
 - 2a8a534 fix(E98): parked reporting events store error codes and names, not raw Postgres messages
@@ -84,11 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:20 PM
 - 5e4a32a fix(E93): sqlFilter refuses an unfiltered DELETE and non-identifier names
 - 35c9921 fix(E59): acquirer callback outcome must be cleared or confirmed_fraud
 - 8b391fe fix(E160): adjustment-import list pages on (created_at, id) timestamps; no import skipped
-- 3617361 fix(E142): control characters in memos and reasons give 400; a NUL byte no longer gives 500
-- 25046a4 fix(E88): admin impersonation cannot create saved filters; correct the flaky-test note
-- ceacc85 fix(E90): KYC download header uses a safe filename plus an encoded filename*
-- 86818c4 fix(E40): a failing ROLLBACK no longer hides the real error; the broken client is destroyed
-- e8c9454 fix(E47,E113): admin OTP verify issues a new session token; promotion checks the session state
 
 ## 7. All errors
 ## High (46 of 46 fixed)
@@ -207,13 +207,13 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:20 PM
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-### Low (40 of 70 fixed)
+### Low (45 of 70 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
 | E38 | Public payment link page exposes the merchant's API key hash and prefix | Fixed |
 | E40 | withTransaction: a failing ROLLBACK hides the real error | Fixed |
-| E46 | KYC "PDF only" rule checks the filename, not the content | Open |
+| E46 | KYC "PDF only" rule checks the filename, not the content | Fixed |
 | E47 | Admin console: session not rotated after OTP; no CSP | Partly fixed |
 | E48 | Admin run-batch sends no payout notification; split payouts skip the lifetime estimate | Open |
 | E49 | settlement rebuild-balances --merchant never writes the cache | Fixed |
@@ -222,17 +222,17 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:20 PM
 | E56 | Go DB tests are flaky when packages run in parallel | Open |
 | E57 | Bad input gives 500 instead of 400 (invalid JSON body, malformed UUID) | Fixed |
 | E59 | Acquirer callback outcome is never validated | Fixed |
-| E66 | [found later] expire_holds can delete holds released between its SELECT and DELETE | Open |
+| E66 | [found later] expire_holds can delete holds released between its SELECT and DELETE | Fixed |
 | E67 | [found later] refund_merchant_summary counts captured once per refund; never refreshed (my F01e bug) | Open |
 | E68 | [found later] Seed adds the lifetime payout estimate in float32 | Open |
 | E69 | [found later] Seeded fees ignore the seeded fee schedules (suspected) | Open |
 | E70 | [found later] Seeded outbox events do not match the seeded history | Open |
 | E71 | [found later] Re-seeding leaves old dead letters with reused outbox ids | Open |
 | E72 | [found later] reconcile_march uses authorization time and running-total residue (suspected) | Open |
-| E77 | [found later] Float and toFixed on money in the batch detail page | Open |
+| E77 | [found later] Float and toFixed on money in the batch detail page | Fixed |
 | E78 | [found later] Balance rebuild may hit the 30 s timeout; no row lock (suspected) | Open |
 | E79 | [found later] Dead helpers with float or wrong-scale money math | Open |
-| E80 | [found later] Scheme export fallback can print more than 2 decimals | Open |
+| E80 | [found later] Scheme export fallback can print more than 2 decimals | Fixed |
 | E81 | [found later] Admin Run batch default date uses the UTC day | Fixed |
 | E84 | [found later] CSRF from same-site pages (Lax only, text/plain accepted) | Open |
 | E85 | [found later] Impersonation grant survives admin disable/logout | Open |
@@ -263,7 +263,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:20 PM
 | E149 | [coverage] Credit effectiveDate "0000-01-01" passes validation; Postgres likely refuses it (500) | Fixed |
 | E150 | [coverage] Balance adjustment returns 404 for a merchant with no balance row yet | Skipped |
 | E151 | [coverage] Defence in depth: validateRefundRequest trusts its caller's numbers | Open |
-| E152 | [coverage] Go ApplyRateFils: int64 overflow wraps silently (TS throws) | Open |
+| E152 | [coverage] Go ApplyRateFils: int64 overflow wraps silently (TS throws) | Fixed |
 | E153 | [coverage] A fully refunded, partly captured row refunded again with no amount gives 422 instead of 409 | Fixed |
 | E154 | [coverage] adjustMerchantBalanceJournaled is dead code | Open |
 | E155 | [coverage] Webhook PATCH with a bad status gives 500 | Fixed |
@@ -283,7 +283,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:20 PM
 | E176 | [deep review] A redeploy stops settlement after 10 s, although it waits 30 s for a running batch | Fixed |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101 · N102 · N103 · N104 · N105 · N106 · N107 · N108 · N109 · N110 · N111 · N112 · N113 · N114 · N115 · N116 · N117 · N118 · N119 · N120 · N121 · N122 · N123 · N124 · N125 · N126 · N127 · N128 · N129 · N130 · N131 · N132 · N133 · N134
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101 · N102 · N103 · N104 · N105 · N106 · N107 · N108 · N109 · N110 · N111 · N112 · N113 · N114 · N115 · N116 · N117 · N118 · N119 · N120 · N121 · N122 · N123 · N124 · N125 · N126 · N127 · N128 · N129 · N130 · N131 · N132 · N133 · N134 · N135 · N136 · N137 · N138 · N139
 
 ### N01 — Database setup stopped halfway
 
@@ -5009,4 +5009,174 @@ The date follows Bahrain time, like the rest of the system.
 Bahrain has no daylight saving, and the API and settlement use the same rule.
 
 Commit: db9c444
+
+### N135 — No decimals in money math on screen
+
+#### The idea
+The batch page draws a small bar from the batch total. Money in this app is whole fils, like counting coins, never fractions.
+
+#### The problem
+The bar was worked out with decimal (float) math on fils.
+- The project's own rule (ADR-0001) forbids that.
+
+#### The fix
+- SettlementBatchDetailPage.tsx: whole-number math only.
+
+#### The code
+Before (apps/web/src/pages/settlement/SettlementBatchDetailPage.tsx:84):
+```ts
+const displayProgress = parseFloat((batch.grossFils / 10000).toFixed(2));
+```
+After:
+```ts
+const displayProgress = Math.min(100, Math.floor(batch.grossFils / 10_000));
+```
+The bar width comes from whole numbers; no amount is shown from it.
+
+#### The proof
+- Before: float and toFixed on fils.
+- After: web typecheck clean, web tests 13/13; no money use of parseFloat or toFixed left in the pages.
+
+#### If the judges ask
+"It only draws a bar. Why fix it?"
+Code copied from here would carry the float habit into real amounts; the rule has no exceptions.
+
+Commit: 9f6cb49
+
+### N136 — Two decimals for the card scheme
+
+#### The idea
+The card scheme file lists each amount with exactly two decimals. Like a bank form with two boxes after the point.
+
+#### The problem
+A backup path printed many decimals.
+- It printed "4.7400000000000000" instead of "4.74".
+
+#### The fix
+- scheme_export.go: the backup path cuts to two decimals, like the main path.
+
+#### The code
+Before (apps/settlement/internal/settlement/scheme_export.go:71):
+```sql
+COALESCE(sel.amount, sel.amount_fils::numeric / 1000)::text
+```
+After:
+```sql
+COALESCE(sel.amount, trunc(sel.amount_fils::numeric / 1000, 2))::text
+```
+Both paths now give the same two-decimal text.
+
+#### The proof
+- Before: "4.7400000000000000".
+- After: "4.74".
+
+#### If the judges ask
+"Is this path used today?"
+Only if the stored amount is empty; old rows were filled in, so it is a safety net.
+
+Commit: a056bec
+
+### N137 — Do not delete a hold that was just used
+
+#### The idea
+A hold reserves money on a card for a while. A night job removes holds that ran out. Like clearing old reservation tags from a shelf.
+
+#### The problem
+The job listed old holds, then deleted them by id.
+- A hold used in between was still deleted.
+
+#### The fix
+- expire_holds.ts: the delete also checks the hold is still unused.
+
+#### The code
+Before (scripts/expire_holds.ts:25):
+```ts
+return buildDelete("holds", { id: expiredIds });
+```
+After:
+```ts
+return buildDelete("holds", { id: expiredIds, status: "active" });
+```
+A hold that changed state after the list was made is kept.
+
+#### The proof
+- Before: a hold released in between was deleted.
+- After: it stays, with status "released".
+
+#### If the judges ask
+"An AI called the window negligible. Why fix it?"
+Small windows still happen at scale; one extra condition closes it for free.
+
+Commit: fed085a
+
+### N138 — PDF means a real PDF
+
+#### The idea
+Some KYC papers must be PDFs. The server can read the first bytes of a file, like checking a passport photo, not just the name on the cover.
+
+#### The problem
+The rule looked only at the file name.
+- A photo named "cr.pdf" passed.
+- A real PDF with another name was refused.
+
+#### The fix
+- onboarding/kyc.ts: use the bytes the server already checked.
+- app.test.ts: an old test that pinned the name check now tests a photo named .pdf.
+
+#### The code
+Before (apps/api/src/onboarding/kyc.ts:70):
+```ts
+!input.fileName.toLowerCase().endsWith(".pdf")
+```
+After:
+```ts
+detected !== "pdf"
+```
+The file's content decides, not its name.
+
+#### The proof
+- Before: a JPEG named cr.pdf was accepted.
+- After: refused with 422; a real PDF with any name is accepted.
+
+#### If the judges ask
+"You changed an existing test. Why?"
+It expected a real PDF to be refused because of its name; that was the bug, so the test now checks the real risk.
+
+Commit: 3ef0efb
+
+### N139 — Overflow is an error, not a wrong fee
+
+#### The idea
+The payout service works out fees by multiplying amount by rate. Numbers in a computer have a top limit, like a car's odometer.
+
+#### The problem
+Past the limit the number wrapped around silently.
+- The fee would be wrong with no warning.
+
+#### The fix
+- money/fils.go: a checked version that returns an error.
+- The fee function and its two callers pass the error up.
+
+#### The code
+Before (apps/settlement/internal/money/fils.go:16):
+```go
+return Fils(BankersRoundDiv(int64(amount)*rateBasisPoints, 10_000))
+```
+After:
+```go
+if a != 0 && (product/a != rateBasisPoints || ...) {
+	return 0, fmt.Errorf("ApplyRateFils: %d * %d overflows int64", a, rateBasisPoints)
+}
+```
+A too-large amount stops with a clear error.
+
+#### The proof
+- Before: 1e15 × 10000 gave a wrong value.
+- After: refused; all Go tests pass.
+
+#### If the judges ask
+"Why an error and not a crash?"
+A crash inside the daemon would repeat on every restart and block all shops; an error is logged and handled.
+
+Commit: ecd0bf8
 

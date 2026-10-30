@@ -805,3 +805,33 @@ Where: apps/api/src/paymentLinks/serialize.ts · Commit: 5cd0d37
 The admin page filled in the wrong day between midnight and 3 AM in Bahrain. Now it uses Bahrain time. A test checks the night hours and a leap day.
 
 Where: apps/admin/src/lib/bahrainDate.ts · Commit: db9c444
+
+## N135 — No decimals in money math on screen
+
+A progress bar on the batch page was worked out with decimal math on fils, which the project's rules forbid. Now it uses whole numbers. Nothing on screen changes, and the web tests still pass.
+
+Where: apps/web/src/pages/settlement/SettlementBatchDetailPage.tsx:84 · Commit: 9f6cb49
+
+## N136 — Two decimals for the card scheme
+
+A backup path for the card scheme file printed many decimals instead of two. Now it cuts to two, like the main path. A test proves "4.74" comes out.
+
+Where: apps/settlement/internal/settlement/scheme_export.go · Commit: a056bec
+
+## N137 — Do not delete a hold that was just used
+
+The night job could delete a card hold that was used in the moment between listing and deleting. Now the delete checks the hold is still unused. A test proves a just-used hold is kept.
+
+Where: scripts/expire_holds.ts · Commit: fed085a
+
+## N138 — PDF means a real PDF
+
+The "must be a PDF" rule only checked the file name, so a photo named .pdf passed. Now the file's content decides. A test proves the photo is refused and a real PDF with any name is accepted.
+
+Where: apps/api/src/onboarding/kyc.ts:70 · Commit: 3ef0efb
+
+## N139 — Overflow is an error, not a wrong fee
+
+Very large amounts could make the fee math wrap around to a wrong number with no warning. Now it stops with a clear error, without crashing the payout service. Tests prove both.
+
+Where: apps/settlement/internal/money/fils.go · Commit: ecd0bf8
