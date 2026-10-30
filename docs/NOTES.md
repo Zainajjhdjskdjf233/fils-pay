@@ -2676,4 +2676,4 @@ The worker now picks up the paid event, and applySettlementPaid updates the row.
 "What about old rows?"
 They update after one reporting rebuild. Zero-payout batches never get a paid event, so they stay closed; this is recorded.
 
-Commit: PENDING_N72
+Commit: d4df731

@@ -23,7 +23,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:02 PM
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
 - Dilmune Cloud: not yet
 - Decisions waiting for Zainab: 24 (search "for Zainab to review" in LOG.md)
-- Fork: up to date
+- Fork: needs a push (VS Code: Git: Push to... → mine)
 
 ## 2. Stages
 - ✅ Understand
@@ -74,6 +74,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:02 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- d4df731 fix(E64): reporting consumes settlement.paid so payout trends show paid
 - 8720dd6 fix(E62): reporting cursor read locked (FOR UPDATE) so concurrent passes cannot double count
 - 383d417 fix(E133): report filter JSON checked (object, UUID, status, real dates) before use: 400, not 500
 - 26856d3 fix(E45): export-summary requires a merchant login (second review item 29; re-rated High)
@@ -88,7 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:02 PM
 - a8fdcb1 feat(capacity): load shedding (503 + Retry-After), CPU rebalanced to Postgres, k6 checkout test; capacity ~15 checkouts/s
 - d7d17b2 fix(E02): Docker stack within 1 vCPU/2 GB — Dockerfiles, compose limits, restarts, health checks, volumes, per-service DB roles
 - 0cf9a60 fix(E99,E105): one Idempotency-Key per capture/refund attempt; new key only after a definite 4xx
-- 850275f fix(E104): bulk KYC approval only approves under_review merchants; selection cleared on filter change
 
 ## 7. All errors
 ## High (39 of 40 fixed)
@@ -2916,5 +2916,5 @@ The worker now picks up the paid event, and applySettlementPaid updates the row.
 "What about old rows?"
 They update after one reporting rebuild. Zero-payout batches never get a paid event, so they stay closed; this is recorded.
 
-Commit: PENDING_N72
+Commit: d4df731
 

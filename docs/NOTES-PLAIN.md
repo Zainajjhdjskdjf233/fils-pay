@@ -432,4 +432,4 @@ Where: apps/reporting/src/consumer/cursor.ts:40 · Commit: 8720dd6
 
 When a shop was paid, the system sent a "paid" message, but the reporting part never listened for it, so the dashboard showed every batch as only "closed". Now the reporting worker reads that message and marks the batch as paid. A test closes a batch, pays it, and checks the dashboard data says "paid".
 
-Where: apps/reporting/src/consumer/applyEvent.ts:187 · Commit: PENDING_N72
+Where: apps/reporting/src/consumer/applyEvent.ts:187 · Commit: d4df731
