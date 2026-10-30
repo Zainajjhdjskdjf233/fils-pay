@@ -1,4 +1,4 @@
-# FilsPay — fixed by Team Zainab & Lulwa
+# FilsPay — fixed by Zainab
 
 The Handover hackathon, 29–31 October 2026.
 
