@@ -216,4 +216,4 @@ Where: apps/api/src/settlement/query.ts:408 · Commit: 0be550a
 
 Shops reported that FilsPay's webhook signatures never matched. FilsPay computed the signature over the message with its fields sorted, but sent the message with the fields in a different order, so the shop's check always failed. Now the message is sent exactly as it was signed. A test that checks the signature the way a shop would now passes.
 
-Where: apps/api/src/webhooks/dispatcher.ts:176 · Commit: PENDING_N36
+Where: apps/api/src/webhooks/dispatcher.ts:176 · Commit: 8c76fb8

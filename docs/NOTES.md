@@ -1354,4 +1354,4 @@ The body is now byte-for-byte the string inside the signature.
 "Does sorting the keys change the meaning?"
 No. JSON objects have no order; only the bytes change, and now the bytes match the seal.
 
-Commit: PENDING_N36
+Commit: 8c76fb8
