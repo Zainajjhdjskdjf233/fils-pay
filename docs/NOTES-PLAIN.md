@@ -439,3 +439,9 @@ Where: apps/reporting/src/consumer/applyEvent.ts:187 · Commit: d4df731
 A one-off script cleaned up tiny rounding leftovers, but it took them from the shops' balances instead of the clearing account the rules name. So each run made shops slightly poorer. Now it uses the same two accounts as the daily close. A test shows no shop balance is touched; a read-only query can list the old runs for finance.
 
 Where: scripts/reconcile_march.ts:97 · Commit: 235fb29
+
+## N74 — A shop can only be approved after its documents are reviewed
+
+An admin could approve a shop even if it had never sent any documents, and two admins could decide at the same moment. Now approval only works for a shop that is waiting for review, and the check and the change happen in one step. A test shows a shop with no documents is refused, and a second decision is refused too.
+
+Where: apps/api/src/onboarding/review.ts: · Commit: PENDING_N74

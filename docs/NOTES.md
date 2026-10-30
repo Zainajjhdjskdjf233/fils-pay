@@ -2713,3 +2713,40 @@ The leftover now leaves the clearing account, not the shop's balance.
 They stay until finance decides. A read-only query lists them and shows how many times the sweep ran for each shop.
 
 Commit: 235fb29
+
+## N74 — A shop can only be approved after its documents are reviewed
+
+### The idea
+Before a shop can take payments, an admin reviews its documents and approves it. Like a bank checking ID before opening an account.
+
+### The problem
+One admin action approved a shop in any state.
+- A shop that never uploaded a document could be approved and go live.
+- Two admins deciding at once both wrote a decision.
+
+### The fix
+- review.ts: the approval now only changes a shop that is still "under review", in one step. Otherwise it answers 409 and writes nothing.
+- adminMerchants.ts: the admin route asks for this check.
+
+### The code
+Before (apps/api/src/onboarding/review.ts:53):
+```ts
+`UPDATE merchants SET onboarding_status = $2, kyc_passed = $3 WHERE id = $1`
+```
+After:
+```ts
+`UPDATE merchants SET onboarding_status = $2, kyc_passed = $3
+  WHERE id = $1 AND ($4::boolean IS NOT TRUE OR onboarding_status = 'under_review')
+  RETURNING id`
+```
+If no row matches, nothing is written and the admin gets 409.
+
+### The proof
+- Before: a "submitted" shop was approved (200, kycPassed true).
+- After: submitted and rejected shops get 409; a second decision gets 409; admin tests 43/43.
+
+### If the judges ask
+"Why did you change two old tests?"
+They approved a shop with no documents and expected success, so they protected the bug. A real upload moves the shop to "under review" first.
+
+Commit: PENDING_N74

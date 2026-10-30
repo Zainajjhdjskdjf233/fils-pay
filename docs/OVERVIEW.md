@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 4:21 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 4:25 PM
 
 ## Contents
 1. Status now
@@ -14,8 +14,8 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:21 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 67 of 158 fixed.
-  - High: 39 of 45 fixed
+- Errors: 68 of 158 fixed.
+  - High: 40 of 45 fixed
   - Medium: 25 of 54 fixed
   - Low: 3 of 59 fixed
 - Missing feature (refunds, F01): done
@@ -27,7 +27,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:21 PM
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 67 of 158 fixed.
+- 🔄 Fix: 68 of 158 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -91,7 +91,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:21 PM
 - d7d17b2 fix(E02): Docker stack within 1 vCPU/2 GB — Dockerfiles, compose limits, restarts, health checks, volumes, per-service DB roles
 
 ## 7. All errors
-## High (39 of 45 fixed)
+## High (40 of 45 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -136,7 +136,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:21 PM
 | E124 | [deep review] Capture replay credits the wrong discount (twice after a zero-discount capture) | Fixed |
 | E45 | [second review] /v1/reporting/export-summary had no login check (always 500) | Fixed |
 | E134 | [coverage] A credit's effectiveDate has no range: a future date holds the payout for years, an old date lands in a closed period | Open |
-| E135 | [coverage] Single-merchant KYC review approves a merchant in any state | Open |
+| E135 | [coverage] Single-merchant KYC review approves a merchant in any state | Fixed |
 | E136 | [coverage] Any admin role, including support, can resend all of a merchant's past webhooks, again and again | Open |
 | E137 | [coverage] KYC thumbnail: a 1 MB PNG decompression bomb can push the API past its 512 MB limit | Open |
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Open |
@@ -265,7 +265,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:21 PM
 | E158 | [coverage] Adjustment import has no row cap; one long transaction can outlive the 60 s proxy timeout | Open |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74
 
 ### N01 — Database setup stopped halfway
 
@@ -2978,4 +2978,41 @@ The leftover now leaves the clearing account, not the shop's balance.
 They stay until finance decides. A read-only query lists them and shows how many times the sweep ran for each shop.
 
 Commit: 235fb29
+
+### N74 — A shop can only be approved after its documents are reviewed
+
+#### The idea
+Before a shop can take payments, an admin reviews its documents and approves it. Like a bank checking ID before opening an account.
+
+#### The problem
+One admin action approved a shop in any state.
+- A shop that never uploaded a document could be approved and go live.
+- Two admins deciding at once both wrote a decision.
+
+#### The fix
+- review.ts: the approval now only changes a shop that is still "under review", in one step. Otherwise it answers 409 and writes nothing.
+- adminMerchants.ts: the admin route asks for this check.
+
+#### The code
+Before (apps/api/src/onboarding/review.ts:53):
+```ts
+`UPDATE merchants SET onboarding_status = $2, kyc_passed = $3 WHERE id = $1`
+```
+After:
+```ts
+`UPDATE merchants SET onboarding_status = $2, kyc_passed = $3
+  WHERE id = $1 AND ($4::boolean IS NOT TRUE OR onboarding_status = 'under_review')
+  RETURNING id`
+```
+If no row matches, nothing is written and the admin gets 409.
+
+#### The proof
+- Before: a "submitted" shop was approved (200, kycPassed true).
+- After: submitted and rejected shops get 409; a second decision gets 409; admin tests 43/43.
+
+#### If the judges ask
+"Why did you change two old tests?"
+They approved a shop with no documents and expected success, so they protected the bug. A real upload moves the shop to "under review" first.
+
+Commit: PENDING_N74
 

@@ -13,9 +13,9 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 67 of 158 fixed.
+Summary: 68 of 158 fixed.
 
-## High (39 of 45 fixed)
+## High (40 of 45 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -60,7 +60,7 @@ Summary: 67 of 158 fixed.
 | E124 | [deep review] Capture replay credits the wrong discount (twice after a zero-discount capture) | Fixed |
 | E45 | [second review] /v1/reporting/export-summary had no login check (always 500) | Fixed |
 | E134 | [coverage] A credit's effectiveDate has no range: a future date holds the payout for years, an old date lands in a closed period | Open |
-| E135 | [coverage] Single-merchant KYC review approves a merchant in any state | Open |
+| E135 | [coverage] Single-merchant KYC review approves a merchant in any state | Fixed |
 | E136 | [coverage] Any admin role, including support, can resend all of a merchant's past webhooks, again and again | Open |
 | E137 | [coverage] KYC thumbnail: a 1 MB PNG decompression bomb can push the API past its 512 MB limit | Open |
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Open |

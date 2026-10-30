@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 04:21 PM (30 Oct 2026)
-Summary: Errors 67/158 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 04:25 PM (30 Oct 2026)
+Summary: Errors 68/158 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1072,7 +1072,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/onboarding/review.ts:53 `UPDATE merchants SET onboarding_status = $2, kyc_passed = $3 WHERE id = $1` (no state check); route routes/adminMerchants.ts:145-160.
 - Error: A finance admin approves a merchant still in `submitted` (no document) or `rejected` → 200, kyc_passed = true; the merchant can take payments. Two admins at once (approve + reject) → both review rows, last UPDATE wins. E104 fixed this for bulk only.
 - Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
-- Severity: high · Status: open
+- Severity: high · Status: fixed (see section 5)
 
 ### E136 — [coverage] Any admin role, including support, can resend all of a merchant's past webhooks, again and again
 - Where: apps/api/src/routes/adminMerchants.ts:210, :256, :297 use `requireAdminSession` only; webhooks/archiveReplay.ts:144-153 has no "already replayed" check.
@@ -2170,6 +2170,14 @@ ROLLBACK;
 - Regression: same as baseline v3 (api 446/447, the known E54 test; scripts 10/10; Go 80 pass).
 - Not changed (finance decision, for Zainab to review): rows already posted by past runs stay. Read-only query to list them, and to count runs per merchant (Item 02 asks whether it ran more than once), is in scratchpad/plans/E75.md section 5 (`BEGIN TRANSACTION READ ONLY ... ROLLBACK`).
 - Actual result: running the sweep no longer charges merchants.
+
+### E135 — 04:25 PM — a KYC review decides only a merchant under review
+- Changed: apps/api/src/onboarding/review.ts:: the merchants UPDATE runs first as one atomic `UPDATE … WHERE id = $1 AND ($4 IS NOT TRUE OR onboarding_status = 'under_review') RETURNING id`; with the new `requireUnderReview` (set only by the admin route, routes/adminMerchants.ts) no row → 409 `merchant_not_under_review`, and no review row or audit row is written. Seed and test callers leave the flag unset (unchanged behaviour).
+- Test: apps/api/src/routes/adminKycReview.e135.test.ts. Before: `approving a 'submitted' merchant: 200 {"onboardingStatus":"approved","kycPassed":true}`. After: PASS (submitted and rejected → 409, nothing changed; under_review → 200; a second decision → 409).
+- Old tests that locked the bug were corrected: routes/admin.test.ts "KYC review via the new admin guard…" and "a forced audit-write failure rolls back…" approved a 'submitted' merchant; they now set 'under_review' first (an upload does that: onboarding/kyc.ts:122-125). admin tests 43/43.
+- fix-reviewer: APPROVE. The race between two admins is closed (READ COMMITTED re-checks the WHERE after the row lock, so the second gets 409); seed/tests/bulkKyc unaffected; the test change is justified (docs/ADMIN.md, audit export rows all have previousStatus 'under_review'). Our answer: agree. Its optional suggestion (a parallel double-approve test) is not added; noted.
+- Regression: same as baseline v3 (api 447/448, the known E54 test; Go 80 pass).
+- Actual result: no merchant can be approved without being under review.
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04) — not yet. Local Docker stack done (01:48 PM, see section 5 E02).

@@ -157,6 +157,7 @@ export async function adminMerchantRoutes(app: FastifyInstance): Promise<void> {
           reviewerIdentifier: adminAuth.email,
           reviewerAdminUserId: adminAuth.adminUserId,
           notes,
+          requireUnderReview: true, // E135
         });
         await insertAdminAuditLog(client, {
           adminUserId: adminAuth.adminUserId,
