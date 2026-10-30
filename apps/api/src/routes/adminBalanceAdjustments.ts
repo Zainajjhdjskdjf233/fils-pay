@@ -17,6 +17,9 @@ function assertUuidParam(value: string, code: string): void {
   }
 }
 
+/** E140: largest balance adjustment either way (1,000,000,000 BD; for Zainab to review). */
+const MAX_BALANCE_ADJUSTMENT_FILS = 1_000_000_000_000;
+
 /**
  * Validates the request body into an already-branded signed delta and a
  * non-empty reason. `deltaFils` arrives as an integer number of fils — the
@@ -26,7 +29,10 @@ function assertUuidParam(value: string, code: string): void {
 function parseBalanceAdjustmentBody(body: unknown): { deltaFils: Fils; reason: string } {
   const source = (body ?? {}) as { deltaFils?: unknown; reason?: unknown };
 
-  if (typeof source.deltaFils !== "number" || !Number.isInteger(source.deltaFils)) {
+  // E140: a safe integer within a business maximum (same cap as E141). 2^53
+  // passed Number.isInteger and then made toFils throw (500); a legal 9e15
+  // set the cache to 9 trillion BD.
+  if (typeof source.deltaFils !== "number" || !Number.isSafeInteger(source.deltaFils) || Math.abs(source.deltaFils) > MAX_BALANCE_ADJUSTMENT_FILS) {
     throw new BadRequestError("invalid_request", "deltaFils is required and must be an integer number of fils");
   }
   if (source.deltaFils === 0) {

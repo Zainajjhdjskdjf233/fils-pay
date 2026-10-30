@@ -228,3 +228,14 @@ test("invalid bodies are rejected with 400", async () => {
     assert.equal(res.statusCode, 400, `${JSON.stringify(payload)} -> ${res.body}`);
   }
 });
+
+// E140 [coverage]: a huge deltaFils passed Number.isInteger and then made
+// toFils throw (500); a legal 9e15 set the cache to 9 trillion BD.
+test("testE140_hugeDeltaIsA400", async () => {
+  const admin = await signedInAdmin("finance");
+  const merchantId = await createMerchant(100_000);
+  for (const deltaFils of [2 ** 53, 9e15, -9e15]) {
+    const res = await app.inject({ method: "POST", url: PATH(merchantId), headers: { cookie: admin.cookie }, payload: { deltaFils, reason: "e140" } });
+    assert.equal(res.statusCode, 400, `${deltaFils}: ${res.body}`);
+  }
+});

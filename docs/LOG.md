@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 05:15 PM (30 Oct 2026)
-Summary: Errors 87/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 05:16 PM (30 Oct 2026)
+Summary: Errors 88/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1103,7 +1103,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/routes/adminBalanceAdjustments.ts:29 `Number.isInteger`, :40 `toFils` throws RangeError; errorHandler maps it to 500.
 - Error: deltaFils 2^53 → 500; a legal 9e15 sets the cache to 9 trillion BD and the next call fails with 500.
 - Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
-- Severity: medium · Status: open
+- Severity: medium · Status: fixed (see section 5, E140)
 
 ### E141 — [coverage] Credit: a huge baseAmountFils with reverseFee gives 500
 - Where: apps/api/src/admin/creditRequestValidation.ts:42 has no upper limit; credits.ts addFils(base, fee) throws past 2^53.
@@ -2328,6 +2328,13 @@ ROLLBACK;
 - Decision (for Zainab to review): the cap value — the case file gives no limit; credits above 50 BD already need a second approver (E09).
 - Test: admin/creditRequestValidation.test.ts testE141_hugeBaseAmountIsA400 and testE141_capBoundary. Before: `Missing expected exception` (route answered 500 from addFils, credits.ts:273). After: PASS; credit tests 35/35.
 - fix-reviewer: APPROVE (max base + fee at 10000 bps = 2e12, far below 2^53; approval reads stored, already-safe rows). Took its two nits (message, boundary test). Noted: merchants.mdr_bps has no upper CHECK (0002_merchants.sql:6) — DB-only edge, no API writes it.
+- check.sh: OK.
+
+### E140 — 05:16 PM — a balance adjustment is a safe integer within a cap (no 500)
+- Changed: apps/api/src/routes/adminBalanceAdjustments.ts: Number.isSafeInteger and |deltaFils| <= 1,000,000,000,000 fils, else the existing 400 (2^53 used to make toFils throw → 500; a legal 9e15 set the cache to 9 trillion BD).
+- Decision (for Zainab to review): the cap value, the same as E141.
+- Test: routes/adminBalanceAdjustments.test.ts testE140_hugeDeltaIsA400 (2^53, ±9e15). Before: `9007199254740992: {"error":"internal_error"}`. After: PASS; balance adjustment tests 19/19.
+- fix-reviewer: APPROVE. Leftover (Low, not E140): about 9,000 maximum calls could still push the cache past 2^53 — toFils then throws inside the transaction (rolled back, 500); a guard in the UPDATE would close it.
 - check.sh: OK.
 
 ## 6. Deploy
