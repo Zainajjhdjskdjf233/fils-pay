@@ -150,4 +150,4 @@ Where: apps/settlement/internal/settlement/payable.go:11 · Commit: 2db05e0
 
 A one-time clean-up script for March doubled its effect every time it was run, because nothing remembered that it had already run. It also used UTC months, so it missed the first 3 hours of March in Bahrain. Now it checks whether each shop was already cleaned up and skips it, it cannot run twice at the same moment, and it uses Bahrain months. A test that runs it twice now sees only one clean-up.
 
-Where: scripts/reconcile_march.ts:86 · Commit: PENDING_N25
+Where: scripts/reconcile_march.ts:86 · Commit: d69061a

@@ -957,4 +957,4 @@ A merchant that already has a sweep row is skipped, even from old runs.
 "Was production swept twice?"
 We cannot see production. A read-only count of sweep rows per merchant answers it: more than 2 rows means it ran more than once.
 
-Commit: PENDING_N25
+Commit: d69061a
