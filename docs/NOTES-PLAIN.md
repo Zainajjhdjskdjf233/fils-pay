@@ -121,3 +121,9 @@ Where: apps/api/src/settlement/query.ts:363 · Commit: 9afd98d
 Finance can upload a file of manual balance changes, but the system read the amounts as if money had 2 decimals like dollars. Bahraini Dinars have 3, so 4.75 BD became 0.475 BD in the books, ten times too little. We switched to the correct BD reader that already existed in the code, and fixed old tests that had been checking for the wrong numbers. Now 4.75 BD is saved as 4.750 BD, and a read-only query can find old rows that were saved wrong so finance can correct them.
 
 Where: apps/api/src/admin/adjustmentCsvParsing.ts:8 · Commit: 2f06eb4
+
+## N21 — The daily close now starts just after Bahrain midnight
+
+The nightly settlement was meant to start just after midnight in Bahrain, but it started around 3 AM. The timer looked at the date in UTC, which is 3 hours behind Bahrain, so for the first 3 hours after midnight it still thought it was yesterday. We now turn the time into the Bahrain date before choosing which day to close. Tests show that at 12:15 AM on 31 Oct it closes 30 Oct, as it should.
+
+Where: apps/settlement/internal/scheduler/daemon.go:70 · Commit: PENDING_N21

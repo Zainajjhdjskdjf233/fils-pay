@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 10:45 AM (30 Oct 2026)
-Summary: Errors 17/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
+Updated: 10:51 AM (30 Oct 2026)
+Summary: Errors 18/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -287,7 +287,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: high (case file: close at midnight Bahrain)
 - Proposed fix: `date = date.In(businessDayLocation)` first.
 - Expected result: at 00:15 Bahrain on 31 Oct, the window is 31 Oct, so 30 Oct is due.
-- Status: open
+- Status: fixed (daemon side, see section 5)
 
 ### E24 — Lifetime payout estimate drifts (float32)
 - Where: apps/settlement/internal/settlement/payout_estimate.go:19, :39, :46; REAL column in 0040
@@ -1036,6 +1036,18 @@ ROLLBACK;
   - Not run on any real database (we have none). Correcting the found rows is a finance/human decision: post a new adjustment for `missing_fils`, never edit old ledger rows.
 - Review: one-line swap to an existing tested helper → no fix-reviewer; Copilot CLI not installed.
 - Actual result: matches expected (4.75 → 4750; 4.755 → 4755).
+
+### E23 — 10:51 AM — the daily close starts after Bahrain midnight, not 03:00
+- Plan OK: Zainab, 10:47 AM ("Yes, go ahead.").
+- Changed:
+  - apps/settlement/internal/scheduler/daemon.go: the "what is due now" decision moved into a pure `dueBusinessDate(now, runDelayMinutes)` (first as an exact refactor, so the red test shows the real wrong answer); it now calls `settlement.BusinessDayWindow(settlement.BusinessDateOf(now))` (was `BusinessDayWindow(now)` with a UTC reading). MK's comment "UTC here is fine, BusinessDayWindow converts to Bahrain" kept as evidence, with a correction under it.
+  - apps/settlement/internal/settlement/window.go:42: new `BusinessDateOf(t)` = Bahrain calendar date of an instant (uses the existing private `businessDayLocation`).
+- Decision: fix the daemon, not BusinessDayWindow (LOG proposed window.go) — Why: every other caller passes a plain date (CLI `--date`, Go tests, CloseBatch) and is correct; the existing contract test TestBusinessDayWindow_IgnoresClockTime (window_utc_compat_test.go:29) says only the argument's calendar date matters; the daemon was the only caller passing a clock reading — Alternative: convert inside BusinessDayWindow (changes the contract for all callers and breaks that test).
+- Test: apps/settlement/internal/scheduler/daemon_e23_test.go (3, no DB). Before (after the pure refactor): `at 00:15 Bahrain on 31 Oct: got (2026-10-29, due=true), want (2026-10-30, due=true)`; `at 00:05 Bahrain with a 10 minute delay nothing new may be due`. After: 3/3 PASS.
+- Regression: full-db-test.sh = baseline (5 known failures); Go 60 pass. Compat tests in window_utc_compat_test.go unchanged and passing.
+- Not changed: scheduler/status.go log-only estimate (reads TZ; FH/MK: log-only).
+- Review: one function, no money math → no fix-reviewer; Copilot CLI not installed.
+- Actual result: matches expected (at 00:15 Bahrain on 31 Oct, 30 Oct is due).
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)

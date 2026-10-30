@@ -772,3 +772,39 @@ parseBhdToFils reads up to 3 decimals and multiplies by 1000 with whole numbers 
 We do not edit old ledger rows. The read-only query lists each wrong row and the missing fils, so finance can post a new correcting adjustment.
 
 Commit: 2f06eb4
+
+## N21 — The daily close now starts just after Bahrain midnight
+
+### The idea
+Every night a timer closes the day that just ended and pays the shops. It is like a shop that counts the till right after closing time.
+
+### The problem
+The timer read the clock in UTC, which is 3 hours behind Bahrain.
+- From midnight to 3 AM in Bahrain, UTC still showed yesterday's date.
+- So the day that just ended was only closed at about 3:15 AM.
+
+### The fix
+- window.go: a new helper, BusinessDateOf, gives the Bahrain date of any moment.
+- daemon.go: the "what is due now" check uses that Bahrain date first. The check is now a small function we can test.
+
+### The code
+Before (apps/settlement/internal/scheduler/daemon.go:80-81):
+```go
+now := time.Now().UTC()
+todayStart, _ := settlement.BusinessDayWindow(now)
+```
+After:
+```go
+todayStart, _ := settlement.BusinessDayWindow(settlement.BusinessDateOf(now))
+```
+The clock reading is turned into a Bahrain date before the day is chosen.
+
+### The proof
+- Before: at 00:15 Bahrain on 31 Oct, the check picked 29 Oct.
+- After: it picks 30 Oct. At 00:05 it waits for the grace period. At 11 PM it still closes the day before.
+
+### If the judges ask
+"Why not fix BusinessDayWindow itself?"
+Every other caller gives it a plain date, and that works. Only the timer gave it a clock time, so we fixed the timer and kept the shared function's promise.
+
+Commit: PENDING_N21

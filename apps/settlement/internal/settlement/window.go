@@ -34,6 +34,16 @@ func mustLoadLocation(name string) *time.Location {
 	return loc
 }
 
+// BusinessDateOf (E23) returns the Asia/Bahrain calendar date of instant t,
+// as midnight in Asia/Bahrain. Use it before BusinessDayWindow whenever the
+// input is a clock reading (like time.Now()) rather than a plain date:
+// BusinessDayWindow takes the calendar date in the argument's own zone, so
+// a UTC reading between 00:00 and 03:00 Bahrain would give yesterday.
+func BusinessDateOf(t time.Time) time.Time {
+	y, m, d := t.In(businessDayLocation).Date()
+	return time.Date(y, m, d, 0, 0, 0, 0, businessDayLocation)
+}
+
 // BusinessDayWindow returns the [start, end) UTC instants bounding the
 // given calendar date's Asia/Bahrain business day, i.e. Asia/Bahrain
 // 00:00:00 on `date` through Asia/Bahrain 00:00:00 on `date`+1.
