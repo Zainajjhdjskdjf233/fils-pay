@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 141 of 176 fixed.
+Summary: 142 of 176 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -66,7 +66,7 @@ Summary: 141 of 176 fixed.
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-## Medium (47 of 60 fixed)
+## Medium (48 of 60 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -104,7 +104,7 @@ Summary: 141 of 176 fixed.
 | E91 | [found later] Every service connects as one Postgres superuser | Fixed |
 | E92 | [found later] Ledger immutability claim false; audit log unprotected | Partly fixed |
 | E93 | [found later] sqlFilter builds DELETE with no WHERE for null/undefined filters | Fixed |
-| E100 | [found later] Checkout tells a charged buyer to try again (reservation_lost) | Open |
+| E100 | [found later] Checkout tells a charged buyer to try again (reservation_lost) | Fixed |
 | E101 | [found later] Expired link with stale reservation: Pay form forever, cannot cancel | Open |
 | E103 | [found later] View as merchant cannot work end to end | Open |
 | E105 | [found later] Refund drawer keeps its key after a definite 4xx (my F01f bug) | Fixed |

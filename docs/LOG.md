@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 07:45 PM (30 Oct 2026)
-Summary: Errors 141/176 fixed (+9 partly: E50, E92, E131, E145, E163, E47, E86, E94, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 07:46 PM (30 Oct 2026)
+Summary: Errors 142/176 fixed (+9 partly: E50, E92, E131, E145, E163, E47, E86, E94, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -761,7 +761,8 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/routes/adminMerchants.ts:176-205 (returns rawKey to finance/super_admin, :198); requireMerchantAuth.ts:155 (API keys skip role checks)
 - Error: bypasses E10's read-only impersonation: an admin can refund, capture, re-point webhooks, all recorded as the merchant's API key; the merchant's integration breaks (old key revoked, E07).
 - Proof: code read (security-review agent (12:59 PM); checked by me).
-- Severity: medium · Status: open
+- Severity: medium · Status: open — for Zainab to review (07:46 PM)
+- Options: (a) admin rotate only revokes the old key (no new raw key shown); the merchant owner issues a new one in the dashboard — closes the bypass, but support can no longer hand over a key; (b) keep issuing, but mark the new key as admin-issued and limit it to read-only routes — needs a scope column (migration); (c) keep as is and rely on the audit row. Recommended: (a), smallest and matches E10 (staff are read-only in the merchant plane). Not changed tonight: it changes the admin console flow (apps/admin) and needs your decision.
 
 ### E83 — [found later] Merchant can change legal name and CR number after KYC approval with no re-review
 - Where: apps/api/src/onboarding/businessProfile.ts:81-92 (PATCHABLE_COLUMNS incl. legal_name, registration_number, business_type), :99-131 (no status change, no audit)
@@ -869,7 +870,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/web/src/pages/checkout/CheckoutPage.tsx:77-78 (any 409 → "try again shortly", retryable); server pay.ts returns `payment_link_reservation_lost` + transactionId after a successful capture (E29)
 - Error: the buyer loses the reference for a refund and retries into "already paid".
 - Proof: code read (web/admin bug-hunt agent (1:10 PM); checked by me).
-- Severity: medium · Status: open
+- Severity: medium · Status: fixed (see section 5, E100)
 
 ### E101 — [found later] Expired link with a stale reservation shows a Pay form forever and cannot be canceled
 - Where: apps/api/src/paymentLinks/status.ts:37-40 (reserved branch ignores expiry); pay.ts classifyClaimFailure (reserved → 409 processing, not 410); cancel.ts:16 (only status='active')
@@ -2781,6 +2782,12 @@ ROLLBACK;
 - Changed: new apps/api/src/plugins/csrfOrigin.ts, installed first in apps/api/src/app.ts: an onRequest hook refuses POST/PUT/PATCH/DELETE that carry one of our session cookies (merchant, admin, impersonation) and an Origin whose hostname differs from the Host hostname. Ports are ignored because nginx forwards Host $host without the port (ops/nginx/nginx.conf:36,58) while the admin console on :8081 sends Origin …:8081.
 - Before: apps/api/src/plugins/csrfOrigin.e84.test.ts — a POST to /v1/auth/logout with a cookie and Origin http://evil.example.test, and a text/plain POST to /v1/auth/otp/resend from another subdomain, were processed. After: both 403; same origin, no Origin header, and no cookie are not affected. Full regression on a fresh DB: api 512/512, money 44/44, events 4/4, reporting 20/20, web 13/13, scripts 11/11, Go 83, failing 0.
 - Second review (Copilot): not run — copilot not found (LOG line 1567). fix-reviewer: APPROVE; checkout, dashboard (:80) and admin console (:8081) keep working on the live server; the hook reads the raw Host header, so trustProxy cannot forge it. Known limits it noted (recorded, not changed): very old browsers that send no Origin on form POSTs are not covered; :80 and :8081 on one IP count as one host (the same-site gap SameSite=Lax already leaves; :80 blocks /v1/admin, E86); a dev page opened as 127.0.0.1 instead of localhost gets 403.
+- check.sh (clean environment): OK. Needs a redeploy.
+
+### E100 — 07:46 PM — checkout no longer tells a charged buyer to try again; it shows the reference and says not to pay again
+- Changed: apps/web/src/pages/checkout/CheckoutPage.tsx: a 409 with error payment_link_reservation_lost (pay.ts:247 returns it with the transactionId after a successful capture lost the link to another payment) is now a terminal message: the card was charged, do not pay again, contact the merchant with the reference. Other 409s keep the 'try again shortly' message. The server already logs the case as 'refund needed' (pay.ts:245).
+- Proof: UI-only, no browser test setup; web tsc clean, web tests 13/13. The server side of this path is covered by paymentLinks.e29.test.ts (the losing buyer gets 409 reservation_lost).
+- E82 (same commit, docs only): options recorded, marked for Zainab to review.
 - check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy

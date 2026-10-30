@@ -75,6 +75,14 @@ export function CheckoutPage() {
           setPayState({ kind: "terminal", message: "This invoice has already been paid." });
         } else if (statusCode === 409 && body.error === "payment_link_canceled") {
           setPayState({ kind: "terminal", message: "This payment link is no longer available." });
+        } else if (statusCode === 409 && body.error === "payment_link_reservation_lost") {
+          // E100: the card WAS charged (pay.ts:247 returns the transaction id); another
+          // payment completed the link first. Never invite a retry; keep the reference.
+          const ref = typeof body.transactionId === "string" ? ` Your reference: ${body.transactionId}.` : "";
+          setPayState({
+            kind: "terminal",
+            message: `Your card was charged, but this invoice was paid at the same moment by another payment. Do not pay again. The merchant will refund you; please contact them with your reference.${ref}`,
+          });
         } else if (statusCode === 409) {
           setPayState({ kind: "declined", message: "A payment is already being processed for this link. Please try again shortly.", retryable: true });
         } else if (statusCode === 410) {
