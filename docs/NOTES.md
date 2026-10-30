@@ -544,3 +544,79 @@ FOR UPDATE locks the row until the refund is written, so a second refund waits a
 Only for refunds on that one payment, and capture already works this way on purpose (capture.ts:77-85). Money correctness comes before speed here.
 
 Commit: 68fd1bf
+
+## N15 — Refunds can now be made through the API
+
+### The idea
+A shop needs one web address to ask "refund this payment". Like a returns desk: one counter, staffed only by people allowed to give money back.
+
+### The problem
+The refund address only answered "501 not implemented".
+- The refund logic existed but nothing called it.
+- An old draft made a new safety key on every request, which would let a retry refund twice.
+
+### The fix
+- apps/api/src/routes/refunds.ts: a real route at /v1/merchants/:merchantId/refunds. Only owner or finance users (or the shop's API key) may use it. The client must send its own Idempotency-Key. Amounts must be whole fils; the reason is at most 500 characters.
+- apps/api/src/app.ts: the route is mounted with the other shop routes.
+
+### The code
+Before (apps/api/src/routes/refunds.ts:23-25):
+```ts
+app.post("/", { preHandler: requireMerchantAuth }, async (_request, reply) => {
+  reply.code(501).send({ error: "not_implemented" });
+});
+```
+After:
+```ts
+app.post("/:merchantId/refunds", { preHandler: [requireMerchantAuth, requireMerchantRole("owner", "finance")] },
+  async (request, reply) => {
+    assertRefundRequestScope(auth, request.params.merchantId);
+    ... // Idempotency-Key required, body checked
+    const result = await initiateMerchantRefund(app.db, app.acquirer, { merchantId: auth.merchantId, ... });
+```
+The new route checks who you are and which shop you act for, checks the input, and then runs the refund logic fixed in N14.
+
+### The proof
+- Before: refunds.f01b.test.ts → every call got 404 (no route existed).
+- After: 7 tests pass: refund 1.250 BD → 200 with 31 fils fee back; same key → same answer, one refund; support user → 403; other shop → 403; refund shows in the timeline as −1250.
+
+### If the judges ask
+"Why does the client have to send the Idempotency-Key?"
+Only the client knows that two clicks are the same request. A key made by the server is new every time, so it cannot stop a double refund.
+
+Commit: f84083a, 8f05f9e
+
+## N16 — Shops now get a webhook when a refund succeeds
+
+### The idea
+A webhook is a message FilsPay sends to the shop's own server when something happens. Like a text message from your bank after a payment.
+
+### The problem
+Refunds never sent a message.
+- The refund event was saved, but the sender's allowlist did not include it.
+- Adding it to the list alone would crash the sender, because there was no message format for it.
+
+### The fix
+- apps/api/src/webhooks/envelope.ts: a message format for refund.succeeded, field by field.
+- apps/api/src/webhooks/dispatcher.ts: refund.succeeded added to the allowlist, after the format exists.
+
+### The code
+Before (apps/api/src/webhooks/dispatcher.ts:28-32):
+```ts
+const WEBHOOK_ELIGIBLE_EVENT_TYPES = ["transaction.captured", "transaction.voided", "settlement.paid"];
+```
+After:
+```ts
+const WEBHOOK_ELIGIBLE_EVENT_TYPES = ["transaction.captured", "transaction.voided", "settlement.paid", "refund.succeeded"];
+```
+Refund events now go out, using a fixed public shape (refundId, amountFils, feeReversedFils, status and more).
+
+### The proof
+- Before: refundWebhook.f01c.test.ts → only "transaction.captured" was delivered.
+- After: "refund.succeeded" is delivered with amountFils 1250.
+
+### If the judges ask
+"Why not just send the saved event as it is?"
+The webhook is a contract shops write code against. A field-by-field mapping keeps internal fields private and lets us change internals without breaking shops.
+
+Commit: 079aeea

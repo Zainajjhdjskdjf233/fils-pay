@@ -61,7 +61,7 @@ already exists:
 
 | Piece | Where | State |
 |---|---|---|
-| Route | `POST /v1/refunds` (`apps/api/src/routes/refunds.ts`) | stub, returns `501` |
+| Route | `POST /v1/merchants/:merchantId/refunds` (`apps/api/src/routes/refunds.ts`) | live since F01b (LOG.md); the old `/v1/refunds` stub is gone |
 | Core helper | `apps/api/src/payments/processRefund.ts` | complete, tested |
 | Validation / status | `refundValidation.ts`, `refundState.ts` | complete, tested |
 | Fee reversal | `calculateRefundFee()` in `packages/money` | complete |

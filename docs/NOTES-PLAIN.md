@@ -85,3 +85,15 @@ Where: apps/api/src/payments/processRefund.ts:190 · Commit: 397d79d
 The refund code checked the payment, asked the bank to pay, and then wrote it down as three separate steps without locking anything. So two refund clicks at the same moment could both pass and send the money back twice, a refund could be larger than what was really taken, and a shop could even refund another shop's payment. The fee given back also ignored the shop's discount. We made it one locked step, like the existing capture code, limited refunds to the captured money and the shop's own payments, and gave back exactly the fee that was paid. Tests for each of these cases failed before and pass now.
 
 Where: apps/api/src/payments/processRefund.ts:76 · Commit: 68fd1bf
+
+## N15 — Refunds can now be made through the API
+
+FilsPay had the refund logic, but the refund web address only answered "not implemented". We connected it at /v1/merchants/:merchantId/refunds, allowed only owner and finance users or the shop's API key, required the shop's own safety key so a double click cannot refund twice, and checked the amount and reason. Tests show a 1.250 BD refund works, a repeat with the same key does nothing new, a support user and other shops are refused, and the refund shows in the payment's timeline.
+
+Where: apps/api/src/routes/refunds.ts:24 · Commit: f84083a, 8f05f9e
+
+## N16 — Shops now get a webhook when a refund succeeds
+
+Shops get automatic messages (webhooks) when something happens to their payments, but refunds never sent one. The refund event was recorded, yet it was missing from the list of events to send, and there was no message format for it. We added the format and then the list entry. A test that made a refund used to see only the payment message; now the refund message arrives with the right amount.
+
+Where: apps/api/src/webhooks/dispatcher.ts:31 · Commit: 079aeea

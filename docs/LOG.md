@@ -1,6 +1,6 @@
 # LOG
 Mode: Competition
-Updated: 1:27 AM (30 Oct 2026)
+Updated: 4:54 AM (30 Oct 2026)
 Summary: Errors 14/59 fixed · Hidden 33 found · Features 0/2 done · Deploy: not started
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
@@ -742,8 +742,9 @@ Order follows the fix order: app-stopping → high security → (features) → w
   - Reconciliation: settlement/query.ts:250-253 claims refund legs are included (unverified).
   - UI: RefundDrawer.tsx:1-8 parked; web router.tsx:21 removed `/refunds`.
 - Plan (draft, for /fix): 1) fix E52 (NULL reason) and E28 inside processRefund; 2) mount `POST /v1/merchants/:merchantId/refunds` with a client Idempotency-Key and role check; 3) add `refund.succeeded` envelope + eligibility; 4) settlement side: `/internal/refund-adjustment` or batch close reads unbatched refunds; 5) reporting subscribe + fix 0072 join; 6) timeline + web drawer; 7) update the 501 test.
+- Progress: core logic F01a (68fd1bf), route F01b (f84083a, 8f05f9e), webhook F01c (079aeea) done and tested through the API; timeline shows refunds. OPEN: settlement payouts (Go has no `/internal/refund-adjustment`, server.go:121-124; no Go code reads `refunds`), reports (E43: 0072 join, consumer subscription, rollup columns), reconciliation, web refund page (RefundDrawer parked, router.tsx:21). These need Zainab's design OK (many files, Go side).
 - Expected result: partial refund of 1.250 BD on a 10.000 BD capture → ledger merchant_payable −1250 fils plus MDR reversal from `calculateRefundFee`; one `refund.succeeded` webhook; timeline row −1.250; next batch net reduced by the same fils; second parallel request rejected.
-- Status: open
+- Status: in progress (API part done: F01a-F01c; settlement, reports, UI open)
 
 ### F02 — Host the app on Dilmune Cloud
 - Required by: CASE-FILE.md Item 04 ("The app is live on Dilmune Cloud, our hosting provider").
@@ -928,6 +929,23 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Second review (Copilot): not run — `copilot not found`. fix-reviewer: APPROVE; no path where check and write diverge; acquirer error still commits failIdempotencyKey like capture; only 3 places debit platform_fee_revenue (refund, discountAdjustment, credits.ts:170 which has no transaction_id), so the filter is safe; lock order matches capture, no deadlock. Known risks (not new, recorded): (1) discountAdjustment runs in its own transaction after capture commits (routes/transactions.ts:110-114) — a refund in that gap reverses the pre-discount fee; guarded so fee_reversed is never negative. (2) if the acquirer approves and a later DB write fails, the rollback drops the claim, and a retry uses a new acquirer key (same risk as capture). (3) `assertRefundsNotOnHold` runs outside the lock. Our answer: agree; added the non-negative guard before commit.
 - F01 status: core refund logic done; route, webhook, settlement, reports, timeline, UI still open (next steps F01b, F01c; settlement/reports/UI need Zainab's design OK).
 - Commit: 68fd1bf
+
+### F01b — 1:29 AM, follow-up 4:56 AM (refund route)
+- Changed: apps/api/src/routes/refunds.ts: the 501 stub became `POST /:merchantId/refunds` with `requireMerchantAuth` + `requireMerchantRole("owner","finance")`, `assertRefundRequestScope`, a required client `Idempotency-Key` header, body checks (transactionId uuid; amountFils positive safe integer; reason string ≤ 500 chars), then `initiateMerchantRefund` with the merchant from `request.merchantAuth`. apps/api/src/app.ts: refundRoutes registered under `/v1/merchants` (was `/v1/refunds`). apps/api/src/routes/transactions.test.ts: the test that locked the 501 now expects 404 on the old path.
+- Test: apps/api/src/routes/refunds.f01b.test.ts (7 tests). Before: every route test got 404 (no route). After: 7 pass — partial refund 1250 → 200, feeReversedFils 31, status partially_refunded; same key replays the same body with one refund row; no key → 400; bad amounts → 400; other merchant's path → 403; reason of 501 chars → 400 (failed with 200 before the cap); support user → 403; timeline shows `refund_partial` −1250.
+- Regression: full-db-test.sh → only the 5 known failures; Go 53 pass.
+- Actual result: matches expected.
+- Second review (Copilot): not run — `copilot not found`. fix-reviewer (after commit f84083a, the run had stopped at the usage limit): APPROVE; impersonation is refused by the role gate (support role, E10); API keys pass by design like authorize; no route clash; RefundDrawer.tsx:63-70 sends the same body in fils with its own key. Follow-ups: cap reason (done, 8f05f9e), add support-role test (done), timeline check (done), update the docs that name `/v1/refunds`. Notes: the drawer makes a new Idempotency-Key per click (RefundDrawer.tsx:67-68), so a retry after a network error is a new refund (capped by the captured amount); `assertRefundsNotOnHold` runs outside the lock. Our answer: agree; follow-ups done except the docs path.
+- Decision: path `/v1/merchants/:merchantId/refunds` — Why: RefundDrawer.tsx:65 and initiateMerchantRefund.ts expect it; it matches every other merchant route; app.ts comments say API.md has both — Alternative: keep `/v1/refunds` with the merchant from auth (MK's comment).
+- Commits: f84083a, 8f05f9e
+
+### F01c — 4:53 AM (refund webhook)
+- Changed: apps/api/src/webhooks/envelope.ts: `refund.succeeded` added to `WebhookEventType` and a field-by-field case (refundId, transactionId, merchantId, amountFils, feeReversedFils, refundedTotalFils, status). apps/api/src/webhooks/dispatcher.ts: `"refund.succeeded"` added to `WEBHOOK_ELIGIBLE_EVENT_TYPES` (after the envelope case, per the warning at dispatcher.ts:26); misleading comment ("thats all it needs") replaced.
+- Test: apps/api/src/webhooks/envelope.f01c.test.ts (DB-free) and refundWebhook.f01c.test.ts (API refund → runDispatchPass). Before: envelope test failed; delivered types `["transaction.captured"]` only. After: both pass; dispatcher + envelope tests pass except the known E54 backoff test.
+- Regression: full-db-test.sh → only the 5 known failures.
+- Actual result: matches expected.
+- Review: small two-file feature, not a security fix → no fix-reviewer (cost rule); Copilot not installed.
+- Commit: 079aeea
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)
