@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 3:15 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 3:52 PM
 
 ## Contents
 1. Status now
@@ -23,14 +23,14 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:15 PM
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
 - Dilmune Cloud: not yet
 - Decisions waiting for Zainab: 24 (search "for Zainab to review" in LOG.md)
-- Fork: needs a push (VS Code: Git: Push to... → mine)
+- Fork: up to date
 
 ## 2. Stages
 - ✅ Understand
 - 🔄 Fix: 64 of 133 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
-- ⬜ UI and UX, before/after screenshots
+- ✅ UI and UX, before/after screenshots
 - ⬜ Deploy on Dilmune Cloud
 - ⬜ Investigation (CASE-MAP.md)
 - ⬜ Findings report (FINDINGS.md)
@@ -70,7 +70,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:15 PM
 - ✅ Capacity estimate
 - ⬜ FINDINGS.md
 - ⬜ SUBMISSION.md with 3 transcript excerpts
-- ⬜ UI before/after screenshots
+- ✅ UI before/after screenshots
 - ⬜ Slide deck
 
 ## 6. Latest fixes
@@ -240,7 +240,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:15 PM
 | E133 | [second review] Report filter JSON used without a shape check | Fixed |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70
 
 ### N01 — Database setup stopped halfway
 
@@ -2803,4 +2803,47 @@ checkReportFilter refuses anything that is not a proper filter before any query 
 No. The queries use parameters. It was a crash on bad input, which our rule says must be a 400.
 
 Commit: 383d417
+
+### N70 — Checkout fits on a phone; amounts line up in tables
+
+#### The idea
+Checkout is the shop window: the buyer types the card there. Tables are the shop's account book.
+
+#### The problem
+The expiry and CVV row was wider than the form.
+- On a phone, the CVV box ran off the screen.
+- The month box was tiny.
+- In tables, BHD amounts did not line up because digits had different widths.
+
+#### The fix
+- CheckoutPage.css: month, year and CVV share one row as three equal columns, and inputs count their padding inside their width.
+- dashboard.css and admin.css: tables use same-width digits.
+
+#### The code
+Before (apps/web/src/pages/checkout/CheckoutPage.css:44):
+```css
+.checkout-form-row {
+  display: flex;
+  gap: 0.5rem;
+}
+```
+After:
+```css
+.checkout-form-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+```
+The three boxes now always share the form width equally.
+
+#### The proof
+- Before: docs/ui/before/checkout-pay-mobile.png (CVV past the screen edge).
+- After: docs/ui/after/checkout-pay-mobile.png (three boxes inside the screen).
+
+#### If the judges ask
+"How do we know the before pictures are fair?"
+Same database, same API and same pages for both; only the frontend code differs (a12d4c7 vs now). docs/ui/README.md explains every step.
+
+Commit: PENDING_N70
 

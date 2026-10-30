@@ -415,3 +415,9 @@ Where: apps/api/src/routes/reporting.ts:80 · Commit: 26856d3
 The transactions report takes a filter (shop, status, dates) as text. The server used it without checking, so strange values like "null" or an impossible date crashed it. Now it checks the filter first and answers "bad filter" (400). A test sends twelve bad filters and four good ones.
 
 Where: apps/api/src/routes/reporting.ts:35 · Commit: 383d417
+
+## N70 — Checkout fits on a phone; amounts line up in tables
+
+On the payment page, the expiry and CVV boxes were wider than the form, so on a phone the CVV box went off the screen and the month box was tiny. We made the three boxes share the row equally, so they fit on any screen. In the dashboard and admin tables, digits now all have the same width, so amounts line up. Before and after screenshots of 13 screens are in docs/ui.
+
+Where: apps/web/src/pages/checkout/CheckoutPage.css:44 · Commit: PENDING_N70

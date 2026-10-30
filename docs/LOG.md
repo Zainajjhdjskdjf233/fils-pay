@@ -1,6 +1,6 @@
 # LOG
 Mode: Competition
-Updated: 03:15 PM (30 Oct 2026)
+Updated: 03:52 PM (30 Oct 2026)
 Summary: Errors 64/133 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
@@ -1960,6 +1960,13 @@ ROLLBACK;
 - Note: no UI calls this route (grep apps/web, apps/admin), so no screen is affected.
 - Regression: same as baseline v3 (api 446/447, the known E54 test; Go 80 pass).
 - Actual result: bad report filters never reach the database.
+
+### UI-1 — 03:52 PM — before/after screenshots and two clear layout fixes
+- Screenshots: docs/ui/before and docs/ui/after (13 each: checkout desktop and phone, dashboard login, overview, transactions, payment links, settlement, reconciliation, admin login, merchants, settlement, credits, webhooks). Method in docs/ui/README.md: same seeded DB and today's API for both; before = a12d4c7 frontends from a git worktree, served through a scratchpad proxy config because the original could not reach the API (E61).
+- Changed: apps/web/src/pages/checkout/CheckoutPage.css (expiry/CVV row as a 3-column grid; inputs `box-sizing: border-box; width: 100%`); apps/web/src/dashboard.css and apps/admin/src/admin.css (`font-variant-numeric: tabular-nums` on tables).
+- Proof: before/checkout-pay-mobile.png shows the CVV box past the 390 px screen; after/checkout-pay-mobile.png shows three equal boxes inside it. web tests 13/13; tsc clean.
+- Decision: no right-alignment of money columns yet — Why: 29 cells in 10 files; CLAUDE.md asks before changing many files — Alternative: add a `num` class to every money cell.
+- Note: while capturing, fragments of five seeded test API keys appeared in my terminal output (my redaction filter missed text after a dash). Local throwaway DB only; same cause as open E55 (the seed prints keys).
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04) — not yet. Local Docker stack done (01:48 PM, see section 5 E02).

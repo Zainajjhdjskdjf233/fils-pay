@@ -2563,3 +2563,46 @@ checkReportFilter refuses anything that is not a proper filter before any query 
 No. The queries use parameters. It was a crash on bad input, which our rule says must be a 400.
 
 Commit: 383d417
+
+## N70 — Checkout fits on a phone; amounts line up in tables
+
+### The idea
+Checkout is the shop window: the buyer types the card there. Tables are the shop's account book.
+
+### The problem
+The expiry and CVV row was wider than the form.
+- On a phone, the CVV box ran off the screen.
+- The month box was tiny.
+- In tables, BHD amounts did not line up because digits had different widths.
+
+### The fix
+- CheckoutPage.css: month, year and CVV share one row as three equal columns, and inputs count their padding inside their width.
+- dashboard.css and admin.css: tables use same-width digits.
+
+### The code
+Before (apps/web/src/pages/checkout/CheckoutPage.css:44):
+```css
+.checkout-form-row {
+  display: flex;
+  gap: 0.5rem;
+}
+```
+After:
+```css
+.checkout-form-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+```
+The three boxes now always share the form width equally.
+
+### The proof
+- Before: docs/ui/before/checkout-pay-mobile.png (CVV past the screen edge).
+- After: docs/ui/after/checkout-pay-mobile.png (three boxes inside the screen).
+
+### If the judges ask
+"How do we know the before pictures are fair?"
+Same database, same API and same pages for both; only the frontend code differs (a12d4c7 vs now). docs/ui/README.md explains every step.
+
+Commit: PENDING_N70

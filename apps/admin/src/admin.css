@@ -138,6 +138,8 @@ button:disabled {
   border-collapse: collapse;
   margin: 1rem 0;
   background: #fff;
+  /* UI: every digit the same width, so BHD amounts line up down a column */
+  font-variant-numeric: tabular-nums;
 }
 
 .admin-table th,

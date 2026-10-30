@@ -39,11 +39,19 @@
 .checkout-form input {
   padding: 0.5rem;
   font-size: 1rem;
+  /* UI: padding inside the width, so inputs never overflow the form */
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
 }
 
+/* UI: month, year and CVV as three equal columns. As a flex row the CVV box
+   ran past the form (and off a phone screen) and the month box was tiny. */
 .checkout-form-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.5rem;
+  align-items: end;
 }
 
 .checkout-form button {
