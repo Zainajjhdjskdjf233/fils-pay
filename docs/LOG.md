@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 04:17 PM (30 Oct 2026)
-Summary: Errors 67/133 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 04:21 PM (30 Oct 2026)
+Summary: Errors 67/158 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -610,6 +610,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Proposed fix: validate the body with a schema; map 4xx Fastify errors to their own status.
 - Status: open
 
+- More inputs (04:21 PM, coverage review): a JSON adjustment import over 1 MiB (FST_ERR_CTP_BODY_TOO_LARGE), a KYC POST that is not multipart (FST_INVALID_MULTIPART_CONTENT_TYPE) and 1001 parts (FST_PARTS_LIMIT) all give 500 (errorHandler.ts:29-44 maps only two multipart codes).
 ### E58 — [found later] Session vs impersonation order may mix identities (FP-198 comment)
 - Where: apps/api/src/auth/requireMerchantAuth.ts:76 (comment FP-198), auth order at :49-90
 - Error: a comment warns that the order of the session check and the impersonation check can mix identities when both cookies are present. Not yet proven.
@@ -1060,6 +1061,156 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/routes/reporting.ts:31 `parsed = JSON.parse(request.query.filter)` goes straight to resolveReportMerchantId (reporting/scope.ts:3) and runTransactionsReport (reporting/transactionsReportQuery.ts:42-53).
 - Error: `filter=null` → TypeError on `parsed.merchantId` (500); a non-UUID merchantId, a number, or a bad `from`/`to` reaches Postgres (500); an unknown status is accepted. Bad input must give 400 (lens rule 4). Queries are parameterized, so no injection.
 - Severity: low · Status: fixed (see section 5)
+
+### E134 — [coverage] A credit's effectiveDate has no range: a future date holds the payout for years, an old date lands in a closed period
+- Where: apps/api/src/admin/creditRequestValidation.ts:75-81 checks only the format (its doc at :13 says future dates are rejected); credits.ts:157 books occurred_at on that date; credit_batch.go takeCredits pays only `occurred_at < windowEnd`.
+- Error: effectiveDate "2099-12-31" (or a typo "2062") → accepted; the cache shows it now, no batch pays it until 2099. "1900-01-01" is accepted into a closed period. "0000-01-01" passes JS.
+- Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
+- Severity: high · Status: open
+
+### E135 — [coverage] Single-merchant KYC review approves a merchant in any state
+- Where: apps/api/src/onboarding/review.ts:53 `UPDATE merchants SET onboarding_status = $2, kyc_passed = $3 WHERE id = $1` (no state check); route routes/adminMerchants.ts:145-160.
+- Error: A finance admin approves a merchant still in `submitted` (no document) or `rejected` → 200, kyc_passed = true; the merchant can take payments. Two admins at once (approve + reject) → both review rows, last UPDATE wins. E104 fixed this for bulk only.
+- Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
+- Severity: high · Status: open
+
+### E136 — [coverage] Any admin role, including support, can resend all of a merchant's past webhooks, again and again
+- Where: apps/api/src/routes/adminMerchants.ts:210, :256, :297 use `requireAdminSession` only; webhooks/archiveReplay.ts:144-153 has no "already replayed" check.
+- Error: A support admin replays `succeeded` deliveries or one archive N times → the shop receives duplicate payment and payout events (each with a new delivery id, E143). E30 (duplicate settlement.paid) was a High incident.
+- Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
+- Severity: high · Status: open
+
+### E137 — [coverage] KYC thumbnail: a 1 MB PNG decompression bomb can push the API past its 512 MB limit
+- Where: apps/api/src/onboarding/kycThumbnail.ts:32 `sharp(buffer)` with no `limitInputPixels` (sharp default 268 MP; FH's comment at :31 warned).
+- Error: A 16383x16383 flat PNG (1.06 MB) peaks at 293 MB RSS when decoded (agent measurement in the scratchpad); 2 at once 548 MB → OOM kill of the API. Native memory, so --max-old-space-size does not stop it.
+- Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
+- Severity: high · Status: open
+
+### E138 — [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap
+- Where: apps/api/src/transactions/exportCsv.ts:7 (MAX_EXPORT_ROWS 50,000), :49-65 builds the whole CSV in memory; compose runs node with --max-old-space-size=384.
+- Error: One 50k-row export holds about 120 MB of heap (agent simulation with the real 11 columns); 4 at once → "JavaScript heap out of memory", the API exits. Over-cap requests still load 50,001 rows before 413.
+- Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
+- Severity: high · Status: open
+
+### E139 — [coverage] Capture and the status recompute disagree on a refunded, partly captured transaction
+- Where: apps/api/src/payments/capture.ts:198 sets status ignoring refunded_fils; payments/refundState.ts:47-49 and transactionStatusRecompute.ts:38 use another rule.
+- Error: auth 10000, capture 4000, refund 4000, capture 6000 → 'captured'; a recompute later changes it to 'partially_refunded'. Status reports differ by which code ran last; no money moves (refund limits use amounts).
+- Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
+- Severity: medium · Status: open
+
+### E140 — [coverage] Balance adjustment: a huge deltaFils gives 500, and there is no upper limit
+- Where: apps/api/src/routes/adminBalanceAdjustments.ts:29 `Number.isInteger`, :40 `toFils` throws RangeError; errorHandler maps it to 500.
+- Error: deltaFils 2^53 → 500; a legal 9e15 sets the cache to 9 trillion BD and the next call fails with 500.
+- Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
+- Severity: medium · Status: open
+
+### E141 — [coverage] Credit: a huge baseAmountFils with reverseFee gives 500
+- Where: apps/api/src/admin/creditRequestValidation.ts:42 has no upper limit; credits.ts addFils(base, fee) throws past 2^53.
+- Error: baseAmountFils 9007199254740991, reverseFee true → RangeError → 500.
+- Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
+- Severity: medium · Status: open
+
+### E142 — [coverage] Control characters in credit memos and adjustment reasons are accepted; a NUL byte likely gives 500
+- Where: apps/api/src/admin/creditRequestValidation.ts:64-68; routes/adminBalanceAdjustments.ts:35-41.
+- Error: memo "a\r\nb" is stored in audit rows (fake lines in exports); "\u0000" is refused by Postgres TEXT/jsonb → 500 (suspected, not run).
+- Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
+- Severity: medium · Status: open
+
+### E143 — [coverage] A webhook replay gets a new delivery id; comments and docs/ADMIN.md say it keeps the original
+- Where: apps/api/src/webhooks/replay.ts:48-49 `randomUUID()`; false claims at routes/adminMerchants.ts:211 and docs/ADMIN.md:89.
+- Error: A replayed delivery reaches the shop under a new id, so dedupe by id lets the duplicate through. Contract choice for Zainab.
+- Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
+- Severity: medium · Status: open
+
+### E144 — [coverage] Webhook archive create loads an endpoint's whole history into memory; "pages of 500" is false
+- Where: apps/api/src/webhooks/archiveReplay.ts:41-61 (one SELECT, no LIMIT, one JSON string); false comment routes/adminMerchants.ts:54-56 and docs/ADMIN.md.
+- Error: An archive over a wide range on a busy endpoint can exhaust the 512 MB API; replay then holds one long transaction.
+- Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
+- Severity: medium · Status: open
+
+### E145 — [coverage] Signup: no password rule and no type checks; bad input gives 500
+- Where: apps/api/src/routes/businessProfile.ts:27-41 (truthiness only); onboarding/signup.ts:44.
+- Error: password "a" → 201; password 123 → argon2 TypeError → 500; businessType "x" or country "BHR" → DB error → 500; emails not lower-cased ("Owner@x.com" cannot log in as "owner@x.com").
+- Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
+- Severity: medium · Status: open
+
+### E146 — [coverage] Public signup and login have no rate limit; each call runs argon2
+- Where: apps/api/src/routes/businessProfile.ts:20, routes/auth.ts:69; no rate limit in apps/api/src (grep).
+- Error: A loop of POST /v1/merchants fills the argon2 thread pool and the merchants table; unlimited password guesses (OTP is still required).
+- Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
+- Severity: medium · Status: open
+
+### E147 — [coverage] A broken image upload gives 500 and leaves an orphan file on disk
+- Where: apps/api/src/onboarding/kyc.ts:76 writes the file, :80 runs sharp, :87 inserts the row.
+- Error: `FF D8 FF` + 100 bytes named id.jpg passes the magic check, sharp throws → 500, the file stays in /data/kyc with no DB row.
+- Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
+- Severity: medium · Status: open
+
+### E148 — [coverage] No limit on KYC uploads per merchant: the shared disk can be filled
+- Where: apps/api/src/routes/kyc.ts:38-77; onboarding/kyc.ts:71-76.
+- Error: A loop of 8 MiB PDFs fills the `kyc` volume on the same disk as `pgdata`; when it is full Postgres stops.
+- Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
+- Severity: medium · Status: open
+
+### E149 — [coverage] Credit effectiveDate "0000-01-01" passes validation; Postgres likely refuses it (500)
+- Where: apps/api/src/admin/creditRequestValidation.ts:29-32; credits.ts:238 `$7::date`.
+- Error: Suspected; covered by the E134 date range.
+- Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
+- Severity: low · Status: open
+
+### E150 — [coverage] Balance adjustment returns 404 for a merchant with no balance row yet
+- Where: apps/api/src/admin/balanceAdjustments.ts:35-37.
+- Error: A new merchant with no captures cannot be corrected by support (404 merchant_balance_not_found).
+- Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
+- Severity: low · Status: open
+
+### E151 — [coverage] Defence in depth: validateRefundRequest trusts its caller's numbers
+- Where: apps/api/src/payments/refundValidation.ts:21-23, 38-48.
+- Error: amount 1.5 → ok; refundable above captured → ok. Not reachable today (route and processRefund check).
+- Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
+- Severity: low · Status: open
+
+### E152 — [coverage] Go ApplyRateFils: int64 overflow wraps silently (TS throws)
+- Where: apps/settlement/internal/money/fils.go:16, :28, :51-56.
+- Error: ApplyRateFils(1e15, 10000) wraps to a wrong negative fee. Not reachable with real amounts and normal bps (not run).
+- Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
+- Severity: low · Status: open
+
+### E153 — [coverage] A fully refunded, partly captured row refunded again with no amount gives 422 instead of 409
+- Where: apps/api/src/payments/refundValidation.ts:39-42.
+- Error: refundable 0, no amount → 422 refund_amount_invalid.
+- Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
+- Severity: low · Status: open
+
+### E154 — [coverage] adjustMerchantBalanceJournaled is dead code
+- Where: apps/api/src/admin/balanceAdjustments.ts:67-114 (no caller, grep).
+- Error: Wire it with the two-person rule or delete it after Zainab agrees.
+- Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
+- Severity: low · Status: open
+
+### E155 — [coverage] Webhook PATCH with a bad status gives 500
+- Where: apps/api/src/webhooks/update.ts:35-50 never checks `status`.
+- Error: {"status":"paused"} → CHECK violation → 500.
+- Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
+- Severity: low · Status: open
+
+### E156 — [coverage] timingSafeEqualHex accepts extra characters after a valid digest
+- Where: apps/api/src/lib/crypto.ts:15-16 (Buffer.from(x,'hex') stops at the first non-hex char).
+- Error: "61" vs "61zz" → true. Not a bypass (one side is always a real digest).
+- Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
+- Severity: low · Status: open
+
+### E157 — [coverage] Several files in one KYC request: earlier ones are silently dropped; "one file enforced" comment is false
+- Where: apps/api/src/plugins/multipart.ts:13 (false comment), routes/kyc.ts:48-55.
+- Error: Files A then B → 201 for B only.
+- Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
+- Severity: low · Status: open
+
+### E158 — [coverage] Adjustment import has no row cap; one long transaction can outlive the 60 s proxy timeout
+- Where: apps/api/src/admin/adjustmentCsvParsing.ts:26-57; admin/adjustmentImport.ts:97-109; nginx proxy_read_timeout 60 s.
+- Error: ~20,000 rows in 1 MiB → the console shows 504 while the import commits (estimate, not timed).
+- Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
+- Severity: low · Status: open
 
 ## 3. Hidden things
 

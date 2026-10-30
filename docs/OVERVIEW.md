@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 4:17 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 4:21 PM
 
 ## Contents
 1. Status now
@@ -14,10 +14,10 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:17 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 67 of 133 fixed.
-  - High: 39 of 40 fixed
-  - Medium: 25 of 44 fixed
-  - Low: 3 of 49 fixed
+- Errors: 67 of 158 fixed.
+  - High: 39 of 45 fixed
+  - Medium: 25 of 54 fixed
+  - Low: 3 of 59 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
@@ -27,7 +27,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:17 PM
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 67 of 133 fixed.
+- 🔄 Fix: 67 of 158 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -91,7 +91,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:17 PM
 - d7d17b2 fix(E02): Docker stack within 1 vCPU/2 GB — Dockerfiles, compose limits, restarts, health checks, volumes, per-service DB roles
 
 ## 7. All errors
-## High (39 of 40 fixed)
+## High (39 of 45 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -135,8 +135,13 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:17 PM
 | E123 | [deep review] Malformed card gives 500 after the link is claimed (link blocked 60 s) | Fixed |
 | E124 | [deep review] Capture replay credits the wrong discount (twice after a zero-discount capture) | Fixed |
 | E45 | [second review] /v1/reporting/export-summary had no login check (always 500) | Fixed |
+| E134 | [coverage] A credit's effectiveDate has no range: a future date holds the payout for years, an old date lands in a closed period | Open |
+| E135 | [coverage] Single-merchant KYC review approves a merchant in any state | Open |
+| E136 | [coverage] Any admin role, including support, can resend all of a merchant's past webhooks, again and again | Open |
+| E137 | [coverage] KYC thumbnail: a 1 MB PNG decompression bomb can push the API past its 512 MB limit | Open |
+| E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Open |
 
-### Medium (25 of 44 fixed)
+### Medium (25 of 54 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -184,8 +189,18 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:17 PM
 | E129 | [deep review] Capture idempotency hash ignores the transaction id | Open |
 | E130 | [deep review] Failed link capture leaves the card authorization open | Open |
 | E131 | [deep review] Discount error after a paid link gives the buyer a 500 | Open |
+| E139 | [coverage] Capture and the status recompute disagree on a refunded, partly captured transaction | Open |
+| E140 | [coverage] Balance adjustment: a huge deltaFils gives 500, and there is no upper limit | Open |
+| E141 | [coverage] Credit: a huge baseAmountFils with reverseFee gives 500 | Open |
+| E142 | [coverage] Control characters in credit memos and adjustment reasons are accepted; a NUL byte likely gives 500 | Open |
+| E143 | [coverage] A webhook replay gets a new delivery id; comments and docs/ADMIN.md say it keeps the original | Open |
+| E144 | [coverage] Webhook archive create loads an endpoint's whole history into memory; "pages of 500" is false | Open |
+| E145 | [coverage] Signup: no password rule and no type checks; bad input gives 500 | Open |
+| E146 | [coverage] Public signup and login have no rate limit; each call runs argon2 | Open |
+| E147 | [coverage] A broken image upload gives 500 and leaves an orphan file on disk | Open |
+| E148 | [coverage] No limit on KYC uploads per merchant: the shared disk can be filled | Open |
 
-### Low (3 of 49 fixed)
+### Low (3 of 59 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -238,6 +253,16 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:17 PM
 | E127 | [second review] Settlement date filters accept impossible dates | Open |
 | E132 | [deep review] Reconciliation reads its figures from different snapshots | Open |
 | E133 | [second review] Report filter JSON used without a shape check | Fixed |
+| E149 | [coverage] Credit effectiveDate "0000-01-01" passes validation; Postgres likely refuses it (500) | Open |
+| E150 | [coverage] Balance adjustment returns 404 for a merchant with no balance row yet | Open |
+| E151 | [coverage] Defence in depth: validateRefundRequest trusts its caller's numbers | Open |
+| E152 | [coverage] Go ApplyRateFils: int64 overflow wraps silently (TS throws) | Open |
+| E153 | [coverage] A fully refunded, partly captured row refunded again with no amount gives 422 instead of 409 | Open |
+| E154 | [coverage] adjustMerchantBalanceJournaled is dead code | Open |
+| E155 | [coverage] Webhook PATCH with a bad status gives 500 | Open |
+| E156 | [coverage] timingSafeEqualHex accepts extra characters after a valid digest | Open |
+| E157 | [coverage] Several files in one KYC request: earlier ones are silently dropped; "one file enforced" comment is false | Open |
+| E158 | [coverage] Adjustment import has no row cap; one long transaction can outlive the 60 s proxy timeout | Open |
 
 ## 8. Every fix explained
 Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73
