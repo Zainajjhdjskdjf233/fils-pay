@@ -64,6 +64,7 @@ export function buildApp(config: Config, pool: Pool, options: BuildAppOptions = 
   app.register(kycRoutes, { prefix: "/v1/merchants" });
   app.register(apiKeyRoutes, { prefix: "/v1/merchants" });
   // v1/routes/transactions.ts is NOT this one. that tree is dead — MK
+  // E79: the dead v1 tree and fees/estimate.ts were deleted (no importer, grep).
   app.register(transactionRoutes, { prefix: "/v1/transactions" });
   // FP-212: RefundDrawer posts to /v1/merchants/:id/refunds, initiateMerchantRefund expects
   // that path too. this prefix is the old stub — am

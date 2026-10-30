@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 09:33 PM (30 Oct 2026)
-Summary: Errors 172/178 fixed (+1 partly: E79; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 09:53 PM (30 Oct 2026)
+Summary: Errors 173/178 fixed (+1 partly: E79; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -766,7 +766,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: discountAdjustment.ts:13-17 parsePromotionalDiscountFils (×100); fees/estimate.ts (float, unused since E44); scheme_export.go:29-31 SchemeAmountBD (unused since E14); settlementClient.ts:296 (/10, H34); capture.ts:14-41 recordCaptureMetric (UTC date); v1/fees/calculateFee.ts:29
 - Error: no callers today (grep) — a trap if wired up. Deletion needs Zainab.
 - Proof: code read (ADR check agent (12:58 PM); checked by me).
-- Severity: low · Status: partly fixed (helpers removed; three dead files wait for Zainab's OK to delete)
+- Severity: low · Status: fixed (see section 5, E79)
 - Decision (Claude, Zainab approved deciding without review): remove the dead money helpers that sit inside live files (parsePromotionalDiscountFils, recordCaptureMetric, notifySettlementRefundAdjustment, Go SchemeAmountBD); leave the three wholly dead files for Zainab to delete — Why: grep proves none has a caller, each carried float, ×100 or /10 money math that would be wrong if someone wired it up, and tests stay green; deleting whole files needs rm, which still needs Zainab's approval — Alternative: delete the dead files now too (apps/api/src/fees/estimate.ts, apps/api/src/v1/fees/calculateFee.ts, apps/api/src/v1/routes/transactions.ts)
 
 ### E80 — [found later] Scheme export fallback can print more than 2 decimals
@@ -3065,6 +3065,11 @@ ROLLBACK;
 - Left for Zainab to delete (rm needs her approval): apps/api/src/fees/estimate.ts (estimateFeeFils, float rates; no importer), apps/api/src/v1/fees/calculateFee.ts and apps/api/src/v1/routes/transactions.ts (the v1 tree is not registered, app.ts:66 'that tree is dead — MK').
 - Proof: grep counts 0/0/0 (SchemeAmountBD only in a comment at batch.go:306); payment, settlementClient and transaction suites 75/75; Go settlement package ok; api tsc clean; go build ok.
 - check.sh (clean environment): OK.
+
+### E79 — 09:53 PM — (rest) the three wholly dead files are deleted (Zainab approved)
+- Deleted (git rm, approved by Zainab at 9:38 PM): apps/api/src/fees/estimate.ts (estimateFeeFils, float rates), apps/api/src/v1/fees/calculateFee.ts and apps/api/src/v1/routes/transactions.ts (the unregistered v1 tree; they imported only each other).
+- Proof: grep for each path and for estimateFeeFils / calculateMdrFeeV1 outside the deleted files → 0 importers (only the comment at app.ts:66, now annotated); api tsc clean; check.sh OK.
+- With the earlier part (14362c4) E79 is now fully fixed.
 
 ## 6. Deploy
 
