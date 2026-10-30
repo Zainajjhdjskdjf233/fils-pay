@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 4:54 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 5:15 PM
 
 ## Contents
 1. Status now
@@ -14,20 +14,20 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:54 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 81 of 163 fixed.
+- Errors: 87 of 163 fixed.
   - High: 45 of 46 fixed
-  - Medium: 27 of 55 fixed
-  - Low: 9 of 62 fixed
+  - Medium: 28 of 55 fixed
+  - Low: 14 of 62 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
 - Dilmune Cloud: not yet
-- Decisions waiting for Zainab: 26 (search "for Zainab to review" in LOG.md)
+- Decisions waiting for Zainab: 27 (search "for Zainab to review" in LOG.md)
 - Fork: needs a push (VS Code: Git: Push to... → mine)
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 81 of 163 fixed.
+- 🔄 Fix: 87 of 163 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -74,6 +74,12 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:54 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- a394c96 fix(E153): a refund with no amount and nothing left is not refundable (409)
+- 0ed1b5a fix(E163): API config refuses unknown NODE_ENV, partial numbers, typo booleans and impossible ranges at boot
+- a84b437 fix(E156): timingSafeEqualHex refuses non-hex input instead of stopping at it
+- f82fb40 fix(E155): webhook PATCH refuses an unknown status with 400
+- 5100b9c fix(E161): recent ledger activity treats the to date as exclusive
+- e92b748 fix(E126): limit must be a whole number in all 8 list routes; notes N80-N84
 - 173bdda fix(E112, E125, E127): date filters must be real dates and times must carry a zone (transactions, export, settlement)
 - 8f2cf8a fix(E115): analytics dates must exist on the calendar (shared isRealDate)
 - 9d35e0f fix(E57): Fastify client errors keep their 4xx; Postgres invalid-input errors from a request are 400; login merchantId must be a UUID
@@ -83,12 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:54 PM
 - 757eab0 fix(E162): adjustment CSV refuses rows with more than 3 columns and any other header
 - b2ebc90 fix(E137): KYC thumbnail limits input pixels and decodes one at a time; oversized images get no thumbnail
 - 8fe5a25 fix(E136): webhook replay and archives are finance/super_admin only; an archive replays once (0084)
-- ce6d4f0 fix(E135): single KYC review decides only a merchant under review (atomic UPDATE, 409 otherwise)
-- 235fb29 fix(E75): March sweep posts ADR-0002 legs (clearing/residue), never merchant_payable
-- d4df731 fix(E64): reporting consumes settlement.paid so payout trends show paid
-- 8720dd6 fix(E62): reporting cursor read locked (FOR UPDATE) so concurrent passes cannot double count
-- 383d417 fix(E133): report filter JSON checked (object, UUID, status, real dates) before use: 400, not 500
-- 26856d3 fix(E45): export-summary requires a merchant login (second review item 29; re-rated High)
 
 ## 7. All errors
 ## High (45 of 46 fixed)
@@ -142,7 +142,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:54 PM
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-### Medium (27 of 55 fixed)
+### Medium (28 of 55 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -192,7 +192,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:54 PM
 | E131 | [deep review] Discount error after a paid link gives the buyer a 500 | Open |
 | E139 | [coverage] Capture and the status recompute disagree on a refunded, partly captured transaction | Open |
 | E140 | [coverage] Balance adjustment: a huge deltaFils gives 500, and there is no upper limit | Open |
-| E141 | [coverage] Credit: a huge baseAmountFils with reverseFee gives 500 | Open |
+| E141 | [coverage] Credit: a huge baseAmountFils with reverseFee gives 500 | Fixed |
 | E142 | [coverage] Control characters in credit memos and adjustment reasons are accepted; a NUL byte likely gives 500 | Open |
 | E143 | [coverage] A webhook replay gets a new delivery id; comments and docs/ADMIN.md say it keeps the original | Open |
 | E144 | [coverage] Webhook archive create loads an endpoint's whole history into memory; "pages of 500" is false | Open |
@@ -200,9 +200,9 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:54 PM
 | E146 | [coverage] Public signup and login have no rate limit; each call runs argon2 | Open |
 | E147 | [coverage] A broken image upload gives 500 and leaves an orphan file on disk | Open |
 | E148 | [coverage] No limit on KYC uploads per merchant: the shared disk can be filled | Open |
-| E163 | [second review] API config never refuses bad settings (prefixes, booleans, NODE_ENV typo turns off security defaults, no ranges) | Open |
+| E163 | [second review] API config never refuses bad settings (prefixes, booleans, NODE_ENV typo turns off security defaults, no ranges) | Partly fixed |
 
-### Low (9 of 62 fixed)
+### Low (14 of 62 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -259,18 +259,18 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:54 PM
 | E150 | [coverage] Balance adjustment returns 404 for a merchant with no balance row yet | Open |
 | E151 | [coverage] Defence in depth: validateRefundRequest trusts its caller's numbers | Open |
 | E152 | [coverage] Go ApplyRateFils: int64 overflow wraps silently (TS throws) | Open |
-| E153 | [coverage] A fully refunded, partly captured row refunded again with no amount gives 422 instead of 409 | Open |
+| E153 | [coverage] A fully refunded, partly captured row refunded again with no amount gives 422 instead of 409 | Fixed |
 | E154 | [coverage] adjustMerchantBalanceJournaled is dead code | Open |
-| E155 | [coverage] Webhook PATCH with a bad status gives 500 | Open |
-| E156 | [coverage] timingSafeEqualHex accepts extra characters after a valid digest | Open |
+| E155 | [coverage] Webhook PATCH with a bad status gives 500 | Fixed |
+| E156 | [coverage] timingSafeEqualHex accepts extra characters after a valid digest | Fixed |
 | E157 | [coverage] Several files in one KYC request: earlier ones are silently dropped; "one file enforced" comment is false | Open |
 | E158 | [coverage] Adjustment import has no row cap; one long transaction can outlive the 60 s proxy timeout | Open |
-| E159 | [second review] Pagination cursors are not validated; a malformed cursor reaches a database cast (500) | Open |
+| E159 | [second review] Pagination cursors are not validated; a malformed cursor reaches a database cast (500) | Fixed |
 | E160 | [second review] The adjustment-import list pages on created_at text with no tie-breaker | Open |
-| E161 | [second review] Recent ledger activity includes the exclusive end date (one extra day) | Open |
+| E161 | [second review] Recent ledger activity includes the exclusive end date (one extra day) | Fixed |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90
 
 ### N01 — Database setup stopped halfway
 
@@ -3353,5 +3353,198 @@ Non-numbers get 400; numbers are still clamped by each route.
 "Why allow -5?"
 Existing tests expect the route to clamp it to its minimum; we kept that behaviour.
 
-Commit: PENDING_N84
+Commit: e92b748
+
+### N85 — Bad cursors are refused, not a crash
+
+#### The idea
+A cursor is a bookmark for "next page" in a list.
+
+#### The problem
+A broken bookmark reached the database and crashed the request (500).
+
+#### The fix
+- No new code: the E57 change already turns a bad value that reaches the database into 400. A test now locks this in.
+
+#### The code
+Before: errorHandler.ts had no rule for invalid input from Postgres.
+After (from E57):
+```ts
+if (pgCode === "22P02" || pgCode === "22007" || pgCode === "22008") {
+```
+Broken cursors now get 400 or the first page.
+
+#### The proof
+- Before (old error handler): a bad cursor → 500.
+- After: 400 or page one for 4 bad cursors on 3 lists.
+
+#### If the judges ask
+"Why no new code?"
+The root cause (bad request values reaching a database cast) was already fixed by E57; we proved it with a test.
+
+Commit: ae2bd75
+
+### N86 — Ledger activity shows the right days
+
+#### The idea
+"Recent ledger activity" lists money lines for a date range.
+
+#### The problem
+It included one extra day at the end.
+
+#### The fix
+- query.ts: use "on or after from, before to", like the other reports.
+
+#### The code
+Before (apps/api/src/analytics/query.ts:312):
+```sql
+AND (occurred_at AT TIME ZONE 'Asia/Bahrain')::date BETWEEN $2::date AND $3::date
+```
+After:
+```sql
+AND (occurred_at AT TIME ZONE 'Asia/Bahrain')::date >= $2::date
+AND (occurred_at AT TIME ZONE 'Asia/Bahrain')::date <  $3::date
+```
+The end date is no longer included.
+
+#### The proof
+- Before: a one-day range showed two days.
+- After: only the asked day.
+
+#### If the judges ask
+"Why does to mean 'before'?"
+The route defines it that way, and every other report uses the same rule.
+
+Commit: 5100b9c
+
+### N87 — Webhook settings refuse an unknown status
+
+#### The idea
+A shop can pause or enable its webhook, like switching a doorbell on or off.
+
+#### The problem
+An unknown status like "paused" crashed the request (500).
+
+#### The fix
+- update.ts: status must be "active" or "disabled"; otherwise 400.
+
+#### The code
+Before (apps/api/src/webhooks/update.ts:35): only "at least one field" was checked.
+After:
+```ts
+if (input.status !== undefined && input.status !== "active" && input.status !== "disabled") {
+  throw new BadRequestError("invalid_status", "status must be active or disabled");
+}
+```
+Unknown values get a clear 400.
+
+#### The proof
+- Before: 500.
+- After: 400 invalid_status.
+
+#### If the judges ask
+"Why check in the helper, not the route?"
+So every caller of the helper is protected (defence in depth).
+
+Commit: f82fb40
+
+### N88 — Signature checks compare whole strings
+
+#### The idea
+We compare secret codes (OTP, signatures) safely, without leaking timing.
+
+#### The problem
+The compare stopped at the first non-hex letter.
+- "61" and "61zz" counted as equal.
+
+#### The fix
+- crypto.ts: both values must be whole hex strings first.
+
+#### The code
+Before (apps/api/src/lib/crypto.ts:15):
+```ts
+const bufA = Buffer.from(a, "hex");
+```
+After:
+```ts
+if (!/^(?:[0-9a-fA-F]{2})*$/.test(a) || !/^(?:[0-9a-fA-F]{2})*$/.test(b)) return false;
+const bufA = Buffer.from(a, "hex");
+```
+Changed strings no longer match.
+
+#### The proof
+- Before: "61" vs "61zz" → true.
+- After: false; 37 auth and signing tests pass.
+
+#### If the judges ask
+"Was this a bypass?"
+No, one side is always a real digest; it only let an attacker add junk without breaking the check.
+
+Commit: a84b437
+
+### N89 — Bad settings stop the server at start
+
+#### The idea
+The server reads its settings from environment variables when it starts.
+
+#### The problem
+Bad settings were silently changed.
+- "3000oops" became 3000; "treu" became false.
+- NODE_ENV "prod" became development, turning off safety defaults.
+
+#### The fix
+- config.ts: settings must be fully valid, and a few ranges are checked; otherwise the server refuses to start.
+
+#### The code
+Before (apps/api/src/config.ts:132):
+```ts
+return "development";
+```
+After:
+```ts
+if (value === undefined || value === "") return "development";
+throw new Error(`loadConfig: NODE_ENV must be production, test or development, got "${value}"`);
+```
+A typo now stops the start instead of switching modes.
+
+#### The proof
+- Before: 9 bad settings all loaded.
+- After: all 9 refused; full regression green.
+
+#### If the judges ask
+"Is it fully fixed?"
+Partly. The main parsers and ranges are fixed; range checks for OTP, argon2 and timers are still open.
+
+Commit: 0ed1b5a
+
+### N90 — A refund with nothing left says "not refundable"
+
+#### The idea
+A refund can only return money that was not already returned.
+
+#### The problem
+With nothing left and no amount, the error said "amount invalid" (422).
+
+#### The fix
+- refundValidation.ts: that case is now "not refundable" (409).
+
+#### The code
+Before (apps/api/src/payments/refundValidation.ts:38): went straight to the amount check.
+After:
+```ts
+if (requestedAmountFils === undefined && compareFils(refundable, ZERO_FILS) <= 0) {
+  return { ok: false, code: "transaction_not_refundable", status: txn.status };
+}
+```
+The answer now says what is really wrong.
+
+#### The proof
+- Before: refund_amount_invalid.
+- After: transaction_not_refundable; 39 refund tests pass.
+
+#### If the judges ask
+"Does this change money?"
+No. No money could move either way; only the error is clearer.
+
+Commit: a394c96
 

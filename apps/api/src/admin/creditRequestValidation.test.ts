@@ -120,3 +120,14 @@ test("the effective date is carried through exactly as given", () => {
     );
   }
 });
+
+// E141 [coverage]: a huge base amount with reverseFee made base + fee pass
+// 2^53, so addFils threw inside the route (500). It must be a 400.
+test("testE141_hugeBaseAmountIsA400", () => {
+  assertBadRequest(() => parseCreditRequestInput({ ...VALID, baseAmountFils: 9007199254740991, reverseFee: true }), "invalid_amount");
+});
+
+test("testE141_capBoundary", () => {
+  assert.equal(parseCreditRequestInput({ ...VALID, baseAmountFils: 1_000_000_000_000 }).baseAmountFils, 1_000_000_000_000);
+  assertBadRequest(() => parseCreditRequestInput({ ...VALID, baseAmountFils: 1_000_000_000_001 }), "invalid_amount");
+});

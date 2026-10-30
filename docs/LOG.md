@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 05:12 PM (30 Oct 2026)
-Summary: Errors 86/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 05:15 PM (30 Oct 2026)
+Summary: Errors 87/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1109,7 +1109,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/admin/creditRequestValidation.ts:42 has no upper limit; credits.ts addFils(base, fee) throws past 2^53.
 - Error: baseAmountFils 9007199254740991, reverseFee true → RangeError → 500.
 - Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
-- Severity: medium · Status: open
+- Severity: medium · Status: fixed (see section 5, E141)
 
 ### E142 — [coverage] Control characters in credit memos and adjustment reasons are accepted; a NUL byte likely gives 500
 - Where: apps/api/src/admin/creditRequestValidation.ts:64-68; routes/adminBalanceAdjustments.ts:35-41.
@@ -2321,6 +2321,13 @@ ROLLBACK;
 ### E153 — 05:12 PM — nothing left to refund and no amount is 409, not 422
 - Changed: apps/api/src/payments/refundValidation.ts:39-42: with no amount and nothing refundable → transaction_not_refundable (processRefund.ts maps it to 409). Limited to "no amount" so refundValidation.test.ts:82-95 (amount 1 → 422 refund_exceeds_refundable) is unchanged.
 - Test: payments/refundValidation.test.ts testE153_nothingLeftAndNoAmountIsNotRefundable. Before: code 'refund_amount_invalid'. After: PASS; refund tests 39/39.
+- check.sh: OK.
+
+### E141 — 05:15 PM — a credit's base amount is capped (no 500 from addFils)
+- Changed: apps/api/src/admin/creditRequestValidation.ts:29, :50: baseAmountFils <= MAX_CREDIT_FILS (1,000,000,000,000 fils = 1,000,000,000 BD), else 400 invalid_amount (message names the maximum).
+- Decision (for Zainab to review): the cap value — the case file gives no limit; credits above 50 BD already need a second approver (E09).
+- Test: admin/creditRequestValidation.test.ts testE141_hugeBaseAmountIsA400 and testE141_capBoundary. Before: `Missing expected exception` (route answered 500 from addFils, credits.ts:273). After: PASS; credit tests 35/35.
+- fix-reviewer: APPROVE (max base + fee at 10000 bps = 2e12, far below 2^53; approval reads stored, already-safe rows). Took its two nits (message, boundary test). Noted: merchants.mdr_bps has no upper CHECK (0002_merchants.sql:6) — DB-only edge, no API writes it.
 - check.sh: OK.
 
 ## 6. Deploy

@@ -505,3 +505,39 @@ Where: apps/api/src/routes/transactions.ts · Commit: 173bdda
 The page-size setting accepted text like "10abc" as 10 and "abc" as an error. Now it must be a whole number. A test checks eight routes.
 
 Where: apps/api/src/lib/queryParsing.ts · Commit: e92b748
+
+## N85 — Bad cursors are refused, not a crash
+
+A broken "next page" bookmark used to crash the request. Our earlier change for bad input already fixes this, and a new test proves it.
+
+Where: apps/api/src/plugins/errorHandler.ts · Commit: ae2bd75
+
+## N86 — Ledger activity shows the right days
+
+The recent ledger list included one extra day at the end of the range. Now it stops before the end date, like the other reports. A test checks a one-day range.
+
+Where: apps/api/src/analytics/query.ts · Commit: 5100b9c
+
+## N87 — Webhook settings refuse an unknown status
+
+Setting a webhook to an unknown status crashed the request. Now it gets a clear "invalid status" answer. A test sends "paused".
+
+Where: apps/api/src/webhooks/update.ts · Commit: f82fb40
+
+## N88 — Signature checks compare whole strings
+
+Our safe compare of secret codes stopped reading at the first strange letter, so a code with junk at the end still matched. Now both must be clean codes. A test checks this.
+
+Where: apps/api/src/lib/crypto.ts · Commit: a84b437
+
+## N89 — Bad settings stop the server at start
+
+Typos in server settings were silently turned into other values, and one typo could switch off safety defaults. Now the server refuses to start with a bad setting. A test tries nine bad settings.
+
+Where: apps/api/src/config.ts · Commit: 0ed1b5a
+
+## N90 — A refund with nothing left says "not refundable"
+
+Asking to refund a payment with nothing left gave a confusing error. Now it says the payment is not refundable. A test checks it.
+
+Where: apps/api/src/payments/refundValidation.ts · Commit: a394c96

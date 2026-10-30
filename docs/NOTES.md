@@ -3084,3 +3084,196 @@ Non-numbers get 400; numbers are still clamped by each route.
 Existing tests expect the route to clamp it to its minimum; we kept that behaviour.
 
 Commit: e92b748
+
+## N85 — Bad cursors are refused, not a crash
+
+### The idea
+A cursor is a bookmark for "next page" in a list.
+
+### The problem
+A broken bookmark reached the database and crashed the request (500).
+
+### The fix
+- No new code: the E57 change already turns a bad value that reaches the database into 400. A test now locks this in.
+
+### The code
+Before: errorHandler.ts had no rule for invalid input from Postgres.
+After (from E57):
+```ts
+if (pgCode === "22P02" || pgCode === "22007" || pgCode === "22008") {
+```
+Broken cursors now get 400 or the first page.
+
+### The proof
+- Before (old error handler): a bad cursor → 500.
+- After: 400 or page one for 4 bad cursors on 3 lists.
+
+### If the judges ask
+"Why no new code?"
+The root cause (bad request values reaching a database cast) was already fixed by E57; we proved it with a test.
+
+Commit: ae2bd75
+
+## N86 — Ledger activity shows the right days
+
+### The idea
+"Recent ledger activity" lists money lines for a date range.
+
+### The problem
+It included one extra day at the end.
+
+### The fix
+- query.ts: use "on or after from, before to", like the other reports.
+
+### The code
+Before (apps/api/src/analytics/query.ts:312):
+```sql
+AND (occurred_at AT TIME ZONE 'Asia/Bahrain')::date BETWEEN $2::date AND $3::date
+```
+After:
+```sql
+AND (occurred_at AT TIME ZONE 'Asia/Bahrain')::date >= $2::date
+AND (occurred_at AT TIME ZONE 'Asia/Bahrain')::date <  $3::date
+```
+The end date is no longer included.
+
+### The proof
+- Before: a one-day range showed two days.
+- After: only the asked day.
+
+### If the judges ask
+"Why does to mean 'before'?"
+The route defines it that way, and every other report uses the same rule.
+
+Commit: 5100b9c
+
+## N87 — Webhook settings refuse an unknown status
+
+### The idea
+A shop can pause or enable its webhook, like switching a doorbell on or off.
+
+### The problem
+An unknown status like "paused" crashed the request (500).
+
+### The fix
+- update.ts: status must be "active" or "disabled"; otherwise 400.
+
+### The code
+Before (apps/api/src/webhooks/update.ts:35): only "at least one field" was checked.
+After:
+```ts
+if (input.status !== undefined && input.status !== "active" && input.status !== "disabled") {
+  throw new BadRequestError("invalid_status", "status must be active or disabled");
+}
+```
+Unknown values get a clear 400.
+
+### The proof
+- Before: 500.
+- After: 400 invalid_status.
+
+### If the judges ask
+"Why check in the helper, not the route?"
+So every caller of the helper is protected (defence in depth).
+
+Commit: f82fb40
+
+## N88 — Signature checks compare whole strings
+
+### The idea
+We compare secret codes (OTP, signatures) safely, without leaking timing.
+
+### The problem
+The compare stopped at the first non-hex letter.
+- "61" and "61zz" counted as equal.
+
+### The fix
+- crypto.ts: both values must be whole hex strings first.
+
+### The code
+Before (apps/api/src/lib/crypto.ts:15):
+```ts
+const bufA = Buffer.from(a, "hex");
+```
+After:
+```ts
+if (!/^(?:[0-9a-fA-F]{2})*$/.test(a) || !/^(?:[0-9a-fA-F]{2})*$/.test(b)) return false;
+const bufA = Buffer.from(a, "hex");
+```
+Changed strings no longer match.
+
+### The proof
+- Before: "61" vs "61zz" → true.
+- After: false; 37 auth and signing tests pass.
+
+### If the judges ask
+"Was this a bypass?"
+No, one side is always a real digest; it only let an attacker add junk without breaking the check.
+
+Commit: a84b437
+
+## N89 — Bad settings stop the server at start
+
+### The idea
+The server reads its settings from environment variables when it starts.
+
+### The problem
+Bad settings were silently changed.
+- "3000oops" became 3000; "treu" became false.
+- NODE_ENV "prod" became development, turning off safety defaults.
+
+### The fix
+- config.ts: settings must be fully valid, and a few ranges are checked; otherwise the server refuses to start.
+
+### The code
+Before (apps/api/src/config.ts:132):
+```ts
+return "development";
+```
+After:
+```ts
+if (value === undefined || value === "") return "development";
+throw new Error(`loadConfig: NODE_ENV must be production, test or development, got "${value}"`);
+```
+A typo now stops the start instead of switching modes.
+
+### The proof
+- Before: 9 bad settings all loaded.
+- After: all 9 refused; full regression green.
+
+### If the judges ask
+"Is it fully fixed?"
+Partly. The main parsers and ranges are fixed; range checks for OTP, argon2 and timers are still open.
+
+Commit: 0ed1b5a
+
+## N90 — A refund with nothing left says "not refundable"
+
+### The idea
+A refund can only return money that was not already returned.
+
+### The problem
+With nothing left and no amount, the error said "amount invalid" (422).
+
+### The fix
+- refundValidation.ts: that case is now "not refundable" (409).
+
+### The code
+Before (apps/api/src/payments/refundValidation.ts:38): went straight to the amount check.
+After:
+```ts
+if (requestedAmountFils === undefined && compareFils(refundable, ZERO_FILS) <= 0) {
+  return { ok: false, code: "transaction_not_refundable", status: txn.status };
+}
+```
+The answer now says what is really wrong.
+
+### The proof
+- Before: refund_amount_invalid.
+- After: transaction_not_refundable; 39 refund tests pass.
+
+### If the judges ask
+"Does this change money?"
+No. No money could move either way; only the error is clearer.
+
+Commit: a394c96

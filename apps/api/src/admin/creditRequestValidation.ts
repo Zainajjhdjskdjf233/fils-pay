@@ -23,6 +23,11 @@ export interface CreditRequestDraft {
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+/** E141: largest credit (1,000,000,000 BD; for Zainab to review — the case
+ *  file gives none). Keeps base + reversed fee far below 2^53, where addFils
+ *  threw inside the route (500). */
+const MAX_CREDIT_FILS = 1_000_000_000_000;
+
 /** E134: how far back a credit may be dated (decision for Zainab to review). */
 const MAX_BACKDATE_DAYS = 90;
 
@@ -42,10 +47,10 @@ export function parseCreditRequestInput(body: unknown): CreditRequestDraft {
   const input = body as Record<string, unknown>;
 
   const rawAmount = input.baseAmountFils;
-  if (typeof rawAmount !== "number" || !Number.isSafeInteger(rawAmount) || rawAmount <= 0) {
+  if (typeof rawAmount !== "number" || !Number.isSafeInteger(rawAmount) || rawAmount <= 0 || rawAmount > MAX_CREDIT_FILS) {
     throw new BadRequestError(
       "invalid_amount",
-      "baseAmountFils must be a positive integer number of fils",
+      "baseAmountFils must be a positive integer number of fils, at most 1000000000000 (1,000,000,000 BD)",
     );
   }
   const baseAmountFils = toFils(rawAmount);
