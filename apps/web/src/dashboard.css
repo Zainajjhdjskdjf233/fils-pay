@@ -441,3 +441,12 @@
 /* UX: nav fits one row with the identity block at 1280px. */
 .dash-nav a { padding: 0.35rem 0.5rem; }
 @media (max-width: 1360px) { .dash-identity > span > .dash-muted { display: none; } }
+@media (max-width: 700px) {
+  /* UX: compact tables on a phone so the amount column stays on screen. */
+  .dash-status { white-space: normal; }
+  .dash-table { font-size: 0.85em; }
+  .dash-table th, .dash-table td { padding: 0.3rem 0.35rem; overflow-wrap: break-word; }
+  .dash-table th, .dash-status { word-break: normal; overflow-wrap: normal; }
+  .dash-main > section, .dash-card { padding: 0.9rem 0.75rem; }
+  .dash-table .dash-num { white-space: nowrap; }
+}
