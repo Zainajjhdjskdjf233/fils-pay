@@ -53,10 +53,21 @@ I am Zainab: cybersecurity student, I know Java (data structures level), new to 
     ```
     Every note has all six parts, even small fixes. Write `Commit: <hash>` as the last line.
   - `docs/NOTES-PLAIN.md` (plain words, for people who did not see the code): the same note as 3-5 short sentences, like explaining to a friend: what happened, why, what it broke, what we changed, how we know it works. Last line: `Where: file:line · Commit: <hash>`.
+- Keep docs/ERRORS.md current: after every fix, and every time a new error is found, update its row (ID, what is wrong, level, status) and the Summary line. Levels: High, Medium, Low. Status: Fixed, Partly fixed, Skipped, Open.
+- docs/OVERVIEW.md is the main file: it holds everything (status, stages, files, judging, hand-in, all errors, every fix note). Never edit it by hand. After every fix, every new error and every stage, run `python3 docs/tools/build_overview.py` and include OVERVIEW.md in the docs commit.
 - After /investigate, /findings writes docs/FINDINGS.md and the Summary sections.
 - Every file you write is in English only. No Arabic in any file.
 - Talk to me in simple, clear English. Short sentences. Define each new term in one line. Show code, then explain each line simply.
 - Times in 12-hour format. Never end a message with an order to me.
+
+## Deep review lens (learned from my teammate's review)
+Breadth finds many bugs; depth finds the hidden ones. When reviewing any file, and before closing any fix, also do this:
+1. Depth: read the whole function and every function it calls, line by line, not just the line that looks wrong.
+2. Two at once: for every read-then-write (check a count, check a status, check a balance, then update), ask "what if two requests run this at the same moment?" and "what if another request changes the row between my read and my write?". The fix is one locked transaction (SELECT ... FOR UPDATE) or one atomic UPDATE ... WHERE <condition> RETURNING.
+3. Stale state: every UPDATE by id must also check the row is still in the state we expect (pending, not revoked, not expired, not paid). If no row matches, reject.
+4. Strange input: try impossible dates (2026-02-30), empty strings, \r and \n inside text, very large numbers, negative amounts, extra decimals, malformed ids. Bad input must give 400, never 500, and never reach the database.
+5. Defence in depth: if a rule is enforced in one place (a role), check that the helper below it also refuses the forbidden case.
+Record bugs found this way with the tag [deep review].
 
 ## Commands for this project
 (Filled in by /understand: how to install, run, and test.)
