@@ -246,6 +246,14 @@ func handleRunBatch(pool *pgxpool.Pool) http.Handler {
 			writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "run_batch_failed"})
 			return
 		}
+		// E48: notify merchants of the batches this run paid, as the daemon
+		// tick does (scheduler/daemon.go:119). Idempotent (NOT EXISTS + lock,
+		// E30); a failure is logged and the next daemon tick catches up.
+		if enqueued, nerr := settlement.EnqueuePayoutNotifications(r.Context(), pool); nerr != nil {
+			log.Printf("settlement internal api: run-batch(%s): EnqueuePayoutNotifications failed: %v", body.Date, nerr)
+		} else if enqueued > 0 {
+			log.Printf("settlement internal api: run-batch(%s): enqueued %d settlement.paid event(s)", body.Date, enqueued)
+		}
 
 		results := make([]merchantBatchOutcomeResponse, 0, len(report.MerchantResults))
 		for _, result := range report.MerchantResults {

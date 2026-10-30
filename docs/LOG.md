@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 08:03 PM (30 Oct 2026)
-Summary: Errors 148/176 fixed (+11 partly: E50, E92, E101, E131, E145, E163, E67, E86, E94, E96, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 08:05 PM (30 Oct 2026)
+Summary: Errors 148/176 fixed (+12 partly: E50, E92, E101, E131, E145, E163, E48, E67, E86, E94, E96, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -532,7 +532,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 ### E48 — Admin run-batch sends no payout notification; split payouts skip the lifetime estimate
 - Where: apps/settlement/internal/internalapi/server.go:237; splits PayoutSplitBatch
 - Severity: low
-- Status: open
+- Status: partly fixed (see section 5, E48; split lifetime estimate open)
 
 ### E49 — `settlement rebuild-balances --merchant` never writes the cache
 - Where: apps/settlement/cmd/settlement/main.go:154
@@ -2842,6 +2842,13 @@ ROLLBACK;
 - Before: testE67_summaryCountsCapturedOncePerTransaction (two refunds of one 10,000-fils transaction) → `actual: 20000, expected: 10000`. After: 10,000; refund report suites 6/6; migration applied on the test DB (`APPLY 0085_refund_summary_captured_once.sql`).
 - Still open: no job runs REFRESH MATERIALIZED VIEW, so in real use the view stays empty until someone refreshes it.
 - check.sh (clean environment): OK. Needs a redeploy (migration).
+
+### E48 — 08:05 PM — the admin Run batch now enqueues the settlement.paid notifications at once (split lifetime estimate still open)
+- Changed: apps/settlement/internal/internalapi/server.go run-batch handler: after a successful RunDailyBatch it calls settlement.EnqueuePayoutNotifications, the same idempotent scan the daemon runs each tick (scheduler/daemon.go:119; NOT EXISTS + advisory lock since E30). A failure is logged and left to the next daemon tick.
+- Before: apps/settlement/internal/internalapi/runbatch_notify_e48_test.go → `settlement.paid events for the batch = 0, want 1`. After: 1; all Go packages pass on the DB.
+- No fix-reviewer: one call to an existing idempotent, locked function, already used by the daemon.
+- Still open: split payouts (splits.PayoutSplitBatch) skip the lifetime payout estimate.
+- check.sh (clean environment): OK. Needs a redeploy (settlement image).
 
 ## 6. Deploy
 

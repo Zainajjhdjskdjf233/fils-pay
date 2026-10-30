@@ -139,7 +139,7 @@ Summary: 148 of 176 fixed.
 | E40 | withTransaction: a failing ROLLBACK hides the real error | Fixed |
 | E46 | KYC "PDF only" rule checks the filename, not the content | Fixed |
 | E47 | Admin console: session not rotated after OTP; no CSP | Fixed |
-| E48 | Admin run-batch sends no payout notification; split payouts skip the lifetime estimate | Open |
+| E48 | Admin run-batch sends no payout notification; split payouts skip the lifetime estimate | Partly fixed |
 | E49 | settlement rebuild-balances --merchant never writes the cache | Fixed |
 | E54 | Webhook backoff test always fails: test expects no jitter, code adds random ±10 % | Fixed |
 | E55 | Seed prints API keys; API listens on every network interface | Fixed |
