@@ -1,8 +1,13 @@
 import type { Pool } from "pg";
 import { insertAdminAuditLog } from "../adminAudit/log.js";
 import { withTransaction } from "../db/withTransaction.js";
-import { ConflictError, NotFoundError } from "../lib/errors.js";
+import { BadRequestError, ConflictError, NotFoundError } from "../lib/errors.js";
 import { insertReplayDeliveryRow } from "./replay.js";
+
+/** E144: most deliveries one archive may hold (it is built in memory and stored
+ *  as one TEXT value; the whole history loaded at once could exhaust the 512 MB
+ *  API). Value for Zainab to review. */
+export const ARCHIVE_MAX_DELIVERIES = 10_000;
 
 export interface ArchivedDeliveryEntry {
   deliveryId: string;
@@ -48,9 +53,14 @@ export async function createWebhookDeliveryArchive(
       `SELECT id, outbox_event_id, event_type, payload, created_at
          FROM webhook_deliveries
         WHERE endpoint_id = $1 AND created_at >= $2 AND created_at < $3
-        ORDER BY created_at ASC`,
-      [input.endpointId, input.from, input.to],
+        ORDER BY created_at ASC
+        LIMIT $4`,
+      [input.endpointId, input.from, input.to, ARCHIVE_MAX_DELIVERIES + 1],
     );
+    // E144: refuse (never truncate: an archive must be complete for its range).
+    if (rows.rows.length > ARCHIVE_MAX_DELIVERIES) {
+      throw new BadRequestError("archive_range_too_large", `at most ${ARCHIVE_MAX_DELIVERIES} deliveries per archive; narrow from/to`);
+    }
 
     const entries: ArchivedDeliveryEntry[] = rows.rows.map((r) => ({
       deliveryId: r.id,

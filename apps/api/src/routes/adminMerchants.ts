@@ -52,9 +52,9 @@ interface ReplayBatchBody {
 }
 
 /**
- * from/to bound the deliveries archived (created_at, to exclusive). The
- * archive is written in pages of 500 rows, so memory stays flat no matter
- * how wide the range is.
+ * from/to bound the deliveries archived (created_at, to exclusive).
+ * E144: the old note ("written in pages of 500 rows, memory stays flat") was
+ * false — it is one query held in memory; more than 10,000 deliveries is 400.
  */
 interface ArchiveCreateBody {
   from?: string;

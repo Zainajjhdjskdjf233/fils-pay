@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 05:32 PM (30 Oct 2026)
-Summary: Errors 95/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 05:33 PM (30 Oct 2026)
+Summary: Errors 96/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1127,7 +1127,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/webhooks/archiveReplay.ts:41-61 (one SELECT, no LIMIT, one JSON string); false comment routes/adminMerchants.ts:54-56 and docs/ADMIN.md.
 - Error: An archive over a wide range on a busy endpoint can exhaust the 512 MB API; replay then holds one long transaction.
 - Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
-- Severity: medium · Status: open
+- Severity: medium · Status: fixed (see section 5, E144)
 
 ### E145 — [coverage] Signup: no password rule and no type checks; bad input gives 500
 - Where: apps/api/src/routes/businessProfile.ts:27-41 (truthiness only); onboarding/signup.ts:44.
@@ -2399,6 +2399,11 @@ ROLLBACK;
 - Test: apps/api/src/auth/requireMerchantAuth.e128.test.ts (cookie, Bearer key, /v1/auth/me). Before: `suspended merchant: session must stop` (200). After: PASS; auth/app/transaction tests 46/46.
 - fix-reviewer: APPROVE (these are the only two lookups granting merchant access; pending sessions, admin sessions, impersonation separate). Known limits (Low): logout of a suspended merchant's session now gets 401 and does not revoke it; suspension hides sessions/keys rather than revoking them (re-activating restores them); OTP verify has no status check.
 - Regression: api at baseline v3, reporting 18/18, web 13/13, scripts 10/10, Go 80.
+
+### E144 — 05:33 PM — webhook archive create refuses more than 10,000 deliveries
+- Changed: apps/api/src/webhooks/archiveReplay.ts: ARCHIVE_MAX_DELIVERIES = 10_000 (for Zainab to review); the query reads at most 10,001 rows and refuses (400 archive_range_too_large) instead of loading an endpoint's whole history; never truncates, so an archive stays complete for its range. False comment at routes/adminMerchants.ts:53-57 ("pages of 500 rows, memory stays flat") corrected.
+- Test: webhooks/archiveReplay.test.ts testE144_archiveOverTheCapIsRefused (10,001 deliveries). Before: `Missing expected rejection`. After: PASS; archive and replay tests pass.
+- check.sh: OK.
 
 ## 6. Deploy
 

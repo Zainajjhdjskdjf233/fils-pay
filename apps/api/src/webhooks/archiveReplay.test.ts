@@ -11,7 +11,7 @@ import {
   replayWebhookDeliveryArchive,
   type ArchivedDeliveryEntry,
 } from "./archiveReplay.js";
-import { ConflictError, NotFoundError } from "../lib/errors.js";
+import { BadRequestError, ConflictError, NotFoundError } from "../lib/errors.js";
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
@@ -228,5 +228,25 @@ test("replay 404s on an archive/merchant mismatch and conflicts on a disabled ta
       adminUserId,
     }),
     (err: unknown) => err instanceof ConflictError && err.code === "endpoint_disabled",
+  );
+});
+
+// E144 [coverage]: archive create loaded an endpoint's whole history into
+// memory and one TEXT value. More than ARCHIVE_MAX_DELIVERIES is refused.
+test("testE144_archiveOverTheCapIsRefused", async () => {
+  const { ARCHIVE_MAX_DELIVERIES } = await import("./archiveReplay.js");
+  const merchantId = await createMerchant();
+  const adminUserId = await createAdminUser();
+  const endpointId = await createEndpoint(merchantId);
+  await pool.query(
+    `WITH ev AS (INSERT INTO outbox_events (event_type, aggregate_type, aggregate_id, payload, processed_at)
+                 SELECT 'transaction.captured', 'transaction', gen_random_uuid(), '{}'::jsonb, now() FROM generate_series(1, $2::int) RETURNING id)
+     INSERT INTO webhook_deliveries (endpoint_id, outbox_event_id, event_type, delivery_event_id, payload, status, created_at)
+     SELECT $1, ev.id, 'transaction.captured', gen_random_uuid(), '{}'::jsonb, 'succeeded', '2026-05-05T00:00:00Z' FROM ev`,
+    [endpointId, (ARCHIVE_MAX_DELIVERIES ?? 10_000) + 1],
+  );
+  await assert.rejects(
+    createWebhookDeliveryArchive(pool, { merchantId, endpointId, adminUserId, ...WINDOW }),
+    (e: unknown) => e instanceof BadRequestError,
   );
 });

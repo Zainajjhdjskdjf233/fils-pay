@@ -3636,4 +3636,4 @@ Suspended shops get 401.
 "Are the sessions deleted?"
 No, they are hidden; re-activating the shop restores them. That is recorded as a known limit.
 
-Commit: PENDING_N101
+Commit: 9397d53

@@ -606,4 +606,4 @@ Where: apps/api/src/config.ts · Commit: 1b8659c
 
 A suspended shop could still use its logins and API keys. Now only active shops get in. A test suspends a shop and checks both are refused.
 
-Where: apps/api/src/auth/sessions.ts · Commit: PENDING_N101
+Where: apps/api/src/auth/sessions.ts · Commit: 9397d53
