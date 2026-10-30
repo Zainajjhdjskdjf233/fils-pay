@@ -74,6 +74,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:44 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- a3975a9 fix(E117): OTP guess limit per user across logins; older codes and pending sessions end at login
 - a8fdcb1 feat(capacity): load shedding (503 + Retry-After), CPU rebalanced to Postgres, k6 checkout test; capacity ~15 checkouts/s
 - d7d17b2 fix(E02): Docker stack within 1 vCPU/2 GB — Dockerfiles, compose limits, restarts, health checks, volumes, per-service DB roles
 - 0cf9a60 fix(E99,E105): one Idempotency-Key per capture/refund attempt; new key only after a definite 4xx
@@ -88,7 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:44 PM
 - eebf7d4 fix(E42): reporting cursor on (txid, id) below the snapshot horizon — late commits were skipped
 - 41c9754 fix(E53): bad outbox events are parked in reporting_dead_letters instead of blocking the worker
 - 44adee8 fix(E41): missing rollup row no longer crashes the reporting pass
-- 3918ae8 fix(E39): CSV export neutralizes formula cells and caps rows at 50,000
 
 ## 7. All errors
 ## High (31 of 32 fixed)
@@ -2449,5 +2449,5 @@ The guess budget belongs to the person, not to each code.
 "How was this found?"
 By the "deep review lens" we learned from our teammate's review: asking what happens across many requests, not just one.
 
-Commit: PENDING_N60
+Commit: a3975a9
 

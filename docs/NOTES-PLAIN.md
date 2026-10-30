@@ -360,4 +360,4 @@ Where: apps/api/src/plugins/loadShedding.ts:42 · Commit: a8fdcb1
 
 The login code allowed only 5 wrong guesses, but each new login gave 5 new guesses, and old codes stayed valid. Someone who knew the password could keep trying until they hit the right code. Now the guesses are counted per person across all logins (10 per 15 minutes), and each new login cancels the older codes. Tests show the old code stops working and the account is locked after too many guesses.
 
-Where: apps/api/src/auth/otp.ts:71 · Commit: PENDING_N60
+Where: apps/api/src/auth/otp.ts:71 · Commit: a3975a9
