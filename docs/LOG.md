@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 11:59 AM (30 Oct 2026)
-Summary: Errors 45/60 fixed (+1 partly: E13; same count as docs/ERRORS.md) · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
+Updated: 12:01 PM (30 Oct 2026)
+Summary: Errors 45/60 fixed (+2 partly: E13, E50; same count as docs/ERRORS.md) · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -491,7 +491,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/payments/capture.ts:196 vs Go ComputeSettlementFee
 - Error: ledger fee at capture ≠ batch fee for discounted merchants.
 - Severity: medium
-- Status: skipped — needs a design decision (see section 5, E50)
+- Status: partly fixed (payment-link discount, see section 5); formula difference open
 
 ### E51 — [found later] API and seed cannot start: built-in dev key is 34 bytes, check needs 32
 - Where: apps/api/src/config.ts:153 (`DEV_FALLBACK_WEBHOOK_KEY_B64`), :172 (length check), :249-250
@@ -1321,6 +1321,13 @@ ROLLBACK;
 - Changed: db/migrations/0081_transaction_events_capture_time_idx.sql (partial index on occurred_at INCLUDE transaction_id, amount_fils for capture events).
 - Honest limit: about 20 % faster at this size; the main benefit is that the work is bounded by the date window instead of growing with all history. Not load-tested on the 0.5-vCPU limit (that comes with /deploy and the capacity test).
 - Regression: full-db-test.sh = baseline v3.
+
+### E50 (part) — 12:01 PM — payment-link checkout applies the negotiated discount
+- Changed: apps/api/src/paymentLinks/pay.ts: after a successful capture + finalize, `applyCaptureDiscountAdjustment` (the same call routes/transactions.ts:111 makes; idempotent per capture event).
+- Decision (for Zainab to review), replacing the earlier skip: under speed-mode rules I took the smallest safe part — make both capture paths behave the same — and left the formula question open: capture discounts the FEE (round(round(A·m)·d)), settlement discounts the AMOUNT (round(m·(A − round(A·d)))); equal except rounding (≤ 1-2 fils). Changing capture to the settlement formula would change the ledger lines that F01a's refund-fee query reads.
+- Test: apps/api/src/paymentLinks/discount.e50.test.ts (same merchant terms, 250 bps, 20 % discount, 10.000 BD via card API and via link). Before: `payment link fee 250 must equal card API fee 200`. After: PASS; payment-link tests (incl. E29) pass.
+- Regression: full-db-test.sh = baseline v3.
+- Actual result: both paths charge 200 fils.
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)

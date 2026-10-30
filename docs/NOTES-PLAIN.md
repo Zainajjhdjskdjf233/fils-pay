@@ -301,3 +301,9 @@ Where: apps/settlement/internal/settlement/recalculate_mdr.go:169 · Commit: 376
 The settlement summary page was slow for big shops because the database read every payment event ever stored, not just the month asked for. We added an index, which lets the database jump straight to the right days. On a copy with about 400,000 events it went from 66 to 52 milliseconds, and it will no longer slow down as history grows. The same copy also confirmed the earlier triple-counting bug at full size.
 
 Where: db/migrations/0081_transaction_events_capture_time_idx.sql:7 · Commit: fffaa6c
+
+## N51 — Payment links now get the shop's negotiated discount
+
+Shops with a negotiated fee discount got it when customers paid by card through the API, but not when customers used a payment link, so those shops paid too much. A comment claimed both were covered, but only one was. Now the payment link uses the same discount step. A test shows the same fee both ways.
+
+Where: apps/api/src/paymentLinks/pay.ts:228 · Commit: PENDING_N51

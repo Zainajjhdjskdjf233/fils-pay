@@ -1863,3 +1863,34 @@ Postgres now reads only the capture events inside the chosen dates.
 On a fast laptop, yes. The point is that it no longer grows with history; the real check is the load test on the 0.5-vCPU limit.
 
 Commit: fffaa6c
+
+## N51 — Payment links now get the shop's negotiated discount
+
+### The idea
+Some shops negotiated a discount on their fee (for example 20 % off). It should apply however the customer pays.
+
+### The problem
+The discount was only applied when paying through the card API.
+- A payment through a payment link was charged the full fee (250 fils instead of 200 on 10 BD).
+- A comment claimed it was applied for both. It was not.
+
+### The fix
+- pay.ts: after a link payment succeeds, call the same discount function the card API uses.
+
+### The code
+Before (apps/api/src/paymentLinks/pay.ts, end of payPaymentLink): no discount step.
+After:
+```ts
+await applyCaptureDiscountAdjustment(pool, { merchantId: link.merchantId, transactionId: txnId });
+```
+The same function, with the same guard against applying it twice.
+
+### The proof
+- Before: same shop, same amount: card API fee 200, payment link fee 250.
+- After: both 200.
+
+### If the judges ask
+"Is the discount math now identical to settlement?"
+Almost: payments discount the fee, settlement discounts the amount, so they can differ by 1-2 fils of rounding. Choosing one formula is marked for Zainab.
+
+Commit: PENDING_N51

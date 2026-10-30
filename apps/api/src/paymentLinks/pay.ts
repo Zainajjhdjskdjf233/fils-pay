@@ -3,6 +3,7 @@ import { toFils } from "@filspay/money";
 import { authorizeTransaction } from "../payments/authorize.js";
 import { captureTransaction } from "../payments/capture.js";
 import { voidTransaction } from "../payments/void.js";
+import { applyCaptureDiscountAdjustment } from "../payments/discountAdjustment.js";
 import type { AcquirerSimulator, SimulatedCardInput } from "../acquirer/types.js";
 
 export interface PayPaymentLinkInput {
@@ -219,6 +220,12 @@ export async function payPaymentLink(
     );
     return { statusCode: 409, body: { error: "payment_link_reservation_lost", transactionId: txnId } };
   }
+
+  // E50: apply the merchant's negotiated discount, exactly as the card API
+  // capture route does (routes/transactions.ts). MK's note above ("applied for
+  // both now, moved into capture.ts") was false: only that route called it.
+  // Idempotent per capture event (its own count guard).
+  await applyCaptureDiscountAdjustment(pool, { merchantId: link.merchantId, transactionId: txnId });
 
   return {
     statusCode: 200,
