@@ -74,6 +74,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:11 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- d97de16 fix(E121): credits and balance adjustments are paid through the daily batch (negative ones carry like refunds)
 - cc6d252 fix(E120): MDR recalculation skips and reports a batch instead of storing a negative payout
 - 1d456a8 fix(E124): one discount adjustment per capture event, sized from its own fee
 - 93d09b2 fix(E123): card shape checked in both payment routes before the link is claimed (400, not 500)
@@ -88,7 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:11 PM
 - 0d04c29 fix(E102): merchant OTP verify re-issues the session cookie for 12 h; dashboard goes to login on 401
 - 184c0b2 fix(E73): CloseBatch journals the scheme rounding residue (ADR-0002); record E74-E90, H37-H39
 - e5eb890 feat(F01f): dashboard refund page; fix(E61): same-origin API calls for web and admin
-- 107618c fix(E50): payment-link checkout applies the negotiated discount like the card API
 
 ## 7. All errors
 ## High (38 of 39 fixed)
@@ -2732,5 +2732,5 @@ The day's payout now includes credits (and fitting negative corrections) before 
 "Why a new table instead of marking the ledger rows?"
 The ledger is append-only for the app (migration 0082), so we cannot update its rows. The table's primary key also stops one credit from being paid twice.
 
-Commit: PENDING_N67
+Commit: d97de16
 

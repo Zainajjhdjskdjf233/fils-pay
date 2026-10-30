@@ -2493,4 +2493,4 @@ The day's payout now includes credits (and fitting negative corrections) before 
 "Why a new table instead of marking the ledger rows?"
 The ledger is append-only for the app (migration 0082), so we cannot update its rows. The table's primary key also stops one credit from being paid twice.
 
-Commit: PENDING_N67
+Commit: d97de16

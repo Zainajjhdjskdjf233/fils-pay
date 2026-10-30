@@ -402,4 +402,4 @@ Where: apps/settlement/internal/settlement/recalculate_mdr.go:118 · Commit: cc6
 
 When an admin gave a shop a credit or a correction, it changed the shop's balance, but the daily payout never included it, so the shop was never paid that money (and negative corrections were never taken back). Now the daily close adds unpaid credits to the payout and remembers them in a small table so each one is paid exactly once. A negative correction waits for a day with enough money, so a payout never goes below zero. Tests show the payout and the reconciliation are now right.
 
-Where: apps/settlement/internal/settlement/batch.go:238 · Commit: PENDING_N67
+Where: apps/settlement/internal/settlement/batch.go:238 · Commit: d97de16
