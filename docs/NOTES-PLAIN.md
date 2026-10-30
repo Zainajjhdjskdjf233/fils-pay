@@ -985,3 +985,27 @@ Where: apps/web/src/pages/transactions/TransactionListPage.tsx · Commit: 668b88
 The balance rebuild could overwrite an update from a batch closing at the same moment. Now it locks the balance first. A wider design question about the balance is listed for review.
 
 Where: apps/settlement/internal/ledger/rebuild.go · Commit: a6027dc
+
+## N165 — The sample data adds up in whole fils
+
+The sample-data script still added payouts with decimal math and left old error records after a reset. Now it adds whole fils and clears those records. Its own check passes on a fresh database.
+
+Where: db/seed/generate.ts · Commit: 8060c5e
+
+## N166 — Go tests take turns
+
+The payout service's database tests sometimes failed when run at the same time, because they shared one database. Now they take turns using a database lock. Three parallel runs had no failures.
+
+Where: apps/settlement/internal/ledger/testmain_e56_test.go · Commit: dc99f19
+
+## N167 — Email letters in any case
+
+An owner who signed up with capital letters could not log in with small letters, and broken emails were accepted. Now emails are checked and stored in small letters, and login ignores letter case. The admin side is recorded as a new open item.
+
+Where: apps/api/src/routes/businessProfile.ts · Commit: 8794b16
+
+## N168 — Settings must make sense
+
+The API accepted any number for security settings, like a 1-digit login code. Now 21 settings have sensible limits, and a bad value stops the API at start. Tests prove it.
+
+Where: apps/api/src/config.ts · Commit: dba5b93

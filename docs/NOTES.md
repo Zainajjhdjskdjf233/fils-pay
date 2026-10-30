@@ -5729,3 +5729,136 @@ A batch close waits for the rebuild, then adds its part.
 Not fully: what the balance should include is a design question recorded for review (E74), and a very long rebuild can still time out.
 
 Commit: a6027dc
+
+## N165 — The sample data adds up in whole fils
+
+### The idea
+The seed script fills a test database with sample shops and payouts. Like a practice set, it should follow the same rules as the real system.
+
+### The problem
+Two old habits were left in it.
+- It added payout totals with decimal (float) math.
+- A reseed left old error records whose ids were reused.
+
+### The fix
+- generate.ts: add payouts as whole fils.
+- generate.ts: also empty the reporting error table on a reseed.
+
+### The code
+Before (db/seed/generate.ts:637):
+```ts
+lifetimeEstimate = Math.fround(lifetimeEstimate + Math.fround(Number(batchNet)));
+```
+After:
+```ts
+lifetimeEstimate += BigInt(batchNet);
+```
+The sample totals are exact, like the real ones.
+
+### The proof
+- Before: float32 sums; old error rows survived a reseed.
+- After: the seed self-check passes on a fresh database.
+
+### If the judges ask
+"Does the seed run on the live server?"
+No; it is for a developer database only, and since E65 it refuses without a flag.
+
+Commit: 8060c5e
+
+## N166 — Go tests take turns
+
+### The idea
+The payout service has database tests in several packages. They share one test database, like several cooks in one small kitchen.
+
+### The problem
+Run in parallel, packages changed each other's rows.
+- One test sometimes failed for no real reason.
+
+### The fix
+- Four test packages: hold one shared database lock while their tests run.
+
+### The code
+Before: no shared lock.
+After (apps/settlement/internal/ledger/testmain_e56_test.go):
+```go
+conn.Exec(ctx, "SELECT pg_advisory_lock(hashtext('filspay-go-db-tests'))")
+```
+Packages wait for each other instead of colliding.
+
+### The proof
+- Before: 1 failing package in 3 parallel runs.
+- After: 0 failures in 3 parallel runs.
+
+### If the judges ask
+"Why not just always run them one by one?"
+That works too (check.sh does), but anyone running go test ./... would still hit random failures.
+
+Commit: dc99f19
+
+## N167 — Email letters in any case
+
+### The idea
+A shop owner signs up with an email and logs in with it later. People often type capital letters differently.
+
+### The problem
+Signup stored the email exactly as typed and login compared it exactly.
+- "Owner@Shop.com" could not log in as "owner@shop.com".
+- A broken email like "not-an-email" was accepted.
+
+### The fix
+- businessProfile.ts: check the email shape and store it in lower case.
+- auth.ts: login compares in lower case, and an exact match wins.
+
+### The code
+Before (apps/api/src/routes/auth.ts:65):
+```sql
+WHERE mu.merchant_id = $1 AND mu.email = $2
+```
+After:
+```sql
+WHERE mu.merchant_id = $1 AND lower(mu.email) = lower($2) ... ORDER BY (mu.email = $2) DESC, mu.id LIMIT 1
+```
+Letter case no longer matters, and the password check still uses the same user.
+
+### The proof
+- Before: "not-an-email" accepted; lower-case login refused.
+- After: bad emails get 400; lower-case login works.
+
+### If the judges ask
+"Is the admin login fixed too?"
+Not yet; the reviewer found the same issue there, and it is recorded as E177.
+
+Commit: 8794b16
+
+## N168 — Settings must make sense
+
+### The idea
+The API reads numbers like "code length" or "session hours" from settings. Like an oven dial, it should refuse nonsense.
+
+### The problem
+Any whole number was accepted.
+- A 1-digit login code, 0 tries, or a 0-hour session would start.
+
+### The fix
+- config.ts: 21 settings now have a minimum and maximum; anything outside stops the API at start.
+
+### The code
+Before (apps/api/src/config.ts:244):
+```ts
+otpCodeLength: parseIntEnv(env.OTP_CODE_LENGTH, 6),
+```
+After:
+```ts
+otpCodeLength: parseRangedIntEnv("OTP_CODE_LENGTH", env.OTP_CODE_LENGTH, 6, 4, 10),
+```
+A typo in a security setting is caught before the API serves anyone.
+
+### The proof
+- Before: OTP_CODE_LENGTH=1 and others accepted.
+- After: refused at start; the test files that set these values pass on a fresh database.
+
+### If the judges ask
+"Who chose the ranges?"
+We did; they are listed for Zainab to review, and they keep 0 where tests rely on it.
+
+Commit: dba5b93

@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 8:15 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 8:24 PM
 
 ## Contents
 1. Status now
@@ -14,20 +14,20 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:15 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 152 of 176 fixed.
+- Errors: 157 of 177 fixed.
   - High: 46 of 46 fixed
-  - Medium: 50 of 60 fixed
-  - Low: 56 of 70 fixed
+  - Medium: 52 of 60 fixed
+  - Low: 59 of 71 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
 - Dilmune Cloud: live
-- Decisions waiting for Zainab: 41 (search "for Zainab to review" in LOG.md)
+- Decisions waiting for Zainab: 43 (search "for Zainab to review" in LOG.md)
 - Fork: needs a push (VS Code: Git: Push to... → mine)
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 152 of 176 fixed.
+- 🔄 Fix: 157 of 177 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -74,6 +74,11 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:15 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- dba5b93 fix(E163): webhook timers and timeouts range-checked at boot (E163 fully fixed)
+- fb851fb fix(E163): security-relevant API settings range-checked at boot (partly fixed)
+- 8794b16 fix(E145): owner email checked and stored lower-case; login case-insensitive (E145 fully fixed); new entry E177
+- dc99f19 fix(E56): Go DB test packages take turns on the shared database (advisory lock in TestMain)
+- 8060c5e fix(E68,E71): seed sums the lifetime estimate in integer fils and resets reporting dead letters
 - a6027dc fix(E78): balance rebuild locks each balance row first (partly fixed); E74 marked for review
 - 668b884 fix(E108): list pages ignore stale answers to older filters
 - 0a8d82c fix(E96): payout trends use the batch row, not the payload (E96 now fully fixed); LOG: freeze moved to 10:00 PM
@@ -84,11 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:15 PM
 - 5170b9c fix(E132): reconciliation figures come from one REPEATABLE READ snapshot
 - 782ce36 fix(E55): dev API listens on localhost only; seed prints masked keys
 - 8d4e7f7 fix(E47): full Content-Security-Policy on both nginx servers
-- f9f833b fix(E89): authorize idempotency hash excludes the full card number and CVV
-- 0715011 fix(E85): impersonation grants stop on admin disable or logout, with audit rows
-- 129b6bd fix(E96): reporting parks events with zero or negative amounts (partly fixed)
-- a3675a0 fix(E83): legal identity locked during and after KYC review
-- f788901 fix(E101): expired link with a stale reservation reads expired and pay gives 410 (partly fixed)
 
 ## 7. All errors
 ## High (46 of 46 fixed)
@@ -142,7 +142,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:15 PM
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-### Medium (50 of 60 fixed)
+### Medium (52 of 60 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -196,18 +196,18 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:15 PM
 | E142 | [coverage] Control characters in credit memos and adjustment reasons are accepted; a NUL byte likely gives 500 | Fixed |
 | E143 | [coverage] A webhook replay gets a new delivery id; comments and docs/ADMIN.md say it keeps the original | Fixed |
 | E144 | [coverage] Webhook archive create loads an endpoint's whole history into memory; "pages of 500" is false | Fixed |
-| E145 | [coverage] Signup: no password rule and no type checks; bad input gives 500 | Partly fixed |
+| E145 | [coverage] Signup: no password rule and no type checks; bad input gives 500 | Fixed |
 | E146 | [coverage] Public signup and login have no rate limit; each call runs argon2 | Fixed |
 | E147 | [coverage] A broken image upload gives 500 and leaves an orphan file on disk | Fixed |
 | E148 | [coverage] No limit on KYC uploads per merchant: the shared disk can be filled | Fixed |
-| E163 | [second review] API config never refuses bad settings (prefixes, booleans, NODE_ENV typo turns off security defaults, no ranges) | Partly fixed |
+| E163 | [second review] API config never refuses bad settings (prefixes, booleans, NODE_ENV typo turns off security defaults, no ranges) | Fixed |
 | E165 | [second review] Authorize and capture accept a zero or negative amount: 0 reaches the acquirer then the DB CHECK (500); negative makes toFils throw (500) | Fixed |
 | E167 | [second review] Merchant OTP promotion keeps the pending session token (session fixation); the admin half is E47 | Fixed |
 | E168 | [second review] Webhook dispatch Step B still queues deliveries for disabled endpoints | Fixed |
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-### Low (56 of 70 fixed)
+### Low (59 of 71 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -219,15 +219,15 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:15 PM
 | E49 | settlement rebuild-balances --merchant never writes the cache | Fixed |
 | E54 | Webhook backoff test always fails: test expects no jitter, code adds random ±10 % | Fixed |
 | E55 | Seed prints API keys; API listens on every network interface | Fixed |
-| E56 | Go DB tests are flaky when packages run in parallel | Open |
+| E56 | Go DB tests are flaky when packages run in parallel | Fixed |
 | E57 | Bad input gives 500 instead of 400 (invalid JSON body, malformed UUID) | Fixed |
 | E59 | Acquirer callback outcome is never validated | Fixed |
 | E66 | [found later] expire_holds can delete holds released between its SELECT and DELETE | Fixed |
 | E67 | [found later] refund_merchant_summary counts captured once per refund; never refreshed (my F01e bug) | Partly fixed |
-| E68 | [found later] Seed adds the lifetime payout estimate in float32 | Open |
+| E68 | [found later] Seed adds the lifetime payout estimate in float32 | Fixed |
 | E69 | [found later] Seeded fees ignore the seeded fee schedules (suspected) | Open |
 | E70 | [found later] Seeded outbox events do not match the seeded history | Open |
-| E71 | [found later] Re-seeding leaves old dead letters with reused outbox ids | Open |
+| E71 | [found later] Re-seeding leaves old dead letters with reused outbox ids | Fixed |
 | E72 | [found later] reconcile_march uses authorization time and running-total residue (suspected) | Open |
 | E77 | [found later] Float and toFixed on money in the batch detail page | Fixed |
 | E78 | [found later] Balance rebuild may hit the 30 s timeout; no row lock (suspected) | Partly fixed |
@@ -281,9 +281,10 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:15 PM
 | E174 | [second review] Payment-link expiresAt rolls over (2026-02-30) or is read zone-less | Fixed |
 | E175 | [second review] Webhook URLs with embedded credentials are accepted but never deliverable | Fixed |
 | E176 | [deep review] A redeploy stops settlement after 10 s, although it waits 30 s for a running batch | Fixed |
+| E177 | [deep review] Admin login and admin invites match emails case-sensitively | Open |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101 · N102 · N103 · N104 · N105 · N106 · N107 · N108 · N109 · N110 · N111 · N112 · N113 · N114 · N115 · N116 · N117 · N118 · N119 · N120 · N121 · N122 · N123 · N124 · N125 · N126 · N127 · N128 · N129 · N130 · N131 · N132 · N133 · N134 · N135 · N136 · N137 · N138 · N139 · N140 · N141 · N142 · N143 · N144 · N145 · N146 · N147 · N148 · N149 · N150 · N151 · N152 · N153 · N154 · N155 · N156 · N157 · N158 · N159 · N160 · N161 · N162 · N163 · N164
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101 · N102 · N103 · N104 · N105 · N106 · N107 · N108 · N109 · N110 · N111 · N112 · N113 · N114 · N115 · N116 · N117 · N118 · N119 · N120 · N121 · N122 · N123 · N124 · N125 · N126 · N127 · N128 · N129 · N130 · N131 · N132 · N133 · N134 · N135 · N136 · N137 · N138 · N139 · N140 · N141 · N142 · N143 · N144 · N145 · N146 · N147 · N148 · N149 · N150 · N151 · N152 · N153 · N154 · N155 · N156 · N157 · N158 · N159 · N160 · N161 · N162 · N163 · N164 · N165 · N166 · N167 · N168
 
 ### N01 — Database setup stopped halfway
 
@@ -6012,4 +6013,137 @@ A batch close waits for the rebuild, then adds its part.
 Not fully: what the balance should include is a design question recorded for review (E74), and a very long rebuild can still time out.
 
 Commit: a6027dc
+
+### N165 — The sample data adds up in whole fils
+
+#### The idea
+The seed script fills a test database with sample shops and payouts. Like a practice set, it should follow the same rules as the real system.
+
+#### The problem
+Two old habits were left in it.
+- It added payout totals with decimal (float) math.
+- A reseed left old error records whose ids were reused.
+
+#### The fix
+- generate.ts: add payouts as whole fils.
+- generate.ts: also empty the reporting error table on a reseed.
+
+#### The code
+Before (db/seed/generate.ts:637):
+```ts
+lifetimeEstimate = Math.fround(lifetimeEstimate + Math.fround(Number(batchNet)));
+```
+After:
+```ts
+lifetimeEstimate += BigInt(batchNet);
+```
+The sample totals are exact, like the real ones.
+
+#### The proof
+- Before: float32 sums; old error rows survived a reseed.
+- After: the seed self-check passes on a fresh database.
+
+#### If the judges ask
+"Does the seed run on the live server?"
+No; it is for a developer database only, and since E65 it refuses without a flag.
+
+Commit: 8060c5e
+
+### N166 — Go tests take turns
+
+#### The idea
+The payout service has database tests in several packages. They share one test database, like several cooks in one small kitchen.
+
+#### The problem
+Run in parallel, packages changed each other's rows.
+- One test sometimes failed for no real reason.
+
+#### The fix
+- Four test packages: hold one shared database lock while their tests run.
+
+#### The code
+Before: no shared lock.
+After (apps/settlement/internal/ledger/testmain_e56_test.go):
+```go
+conn.Exec(ctx, "SELECT pg_advisory_lock(hashtext('filspay-go-db-tests'))")
+```
+Packages wait for each other instead of colliding.
+
+#### The proof
+- Before: 1 failing package in 3 parallel runs.
+- After: 0 failures in 3 parallel runs.
+
+#### If the judges ask
+"Why not just always run them one by one?"
+That works too (check.sh does), but anyone running go test ./... would still hit random failures.
+
+Commit: dc99f19
+
+### N167 — Email letters in any case
+
+#### The idea
+A shop owner signs up with an email and logs in with it later. People often type capital letters differently.
+
+#### The problem
+Signup stored the email exactly as typed and login compared it exactly.
+- "Owner@Shop.com" could not log in as "owner@shop.com".
+- A broken email like "not-an-email" was accepted.
+
+#### The fix
+- businessProfile.ts: check the email shape and store it in lower case.
+- auth.ts: login compares in lower case, and an exact match wins.
+
+#### The code
+Before (apps/api/src/routes/auth.ts:65):
+```sql
+WHERE mu.merchant_id = $1 AND mu.email = $2
+```
+After:
+```sql
+WHERE mu.merchant_id = $1 AND lower(mu.email) = lower($2) ... ORDER BY (mu.email = $2) DESC, mu.id LIMIT 1
+```
+Letter case no longer matters, and the password check still uses the same user.
+
+#### The proof
+- Before: "not-an-email" accepted; lower-case login refused.
+- After: bad emails get 400; lower-case login works.
+
+#### If the judges ask
+"Is the admin login fixed too?"
+Not yet; the reviewer found the same issue there, and it is recorded as E177.
+
+Commit: 8794b16
+
+### N168 — Settings must make sense
+
+#### The idea
+The API reads numbers like "code length" or "session hours" from settings. Like an oven dial, it should refuse nonsense.
+
+#### The problem
+Any whole number was accepted.
+- A 1-digit login code, 0 tries, or a 0-hour session would start.
+
+#### The fix
+- config.ts: 21 settings now have a minimum and maximum; anything outside stops the API at start.
+
+#### The code
+Before (apps/api/src/config.ts:244):
+```ts
+otpCodeLength: parseIntEnv(env.OTP_CODE_LENGTH, 6),
+```
+After:
+```ts
+otpCodeLength: parseRangedIntEnv("OTP_CODE_LENGTH", env.OTP_CODE_LENGTH, 6, 4, 10),
+```
+A typo in a security setting is caught before the API serves anyone.
+
+#### The proof
+- Before: OTP_CODE_LENGTH=1 and others accepted.
+- After: refused at start; the test files that set these values pass on a fresh database.
+
+#### If the judges ask
+"Who chose the ranges?"
+We did; they are listed for Zainab to review, and they keep 0 where tests rely on it.
+
+Commit: dba5b93
 

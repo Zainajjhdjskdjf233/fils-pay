@@ -285,7 +285,7 @@ Not changed (recorded): money columns are still left-aligned (29 cells in 10 fil
 ### Every error entry
 
 <!-- errors:start (generated from docs/ERRORS.md) -->
-All 176 entries from docs/ERRORS.md (152 of 176 fixed.). Each ID has its error (section 2) and, when fixed, its fix (section 5) in docs/LOG.md.
+All 177 entries from docs/ERRORS.md (157 of 177 fixed.). Each ID has its error (section 2) and, when fixed, its fix (section 5) in docs/LOG.md.
 
 | ID | Title | Level | Status |
 |---|---|---|---|
@@ -344,7 +344,7 @@ All 176 entries from docs/ERRORS.md (152 of 176 fixed.). Each ID has its error (
 | E53 | One malformed outbox event stops the whole reporting consumer | Medium | Fixed |
 | E54 | Webhook backoff test always fails: test expects no jitter, code adds random ±10 % | Low | Fixed |
 | E55 | Seed prints API keys; API listens on every network interface | Low | Fixed |
-| E56 | Go DB tests are flaky when packages run in parallel | Low | Open |
+| E56 | Go DB tests are flaky when packages run in parallel | Low | Fixed |
 | E57 | Bad input gives 500 instead of 400 (invalid JSON body, malformed UUID) | Low | Fixed |
 | E58 | Session vs impersonation order may mix identities (FP-198 comment) — not reproduced: a test with both cookies shows no mixing | Medium | Skipped |
 | E59 | Acquirer callback outcome is never validated | Low | Fixed |
@@ -356,10 +356,10 @@ All 176 entries from docs/ERRORS.md (152 of 176 fixed.). Each ID has its error (
 | E65 | [found later] The seed wipes real tables (incl. admin audit log) with no environment check | Medium | Fixed |
 | E66 | [found later] expire_holds can delete holds released between its SELECT and DELETE | Low | Fixed |
 | E67 | [found later] refund_merchant_summary counts captured once per refund; never refreshed (my F01e bug) | Low | Partly fixed |
-| E68 | [found later] Seed adds the lifetime payout estimate in float32 | Low | Open |
+| E68 | [found later] Seed adds the lifetime payout estimate in float32 | Low | Fixed |
 | E69 | [found later] Seeded fees ignore the seeded fee schedules (suspected) | Low | Open |
 | E70 | [found later] Seeded outbox events do not match the seeded history | Low | Open |
-| E71 | [found later] Re-seeding leaves old dead letters with reused outbox ids | Low | Open |
+| E71 | [found later] Re-seeding leaves old dead letters with reused outbox ids | Low | Fixed |
 | E72 | [found later] reconcile_march uses authorization time and running-total residue (suspected) | Low | Open |
 | E73 | [found later] CloseBatch never journals the scheme rounding residue (ADR-0002 not implemented) | High | Fixed |
 | E74 | [found later] Balance cache and ledger rebuild measure different things (drift after rebuild) | Medium | Open |
@@ -433,7 +433,7 @@ All 176 entries from docs/ERRORS.md (152 of 176 fixed.). Each ID has its error (
 | E142 | [coverage] Control characters in credit memos and adjustment reasons are accepted; a NUL byte likely gives 500 | Medium | Fixed |
 | E143 | [coverage] A webhook replay gets a new delivery id; comments and docs/ADMIN.md say it keeps the original | Medium | Fixed |
 | E144 | [coverage] Webhook archive create loads an endpoint's whole history into memory; "pages of 500" is false | Medium | Fixed |
-| E145 | [coverage] Signup: no password rule and no type checks; bad input gives 500 | Medium | Partly fixed |
+| E145 | [coverage] Signup: no password rule and no type checks; bad input gives 500 | Medium | Fixed |
 | E146 | [coverage] Public signup and login have no rate limit; each call runs argon2 | Medium | Fixed |
 | E147 | [coverage] A broken image upload gives 500 and leaves an orphan file on disk | Medium | Fixed |
 | E148 | [coverage] No limit on KYC uploads per merchant: the shared disk can be filled | Medium | Fixed |
@@ -451,7 +451,7 @@ All 176 entries from docs/ERRORS.md (152 of 176 fixed.). Each ID has its error (
 | E160 | [second review] The adjustment-import list pages on created_at text with no tie-breaker | Low | Fixed |
 | E161 | [second review] Recent ledger activity includes the exclusive end date (one extra day) | Low | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | High | Fixed |
-| E163 | [second review] API config never refuses bad settings (prefixes, booleans, NODE_ENV typo turns off security defaults, no ranges) | Medium | Partly fixed |
+| E163 | [second review] API config never refuses bad settings (prefixes, booleans, NODE_ENV typo turns off security defaults, no ranges) | Medium | Fixed |
 | E164 | [found later] /healthz and /readyz on the public port return the web page | Low | Fixed |
 | E165 | [second review] Authorize and capture accept a zero or negative amount: 0 reaches the acquirer then the DB CHECK (500); negative makes toFils throw (500) | Medium | Fixed |
 | E166 | [second review] Payment-link create with amount 0 gives a DB error (500) | Low | Fixed |
@@ -465,4 +465,5 @@ All 176 entries from docs/ERRORS.md (152 of 176 fixed.). Each ID has its error (
 | E174 | [second review] Payment-link expiresAt rolls over (2026-02-30) or is read zone-less | Low | Fixed |
 | E175 | [second review] Webhook URLs with embedded credentials are accepted but never deliverable | Low | Fixed |
 | E176 | [deep review] A redeploy stops settlement after 10 s, although it waits 30 s for a running batch | Low | Fixed |
+| E177 | [deep review] Admin login and admin invites match emails case-sensitively | Low | Open |
 <!-- errors:end -->
