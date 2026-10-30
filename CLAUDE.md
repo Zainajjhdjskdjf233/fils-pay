@@ -19,25 +19,39 @@ I am Zainab: cybersecurity student, I know Java (data structures level), new to 
 - Every claim in LOG.md needs proof: file:line, commit hash, or command output.
 - Never edit docs/ACTIONS.md (a hook writes it), except appending its Summary in /findings.
 - After every change, even a small one, add one note to BOTH files, same ID (N01, N02 ...), simple English:
-  - `docs/NOTES.md` (question and answer). Use exactly this shape. No `**`, no bullets, no tables. Each answer is one short sentence, indented 3 spaces:
+  - `docs/NOTES.md` (simple and complete). Use exactly this shape. Very short sentences, simple words, no `**`, no long paragraphs:
     ```
-    ## N03 — <short title>
+    ## N01 — <short title>
 
-    What did we see?
-       <the problem, as a user or the case file sees it>
+    ### The idea
+    <1-2 sentences: what this part of the app does, with a simple everyday comparison (like stairs, a door, a receipt).>
 
-    Why?
-       <the root cause>
+    ### The problem
+    <1 sentence, then 1-3 short bullets: what was broken and what it stopped.>
 
-    What did it break?
-       <the damage>
+    ### The fix
+    <1-3 short bullets: what we changed in each file, and why that is the smallest change.>
 
-    What did we change?
-       <the change> in file:line.
-
-    How do we know it works?
-       <test name or command>: before <x>, after <y>.
+    ### The code
+    Before (file:line):
+    ```<language>
+    <only the 1-5 most important lines>
     ```
+    After:
+    ```<language>
+    <the same lines after the fix>
+    ```
+    <1-2 sentences: what the new lines do, in simple words.>
+
+    ### The proof
+    - Before: <test or command result>
+    - After: <test or command result>
+
+    ### If the judges ask
+    "<the most likely hard question>"
+    <a 1-2 sentence answer.>
+    ```
+    Every note has all six parts, even small fixes. Write `Commit: <hash>` as the last line.
   - `docs/NOTES-PLAIN.md` (plain words, for people who did not see the code): the same note as 3-5 short sentences, like explaining to a friend: what happened, why, what it broke, what we changed, how we know it works. Last line: `Where: file:line · Commit: <hash>`.
 - After /investigate, /findings writes docs/FINDINGS.md and the Summary sections.
 - Every file you write is in English only. No Arabic in any file.
