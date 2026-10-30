@@ -843,4 +843,4 @@ Both amounts now come from one number, so they always agree.
 "Where do the 5 cut fils go?"
 That is a separate question (the rounding residue, E16). This fix only makes the file match our own number, as ADR-0002 says.
 
-Commit: PENDING_N22
+Commit: 01eee15

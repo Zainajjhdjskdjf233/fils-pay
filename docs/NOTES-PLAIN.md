@@ -132,4 +132,4 @@ Where: apps/settlement/internal/scheduler/daemon.go:70 · Commit: 7af14ce
 
 Every day we send the card network a file listing each payment, and their total was always a few fils higher than ours. The file's amount was rounded up from the full number, while our own record cut the number down. We now make the file's amount from the same cut number, so both totals match. A test shows 39.705 BD now appears as 39.70, matching our 39700 fils.
 
-Where: apps/settlement/internal/settlement/batch.go:279 · Commit: PENDING_N22
+Where: apps/settlement/internal/settlement/batch.go:279 · Commit: 01eee15
