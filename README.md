@@ -47,14 +47,14 @@ We inherited FilsPay broken. This fork holds our audit, our fixes, the missing r
 | apps/settlement/internal/settlement/credit_batch.go | Credits and adjustments paid through the daily batch |
 | apps/web/src/api/idempotencyKey.ts, apps/web/src/pages/transactions/refundForm.ts | Safe retries and the refund screen |
 
-Plus 12 new database migrations, 73 new test files, and changes to 105 existing files (89 of them code). Every fix is its own commit: `fix(E..)` or `feat(..)`.
+Plus 12 new database migrations, 73 new test files, and changes to 110 existing files (94 of them code). Every fix is its own commit: `fix(E..)` or `feat(..)`.
 
 ## Who did what
 
 ### Zainab
 - Designed and built the whole AI setup (.claude/: rules, hooks, agents, commands, and CLAUDE.md).
 - Directed and checked every fix. All fixes in this fork were made under her setup; all commits after the inherited history are hers.
-- Her setup found 147 of the 163 recorded errors (every entry except the 16 tagged [second review]), plus 39 hidden things in the docs and git history.
+- Her setup found 147 of the 163 recorded errors (every entry except the 16 found by the second review; E45 carries that tag too because the second review found its real cause), plus 39 hidden things in the docs and git history.
 - Built the missing refunds feature end to end (API, ledger, fees, settlement, webhook, reports, reconciliation, dashboard).
 - Added 73 new test files.
 - Built the Docker hosting within the 1 vCPU / 2 GB limits, load shedding, the k6 load test and the capacity estimate.
