@@ -1,3 +1,4 @@
+import { bahrainTime } from "../../lib/format.js";
 import { useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { login, verifyOtp } from "../../api/auth.js";
@@ -106,7 +107,7 @@ export function LoginPage() {
         <form onSubmit={(e) => void handleOtp(e)} className="admin-form">
           <p>
             A one-time code was issued for <strong>{email}</strong>. It expires at{" "}
-            {new Date(step.challenge.otpExpiresAt).toLocaleTimeString()}.
+            {bahrainTime(step.challenge.otpExpiresAt)}.
           </p>
           {step.challenge.devOtpCode ? (
             <p className="admin-muted">

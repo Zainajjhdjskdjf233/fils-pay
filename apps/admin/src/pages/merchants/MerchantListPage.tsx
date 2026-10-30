@@ -1,3 +1,4 @@
+import { bahrainDate } from "../../lib/format.js";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { listMerchants } from "../../api/merchants.js";
@@ -206,7 +207,7 @@ export function MerchantListPage() {
               <td>{merchant.kycPassed ? "passed" : "not passed"}</td>
               <td>{(merchant.mdrBps / 100).toFixed(2)}%</td>
               <td>{merchant.testMode ? "test" : "live"}</td>
-              <td>{new Date(merchant.createdAt).toLocaleDateString()}</td>
+              <td>{bahrainDate(merchant.createdAt)}</td>
             </tr>
           ))}
           {merchants.length === 0 && !loading ? (

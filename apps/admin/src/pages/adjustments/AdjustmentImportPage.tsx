@@ -182,7 +182,7 @@ export function AdjustmentImportPage() {
               <tr>
                 <th>#</th>
                 <th>Merchant</th>
-                <th>CSV amount</th>
+                <th className="num">CSV amount</th>
                 <th>Posted</th>
                 <th>Reason</th>
               </tr>
@@ -195,7 +195,7 @@ export function AdjustmentImportPage() {
                   <td>
                     <code>{row.rawAmountText}</code>
                   </td>
-                  <td>{bhd(row.parsedAmountFils)}</td>
+                  <td className="num">{bhd(row.parsedAmountFils)}</td>
                   <td>{row.reason ?? ""}</td>
                 </tr>
               ))}

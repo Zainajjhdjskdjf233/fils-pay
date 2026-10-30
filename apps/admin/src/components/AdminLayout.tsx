@@ -1,3 +1,4 @@
+import { label } from "../lib/format.js";
 import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAdminAuth } from "../auth/AdminAuthContext.js";
@@ -8,18 +9,23 @@ import { ImpersonationBanner } from "./ImpersonationBanner.js";
  *  section links, a logout, and — above all of it — the impersonation
  *  banner when a grant is live. */
 // YA: nav order per Huda's request (Credits first)
+// UX: the code puts Merchants first (the comment above is out of date); labels match page headings.
 export function AdminLayout() {
   const { admin, signOut, impersonation } = useAdminAuth();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
 
   async function handleSignOut(): Promise<void> {
     setError(null);
+    setSigningOut(true);
     try {
       await signOut();
       navigate("/login", { replace: true });
     } catch (err) {
       setError(describeError(err));
+    } finally {
+      setSigningOut(false);
     }
   }
 
@@ -29,9 +35,9 @@ export function AdminLayout() {
 
       <header className="admin-header">
         <div className="admin-brand">FilsPay Admin</div>
-        <nav className="admin-nav">
+        <nav className="admin-nav" aria-label="Admin">
           <NavLink to="/merchants">Merchants</NavLink>
-          <NavLink to="/credits">Credits</NavLink>
+          <NavLink to="/credits">Merchant credits</NavLink>
           <NavLink to="/settlement">Settlement ops</NavLink>
           <NavLink to="/adjustment-imports">Import adjustments</NavLink>
           {/* E136: replay is finance/super_admin only */}
@@ -40,16 +46,16 @@ export function AdminLayout() {
         <div className="admin-identity">
           {admin ? (
             <span>
-              {admin.email} <span className="admin-role-chip">{admin.role}</span>
+              {admin.email} <span className="admin-role-chip" title="Your admin role">{label(admin.role)}</span>
             </span>
           ) : null}
-          <button type="button" onClick={() => void handleSignOut()}>
-            Log out
+          <button type="button" disabled={signingOut} onClick={() => void handleSignOut()}>
+            {signingOut ? "Logging out…" : "Log out"}
           </button>
         </div>
       </header>
 
-      {error ? <p className="admin-error">{error}</p> : null}
+      {error ? <p className="admin-error" role="alert">{error}</p> : null}
 
       {impersonation ? (
         // An explicit "exit view-as-merchant" action is required before

@@ -1,3 +1,4 @@
+import { bahrainDateTime, bahrainDate } from "../../lib/format.js";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { formatBhd, parseBhdToFils, toFils } from "@filspay/money";
@@ -270,13 +271,13 @@ export function MerchantDetailPage() {
         <dt>Current negotiated rate</dt>
         <dd>
           {detail.currentFeeSchedule
-            ? `${(detail.currentFeeSchedule.mdrBps / 100).toFixed(2)}% (${detail.currentFeeSchedule.mdrBps} bps), effective ${new Date(detail.currentFeeSchedule.effectiveFrom).toLocaleDateString()}`
+            ? `${(detail.currentFeeSchedule.mdrBps / 100).toFixed(2)}% (${detail.currentFeeSchedule.mdrBps} bps), effective ${bahrainDate(detail.currentFeeSchedule.effectiveFrom)}`
             : "no negotiated schedule on file (uses MDR above)"}
         </dd>
         <dt>Mode</dt>
         <dd>{merchant.testMode ? "test" : "live"}</dd>
         <dt>Created</dt>
-        <dd>{new Date(merchant.createdAt).toLocaleString()}</dd>
+        <dd>{bahrainDateTime(merchant.createdAt)}</dd>
         {profile ? (
           <>
             <dt>Legal name</dt>
@@ -307,7 +308,7 @@ export function MerchantDetailPage() {
           Payable (ledger, authoritative): <strong>{bhd(detail.balance.ledgerPayableFils)}</strong>
           <br />
           Cached payable: {bhd(detail.balance.cachedPayableFils)} (updated{" "}
-          {new Date(detail.balance.updatedAt).toLocaleString()})
+          {bahrainDateTime(detail.balance.updatedAt)})
           {detail.balance.driftFils !== 0 ? (
             <span className="admin-error"> — cache differs from the ledger by {bhd(detail.balance.driftFils)}</span>
           ) : null}
@@ -477,7 +478,7 @@ export function MerchantDetailPage() {
                 <td>{review.outcome}</td>
                 <td>{review.reviewerIdentifier}</td>
                 <td>{review.notes ?? "-"}</td>
-                <td>{new Date(review.reviewedAt).toLocaleString()}</td>
+                <td>{bahrainDateTime(review.reviewedAt)}</td>
               </tr>
             ))}
           </tbody>
@@ -506,9 +507,9 @@ export function MerchantDetailPage() {
                   <code>{key.prefix}</code>
                 </td>
                 <td>{key.label ?? "-"}</td>
-                <td>{new Date(key.createdAt).toLocaleDateString()}</td>
-                <td>{key.lastUsedAt ? new Date(key.lastUsedAt).toLocaleString() : "never"}</td>
-                <td>{key.revokedAt ? new Date(key.revokedAt).toLocaleString() : "-"}</td>
+                <td>{bahrainDate(key.createdAt)}</td>
+                <td>{key.lastUsedAt ? bahrainDateTime(key.lastUsedAt) : "Never"}</td>
+                <td>{bahrainDateTime(key.revokedAt)}</td>
                 <td>
                   {key.revokedAt ? null : (
                     <RequireRole
@@ -563,7 +564,7 @@ export function MerchantDetailPage() {
                 <td>
                   <code>{endpoint.secretPrefix}</code>
                 </td>
-                <td>{new Date(endpoint.createdAt).toLocaleDateString()}</td>
+                <td>{bahrainDate(endpoint.createdAt)}</td>
               </tr>
             ))}
           </tbody>
@@ -582,9 +583,9 @@ export function MerchantDetailPage() {
             <tr>
               <th>Date</th>
               <th>Status</th>
-              <th>Gross</th>
-              <th>Fee</th>
-              <th>Net payout</th>
+              <th className="num">Gross</th>
+              <th className="num">Fee</th>
+              <th className="num">Net payout</th>
             </tr>
           </thead>
           <tbody>
@@ -592,9 +593,9 @@ export function MerchantDetailPage() {
               <tr key={batch.id}>
                 <td>{batch.batchDate}</td>
                 <td>{batch.status}</td>
-                <td>{bhd(batch.grossFils)}</td>
-                <td>{bhd(batch.feeFils)}</td>
-                <td>{bhd(batch.netPayoutFils)}</td>
+                <td className="num">{bhd(batch.grossFils)}</td>
+                <td className="num">{bhd(batch.feeFils)}</td>
+                <td className="num">{bhd(batch.netPayoutFils)}</td>
               </tr>
             ))}
           </tbody>

@@ -64,13 +64,55 @@ export async function requestNoContent(path: string, init?: RequestInit): Promis
 /** Human-readable text for anything thrown by `request` — used by every
  *  page's error banner so a failure (including a server-side `403` from a
  *  role gate) is always *shown*, never silently swallowed. */
+// UX: plain sentences for the codes the admin API returns, never a raw code.
+// Codes not listed keep the server's own message, then a generic sentence.
+const ERROR_TEXT: Record<string, string> = {
+  invalid_credentials: "Email or password is incorrect.",
+  invalid_code: "That code is not correct. Check it and try again.",
+  otp_expired: "The code has expired. Start over to get a new one.",
+  no_pending_session: "Your sign-in timed out. Please start over.",
+  too_many_attempts: "Too many attempts. Wait a few minutes and try again.",
+  too_many_requests: "Too many requests. Wait a minute and try again.",
+  unauthenticated: "Your session has ended. Please sign in again.",
+  forbidden: "Your admin role does not allow this action.",
+  cross_origin_request: "This request must come from the FilsPay admin site. Reload the page.",
+  merchant_not_found: "Merchant not found.",
+  merchant_balance_not_found: "This merchant has no balance record yet.",
+  api_key_not_found: "This API key no longer exists.",
+  api_key_already_revoked: "This key was already revoked.",
+  rotate_removed: "Key rotation was removed. The merchant creates new keys in their dashboard.",
+  credit_request_not_found: "Credit request not found.",
+  credit_request_not_pending: "This credit was already approved or rejected. Refresh the list.",
+  self_approval_forbidden: "You raised this credit, so another finance admin must approve it.",
+  approval_required: "This amount needs a second approver. Raise it as a credit request.",
+  invalid_amount: "Enter a valid BHD amount, more than 0 and with at most 3 decimals.",
+  invalid_memo: "The text is too long or contains line breaks.",
+  invalid_csv_header: "The CSV header must be: merchantId,amount,reason.",
+  duplicate_import: "This file was already imported.",
+  adjustment_import_not_found: "This record no longer exists.",
+  impersonation_grant_not_found: "This view-as-merchant session no longer exists.",
+  invalid_cursor: "The page position is no longer valid. Reload the page.",
+  invalid_limit: "The page size is not valid. Reload the page.",
+  invalid_date: "Enter a real date (for example 2026-10-30).",
+  reporting_busy: "Payments are still being saved. Try again in a minute.",
+  settlement_unreachable: "The settlement service did not answer. Nothing was changed. Try again later.",
+  settlement_run_failed: "The settlement run failed. Nothing was paid. Check the service and try again.",
+  webhook_delivery_not_found: "This webhook delivery was not found.",
+  webhook_delivery_archive_not_found: "This archived delivery was not found.",
+  webhook_delivery_archive_already_replayed: "This archived delivery was already replayed.",
+  archive_range_too_large: "Choose a shorter date range (at most 31 days).",
+  internal_error: "Something went wrong on our side. Nothing was changed. Please try again.",
+  unknown_error: "Something went wrong. Please try again.",
+};
+const WITH_SERVER_DETAIL = new Set(["invalid_csv_row", "empty_import", "too_many_rows"]);
+
 export function describeError(err: unknown): string {
   if (err instanceof ApiError) {
-    if (err.statusCode === 403) {
-      return `Not permitted (${err.code}) — your admin role does not allow this action.`;
-    }
-    return err.body.message ?? err.code;
+    if (WITH_SERVER_DETAIL.has(err.code)) return `CSV problem: ${err.body.message ?? err.code}`;
+    if (err.statusCode === 403 && !ERROR_TEXT[err.code]) return ERROR_TEXT.forbidden!;
+    return ERROR_TEXT[err.code] ?? err.body.message ?? ERROR_TEXT.unknown_error!;
   }
+  if (err instanceof TypeError) return "We could not reach FilsPay. Check your connection and try again.";
   if (err instanceof Error) return err.message;
   return "Something went wrong.";
 }

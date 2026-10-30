@@ -143,9 +143,9 @@ export function CreditsPage() {
               <th>Requested by</th>
               <th>Merchant</th>
               <th>Reason</th>
-              <th>Base</th>
-              <th>Fee reversal</th>
-              <th>Posted total</th>
+              <th className="num">Base</th>
+              <th className="num">Fee reversal</th>
+              <th className="num">Posted total</th>
               <th>Effective date</th>
               <th>Approved by</th>
               <th />
@@ -164,9 +164,9 @@ export function CreditsPage() {
                   {item.reasonCode}
                   {item.memo ? <div className="admin-muted">{item.memo}</div> : null}
                 </td>
-                <td>{bhd(item.baseAmountFils)}</td>
-                <td>{item.feeReversalFils > 0 ? bhd(item.feeReversalFils) : "-"}</td>
-                <td>
+                <td className="num">{bhd(item.baseAmountFils)}</td>
+                <td className="num">{item.feeReversalFils > 0 ? bhd(item.feeReversalFils) : "-"}</td>
+                <td className="num">
                   <strong>{bhd(item.postedAmountFils)}</strong>
                 </td>
                 <td>{item.effectiveDate}</td>
