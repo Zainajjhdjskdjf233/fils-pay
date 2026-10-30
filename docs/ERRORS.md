@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 161 of 177 fixed.
+Summary: 162 of 177 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -131,7 +131,7 @@ Summary: 161 of 177 fixed.
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-## Low (61 of 71 fixed)
+## Low (62 of 71 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -139,7 +139,7 @@ Summary: 161 of 177 fixed.
 | E40 | withTransaction: a failing ROLLBACK hides the real error | Fixed |
 | E46 | KYC "PDF only" rule checks the filename, not the content | Fixed |
 | E47 | Admin console: session not rotated after OTP; no CSP | Fixed |
-| E48 | Admin run-batch sends no payout notification; split payouts skip the lifetime estimate | Partly fixed |
+| E48 | Admin run-batch sends no payout notification; split payouts skip the lifetime estimate | Fixed |
 | E49 | settlement rebuild-balances --merchant never writes the cache | Fixed |
 | E54 | Webhook backoff test always fails: test expects no jitter, code adds random ±10 % | Fixed |
 | E55 | Seed prints API keys; API listens on every network interface | Fixed |

@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 08:32 PM (30 Oct 2026)
-Summary: Errors 161/177 fixed (+6 partly: E50, E131, E48, E67, E78, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 08:34 PM (30 Oct 2026)
+Summary: Errors 162/177 fixed (+6 partly: E50, E131, E48, E67, E78, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -532,7 +532,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 ### E48 — Admin run-batch sends no payout notification; split payouts skip the lifetime estimate
 - Where: apps/settlement/internal/internalapi/server.go:237; splits PayoutSplitBatch
 - Severity: low
-- Status: partly fixed (see section 5, E48; split lifetime estimate open)
+- Status: fixed (see section 5, E48)
 
 ### E49 — `settlement rebuild-balances --merchant` never writes the cache
 - Where: apps/settlement/cmd/settlement/main.go:154
@@ -2949,6 +2949,12 @@ ROLLBACK;
 - Live check: the server's token is 64 characters (`awk` printed only the length, never the value), so the next redeploy passes the new check.
 - Decision (Zainab to review): plain HTTP between the API and settlement stays — both are on the private Docker network 'internal' only (no published port, LOG §6 proxy check). Alternative: mutual TLS inside the network.
 - check.sh (clean environment): OK. Needs a redeploy.
+
+### E48 — 08:34 PM — (rest) split payouts update the parent's lifetime payout estimate
+- Changed: apps/settlement/internal/splits/allocate.go PayoutSplitBatch: in the same transaction that marks the batch paid, adds the batch net to merchants.lifetime_net_payout_monitoring_estimate — the statement settlement.UpdateLifetimePayoutMonitoringEstimate runs for non-split payouts (batch.go:427). Inlined because package settlement imports splits (an import cycle otherwise).
+- Before: apps/settlement/internal/splits/lifetime_e48_test.go → `lifetime estimate = 0, want 9750`. After: 9750; all Go packages pass (run in parallel, E56 lock).
+- With the earlier part (ff78296) E48 is now fully fixed.
+- check.sh (clean environment): OK. Needs a redeploy (settlement image).
 
 ## 6. Deploy
 

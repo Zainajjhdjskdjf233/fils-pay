@@ -152,6 +152,19 @@ func PayoutSplitBatch(ctx context.Context, db *pgxpool.Pool, batchID uuid.UUID) 
 		return SplitPayoutResult{}, err
 	}
 
+	// E48: the monitoring estimate PayoutBatch keeps for every non-split
+	// merchant (settlement.UpdateLifetimePayoutMonitoringEstimate, batch.go:427).
+	// Same statement here: package settlement imports splits, so splits
+	// cannot call it without an import cycle.
+	_, err = tx.Exec(ctx, `
+		UPDATE merchants
+		   SET lifetime_net_payout_monitoring_estimate = lifetime_net_payout_monitoring_estimate + $2
+		 WHERE id = $1
+	`, parentMerchantID, int64(netPayout))
+	if err != nil {
+		return SplitPayoutResult{}, err
+	}
+
 	if err := tx.Commit(ctx); err != nil {
 		return SplitPayoutResult{}, err
 	}
