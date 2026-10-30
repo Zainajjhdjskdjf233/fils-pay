@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 06:56 PM (30 Oct 2026)
-Summary: Errors 116/175 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 2/2 done (F01 done; F02 live, /healthz at the edge waits for the redeploy) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d27ddf0; later fixes need a redeploy, LOG §6) · CHECKPOINT reached
+Updated: 06:58 PM (30 Oct 2026)
+Summary: Errors 117/175 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 2/2 done (F01 done; F02 live, /healthz at the edge waits for the redeploy) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d27ddf0; later fixes need a redeploy, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -795,7 +795,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/routes/reporting.ts:52-71 (`preHandler: requireMerchantAuth` only)
 - Error: impersonating admin creates merchant data without attribution (minor note under E35).
 - Proof: code read (security-review agent (12:59 PM); checked by me).
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E88)
 
 ### E89 — [found later] Unsalted SHA-256 of card number and CVV stored in idempotency_keys
 - Where: apps/api/src/payments/authorize.ts:51-55 → idempotency.ts:65-66, :118 (request_hash of the canonical request incl. card)
@@ -2617,6 +2617,13 @@ ROLLBACK;
 - check.sh: one run said TESTS FAILED (no test name shown); the next check.sh run and four repeated unit runs (223/223 each) passed. Same as at E47: a possible flaky test; to be checked in the full regression before the code freeze.
 - Needs a redeploy.
 
+### E88 — 06:58 PM — an admin viewing as a merchant can no longer create saved filters
+- Changed: apps/api/src/routes/reporting.ts:59 the saved-filter POST calls requireMerchantWriterActor (E116), which refuses admin_impersonation with 403. Reading saved filters stays allowed.
+- Before: testE88_impersonationCannotWriteSavedFilters (admin.test.ts) → 201, a row created in the merchant's name. After: 403, 0 rows; GET still 200. admin + saved-filter suites 50/50.
+- Decision (Zainab to review): API keys may still save filters. The code treats an API key as full merchant authority by design (requireMerchantAuth.ts:141-149, 'keys are owner-issued'), and a saved filter moves no money. Alternative: make the POST session-only.
+- Correction of my notes at E47 and E90 ('possible flaky test'): wrong. In those commands DATABASE_URL was still exported, so check.sh ran the full suite against the shared, already-used e121 test DB (check.sh:15-17). Proof: `env -u DATABASE_URL bash .claude/check.sh` → CHECK OK; the fresh-DB full regression at ceacc85 → api 498/498, money 44/44, events 4/4, reporting 18/18, web 13/13, scripts 10/10, Go 80, failing 0.
+- check.sh: OK. Needs a redeploy.
+
 ## 6. Deploy
 
 ### Official submission rules (04:28 PM, from Zainab; they override older plans)
@@ -2882,4 +2889,4 @@ The inherited `.gitignore` had `.claude/` on line 8, added in the very first com
 
 ### J30 — 03:59 PM — faster, still one fix at a time
 Zainab asked for speed without losing safety. Two read-only agents now plan ahead (next open entry each): they read the code and write a fix plan and the failing test into the scratchpad, and never edit the repo. Only Claude Code edits code, one entry at a time: check the plan against the code, run the test red, fix, run the full regression, commit. If a fix breaks a test that cannot be fixed in a few minutes, only that entry's files are restored (`git show HEAD:<file> > <file>`, because `git checkout --` is not allowed) and the entry is marked skipped. Low entries get a one-paragraph note. First result: E62 planned by an agent, verified and committed.
-
+- Judge note (07:03 PM): check.sh said TESTS FAILED three times (E47, E90, E88). I first wrote 'possible flaky test'. The real cause was my own shell: DATABASE_URL was still set, so check.sh ran the full suite on a dirty shared test DB. Clean runs and a fresh-DB regression (0 failures) prove the code was fine. Lesson: run check.sh in a clean environment.

@@ -1,6 +1,6 @@
 import { isRealDate, UUID_RE } from "../lib/queryParsing.js";
 import type { FastifyInstance } from "fastify";
-import { requireMerchantAuth } from "../auth/requireMerchantAuth.js";
+import { requireMerchantAuth, requireMerchantWriterActor } from "../auth/requireMerchantAuth.js";
 import { runTransactionsReport, type TransactionReportFilter } from "../reporting/transactionsReportQuery.js";
 import { resolveReportMerchantId } from "../reporting/scope.js";
 import { createSavedFilter, listSavedFilters } from "../reporting/savedFilters.js";
@@ -55,6 +55,8 @@ export async function reportingRoutes(app: FastifyInstance): Promise<void> {
     "/saved-filters",
     { preHandler: requireMerchantAuth },
     async (request, reply) => {
+      // E88: an admin viewing as the merchant is read-only (E116); refuse with 403.
+      requireMerchantWriterActor(request.merchantAuth!);
       const { name, filter } = request.body ?? {};
       // E169: a real name (not only spaces) and a JSON object (not an array).
       if (typeof name !== "string" || name.trim() === "") {

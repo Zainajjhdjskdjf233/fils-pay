@@ -1693,3 +1693,19 @@ test("testE47_adminVerifyRotatesTheSessionToken", async () => {
   const newMe = await app.inject({ method: "GET", url: "/v1/admin/auth/me", headers: { cookie: fresh } });
   assert.equal(newMe.statusCode, 200, newMe.body);
 });
+
+// E88 [found later]: an admin viewing as a merchant is read-only (E116), so it
+// must not create saved filters in the merchant's name either.
+test("testE88_impersonationCannotWriteSavedFilters", async () => {
+  const admin = await signedInAdmin("support", "e88");
+  const { merchantId } = await createMerchant("e88");
+  const startRes = await app.inject({ method: "POST", url: `/v1/admin/merchants/${merchantId}/impersonate`, headers: { cookie: admin.cookie } });
+  assert.equal(startRes.statusCode, 201, startRes.body);
+  const impCookie = parseCookie(startRes.headers["set-cookie"], config.impersonationCookieName);
+  const res = await app.inject({ method: "POST", url: "/v1/reporting/saved-filters", headers: { cookie: impCookie }, payload: { name: "x", filter: {} } });
+  assert.equal(res.statusCode, 403, res.body);
+  const n = await pool.query(`SELECT count(*)::int AS n FROM reporting_saved_filters WHERE merchant_id = $1`, [merchantId]);
+  assert.equal(n.rows[0].n, 0);
+  const read = await app.inject({ method: "GET", url: "/v1/reporting/saved-filters", headers: { cookie: impCookie } });
+  assert.equal(read.statusCode, 200, "reading stays allowed");
+});
