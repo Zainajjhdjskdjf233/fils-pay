@@ -1504,4 +1504,4 @@ We check where the name really points, refuse inside addresses, and never follow
 "Did the reviewer find anything?"
 Yes: [::ffff:127.0.0.1] is rewritten by the URL parser into hex, and my first check missed it. It is fixed and in the test.
 
-Commit: PENDING_N40
+Commit: fb51fca
