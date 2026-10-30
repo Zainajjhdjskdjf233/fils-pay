@@ -104,6 +104,8 @@ type batchAdjustmentResponse struct {
 type recalculateMDRResponse struct {
 	BatchesConsidered int                       `json:"batchesConsidered"`
 	Adjusted          []batchAdjustmentResponse `json:"adjusted"`
+	// E120: left unchanged because the new fee is larger than the batch's net payout.
+	Skipped []batchAdjustmentResponse `json:"skipped"`
 }
 
 type errorResponse struct {
@@ -342,9 +344,22 @@ func handleRecalculateMDR(pool *pgxpool.Pool) http.Handler {
 			})
 		}
 
+		skipped := make([]batchAdjustmentResponse, 0, len(result.Skipped))
+		for _, a := range result.Skipped {
+			skipped = append(skipped, batchAdjustmentResponse{
+				BatchID:    a.BatchID.String(),
+				BatchDate:  a.BatchDate.Format(businessDateLayout),
+				Status:     a.Status,
+				OldFeeFils: int64(a.OldFeeFils),
+				NewFeeFils: int64(a.NewFeeFils),
+				DiffFils:   int64(a.DiffFils),
+			})
+		}
+
 		writeJSON(w, http.StatusOK, recalculateMDRResponse{
 			BatchesConsidered: result.BatchesConsidered,
 			Adjusted:          adjusted,
+			Skipped:           skipped,
 		})
 	})
 }

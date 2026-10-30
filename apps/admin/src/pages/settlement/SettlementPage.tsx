@@ -377,6 +377,13 @@ export function SettlementPage() {
             Considered {mdrResult.batchesConsidered} batch(es); {mdrAdjusted.length} had a fee
             change.
           </p>
+          {/* E120: batches the recalculation refused to change */}
+          {(mdrResult.skipped ?? []).length > 0 ? (
+            <p className="admin-error">
+              {(mdrResult.skipped ?? []).length} batch(es) not changed: the new fee is larger than the
+              batch&apos;s net payout ({(mdrResult.skipped ?? []).map((b) => b.batchDate).join(", ")}). Review by hand.
+            </p>
+          ) : null}
           {mdrAdjusted.length > 0 ? (
             <table className="admin-table">
               <thead>

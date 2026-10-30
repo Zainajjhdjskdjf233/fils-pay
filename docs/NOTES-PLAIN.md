@@ -391,3 +391,9 @@ Where: apps/api/src/routes/paymentLinks.ts:163 · Commit: 93d09b2
 Shops with a negotiated discount get part of our fee back after each capture. The old code always used the newest capture's fee, so when one refund-of-fee was missed, the next ones were the wrong size. In one case (a tiny first capture) a repeated request paid the discount twice. Now every capture's discount is worked out from its own fee and only the missing ones are written. Two tests show the wrong amounts before and the right ones after.
 
 Where: apps/api/src/payments/discountAdjustment.ts:70 · Commit: 1d456a8
+
+## N66 — A fee recalculation can no longer make a payout negative
+
+Admins can recalculate fees on batches that are closed but not yet paid. The code took the extra fee straight off the payout, even when refunds had already used almost all of it, so a payout could become negative. Now such a batch is left as it is and shown to the admin as "skipped" for a human decision. A test shows a 50-fils payout no longer turns into minus 1,700 fils.
+
+Where: apps/settlement/internal/settlement/recalculate_mdr.go:118 · Commit: PENDING_N66

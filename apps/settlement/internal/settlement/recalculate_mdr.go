@@ -32,6 +32,9 @@ type BatchAdjustment struct {
 type RecalcResult struct {
 	BatchesConsidered int
 	Adjusted          []BatchAdjustment
+	// E120: batches left unchanged because the fee raise is larger than
+	// their net payout (a negative payout is never stored).
+	Skipped []BatchAdjustment
 }
 
 // batchRow is one settlement_batches row as read by the recalculation scan.
@@ -99,7 +102,7 @@ func RecalculateMDR(ctx context.Context, db *pgxpool.Pool, merchantID uuid.UUID,
 		return RecalcResult{}, fmt.Errorf("settlement: RecalculateMDR: load fee schedules: %w", err)
 	}
 
-	var adjusted []BatchAdjustment
+	var adjusted, skipped []BatchAdjustment
 	for _, b := range batches {
 		newFee, err := recomputeBatchFee(ctx, tx, b.id, schedules, mdrBps, b.tierBonusBps, discountBps)
 		if err != nil {
@@ -112,6 +115,16 @@ func RecalculateMDR(ctx context.Context, db *pgxpool.Pool, merchantID uuid.UUID,
 		// F01d: move the stored net by the fee change only. Rebuilding it as
 		// gross - fee would drop the batch's refund adjustment (0073).
 		newNetPayout := b.netPayoutFils - diff
+		if newNetPayout < 0 {
+			// E120: the fee raise is larger than what this batch still pays
+			// out (refunds already took the rest). Never store a negative
+			// payout: leave the batch as it is and report it for review.
+			skipped = append(skipped, BatchAdjustment{
+				BatchID: b.id, BatchDate: b.batchDate, Status: b.status,
+				OldFeeFils: b.feeFils, NewFeeFils: newFee, DiffFils: diff,
+			})
+			continue
+		}
 		// am: posts against the OLD batch id so it never lands in a new payout?? fixed in FP-244 i think
 		if err := postMdrAdjustment(ctx, tx, merchantID, b.id, diff); err != nil {
 			return RecalcResult{}, err
@@ -140,7 +153,7 @@ func RecalculateMDR(ctx context.Context, db *pgxpool.Pool, merchantID uuid.UUID,
 	if err := tx.Commit(ctx); err != nil {
 		return RecalcResult{}, fmt.Errorf("settlement: RecalculateMDR: commit: %w", err)
 	}
-	return RecalcResult{BatchesConsidered: len(batches), Adjusted: adjusted}, nil
+	return RecalcResult{BatchesConsidered: len(batches), Adjusted: adjusted, Skipped: skipped}, nil
 }
 
 // recomputeBatchFee sums ComputeSettlementFee over every transaction_events

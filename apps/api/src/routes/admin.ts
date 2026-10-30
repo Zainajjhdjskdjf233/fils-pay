@@ -306,6 +306,7 @@ export async function adminRoutes(app: FastifyInstance, options: AdminRoutesOpti
       await markAdminAuditOutcome(app.db, auditLogId, "succeeded", {
         batchesConsidered: summary.batchesConsidered,
         adjustedCount: summary.adjusted.length,
+        skippedCount: summary.skipped?.length ?? 0, // E120
       }).catch(() => {
         // best-effort outcome recording, per insertAdminAuditLog's own doc
         // comment on cross-process actions — the attempt row already

@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 2:59 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 3:02 PM
 
 ## Contents
 1. Status now
@@ -14,20 +14,20 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:59 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 60 of 127 fixed.
-  - High: 36 of 39 fixed
+- Errors: 61 of 127 fixed.
+  - High: 37 of 39 fixed
   - Medium: 22 of 40 fixed
   - Low: 2 of 48 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
 - Dilmune Cloud: not yet
-- Decisions waiting for Zainab: 21 (search "for Zainab to review" in LOG.md)
+- Decisions waiting for Zainab: 22 (search "for Zainab to review" in LOG.md)
 - Fork: needs a push (VS Code: Git: Push to... → mine)
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 60 of 127 fixed.
+- 🔄 Fix: 61 of 127 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ⬜ UI and UX, before/after screenshots
@@ -91,7 +91,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:59 PM
 - 376bc49 fix(E19): MDR recalculation uses fee schedules and the tier bonus stored at close
 
 ## 7. All errors
-## High (36 of 39 fixed)
+## High (37 of 39 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -129,7 +129,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:59 PM
 | E117 | [deep review] OTP guess limit was per code, not per user (brute-forceable) | Fixed |
 | E118 | [deep review] Running a batch for today strands that day's later captures | Fixed |
 | E119 | [deep review] CSV adjustment import bypasses the two-person credit rule | Fixed |
-| E120 | [deep review] MDR recalculation can make a batch's net payout negative | Open |
+| E120 | [deep review] MDR recalculation can make a batch's net payout negative | Fixed |
 | E121 | [deep review] Manual credits and CSV adjustments are never paid out | Open |
 | E122 | [deep review] Failed DB connect in link pay leaks the lock slot forever | Fixed |
 | E123 | [deep review] Malformed card gives 500 after the link is claimed (link blocked 60 s) | Fixed |
@@ -234,7 +234,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:59 PM
 | E127 | [second review] Settlement date filters accept impossible dates | Open |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66
 
 ### N01 — Database setup stopped halfway
 
@@ -2649,4 +2649,43 @@ Each capture's cashback comes from its own fee, and a replay finds nothing new t
 Cashbacks are only written here, in capture order, under a row lock, and only when above 0. So the N-th such capture owns the N-th cashback.
 
 Commit: 1d456a8
+
+### N66 — A fee recalculation can no longer make a payout negative
+
+#### The idea
+When a shop's fee changes, admins can recalculate the fee on batches not yet paid, like fixing the price on an unpaid bill.
+
+#### The problem
+The new payout was "old payout minus extra fee", with no floor.
+- If refunds had already used most of the batch, the payout went below zero.
+- A test batch went from 50 fils to minus 1,700 fils.
+
+#### The fix
+- recalculate_mdr.go: if the new payout would be below zero, leave that batch alone and list it as "skipped".
+- The settlement API, the admin API and the admin page pass the list on, so an admin sees which batches need a look.
+
+#### The code
+Before (apps/settlement/internal/settlement/recalculate_mdr.go:114):
+```go
+newNetPayout := b.netPayoutFils - diff
+```
+After:
+```go
+newNetPayout := b.netPayoutFils - diff
+if newNetPayout < 0 {
+	skipped = append(skipped, BatchAdjustment{ /* ... */ })
+	continue
+}
+```
+A batch that would owe a negative payout is not changed; it is reported instead.
+
+#### The proof
+- Before: net_payout_fils = -1700 after recalculation.
+- After: the batch is unchanged, listed in Skipped, and no fee rows are posted.
+
+#### If the judges ask
+"Why not move the extra fee to the next batch?"
+That is the full answer, but it touches the batch close too. Skipping is safe today and marked for Zainab to review.
+
+Commit: PENDING_N66
 

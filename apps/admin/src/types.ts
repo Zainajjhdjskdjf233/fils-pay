@@ -348,6 +348,8 @@ export interface MdrBatchAdjustment {
 export interface MdrRecalcSummary {
   batchesConsidered: number;
   adjusted: MdrBatchAdjustment[];
+  /** E120: unchanged because the new fee is larger than the batch's net payout. */
+  skipped?: MdrBatchAdjustment[];
 }
 
 /** `POST /v1/admin/adjustment-imports` → `201`. */

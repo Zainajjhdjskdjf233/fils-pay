@@ -13,9 +13,9 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 60 of 127 fixed.
+Summary: 61 of 127 fixed.
 
-## High (36 of 39 fixed)
+## High (37 of 39 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -53,7 +53,7 @@ Summary: 60 of 127 fixed.
 | E117 | [deep review] OTP guess limit was per code, not per user (brute-forceable) | Fixed |
 | E118 | [deep review] Running a batch for today strands that day's later captures | Fixed |
 | E119 | [deep review] CSV adjustment import bypasses the two-person credit rule | Fixed |
-| E120 | [deep review] MDR recalculation can make a batch's net payout negative | Open |
+| E120 | [deep review] MDR recalculation can make a batch's net payout negative | Fixed |
 | E121 | [deep review] Manual credits and CSV adjustments are never paid out | Open |
 | E122 | [deep review] Failed DB connect in link pay leaks the lock slot forever | Fixed |
 | E123 | [deep review] Malformed card gives 500 after the link is claimed (link blocked 60 s) | Fixed |

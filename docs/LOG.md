@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 02:59 PM (30 Oct 2026)
-Summary: Errors 60/127 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 03:02 PM (30 Oct 2026)
+Summary: Errors 61/127 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1002,8 +1002,8 @@ Order follows the fix order: app-stopping → high security → (features) → w
 ### E120 — [deep review] MDR recalculation can make a batch's net payout negative
 - Where: apps/settlement/internal/settlement/recalculate_mdr.go:114 `newNetPayout := b.netPayoutFils - diff` (no floor), written at :121.
 - Error: a fee raise larger than the batch's net (e.g. after refunds) stores a negative net_payout_fils; the payout step then pays a negative amount. Lens rule 4.
-- Proof: deep-review agent (settlement, 2:45 PM); confirmed by reading :106-121.
-- Severity: high · Status: open
+- Proof: deep-review agent (settlement, 2:45 PM); red test `recalculate_mdr_e120_test.go`: `net_payout_fils = -1700 after recalculation`.
+- Severity: high · Status: fixed (see section 5)
 
 ### E121 — [deep review] Manual credits and CSV adjustments are never paid out
 - Where: apps/api/src/admin/credits.ts:158,171 and admin/adjustmentImport.ts post merchant_payable credits; apps/settlement/internal/settlement/batch.go:227-239 builds net_payout_fils only from captures and refunds.
@@ -1893,6 +1893,13 @@ ROLLBACK;
 - Test: apps/api/src/payments/discountAdjustment.e124.test.ts (2 tests). Before (old file via `git show HEAD:…`): `actual: [ 10, 10 ]` and `actual: [ 20, 20 ]`. After: PASS; all discount tests (18) pass.
 - Regression: same as baseline v3 (api 443/444, the known E54 test).
 - Actual result: replays and lost adjustments now give exactly one correct discount per capture.
+
+### E120 — 03:02 PM — MDR recalculation never stores a negative payout
+- Changed: apps/settlement/internal/settlement/recalculate_mdr.go:118: if the new net would be below 0, the batch is left unchanged (no ledger post, no cache move) and listed in a new `RecalcResult.Skipped`. internalapi/server.go returns it as `skipped`; apps/api/src/admin/settlementClient.ts maps it, routes/admin.ts adds `skippedCount` to the audit outcome, and apps/admin SettlementPage shows a warning with the batch dates.
+- Decision (for Zainab to review): skip and report instead of carrying the extra fee to the next batch — Why: smallest safe change; a negative payout must never be stored, and this case (refunds took almost all of a batch, then a big fee raise) is rare and worth a human look — Alternative: post the shortfall into the next open batch like refunds (F01d carry).
+- Test: apps/settlement/internal/settlement/recalculate_mdr_e120_test.go (net 50 after a 9.700 BD refund, MDR 2.5 % → 20 %). Before: `net_payout_fils = -1700`. After: PASS, batch unchanged, Skipped = the batch, no MDR ledger rows.
+- Regression: same as baseline v3 (api 443/444, the known E54 test; Go 78 pass).
+- Actual result: a recalculation can no longer create a negative payout.
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04) — not yet. Local Docker stack done (01:48 PM, see section 5 E02).

@@ -50,6 +50,8 @@ export interface MdrRecalcSummary {
   batchesConsidered: number;
   /** Only the batches whose fee actually changed. */
   adjusted: MdrBatchAdjustment[];
+  /** E120: left unchanged because the new fee is larger than the batch's net payout. */
+  skipped?: MdrBatchAdjustment[];
 }
 
 /**
@@ -256,19 +258,20 @@ export async function triggerMdrRecalculation(
     );
   }
 
-  const rawAdjusted = pick(decoded, "Adjusted", "adjusted");
-  const adjustedRows = Array.isArray(rawAdjusted) ? rawAdjusted : [];
-
-  return {
-    batchesConsidered: asNumber(pick(decoded, "BatchesConsidered", "batchesConsidered")),
-    adjusted: adjustedRows.filter(isRecord).map((row) => ({
+  const rows = (raw: unknown): MdrBatchAdjustment[] =>
+    (Array.isArray(raw) ? raw : []).filter(isRecord).map((row) => ({
       batchId: asString(pick(row, "BatchID", "batchId", "BatchId")),
       batchDate: asString(pick(row, "BatchDate", "batchDate")),
       status: asString(pick(row, "Status", "status")),
       oldFeeFils: asNumber(pick(row, "OldFeeFils", "oldFeeFils")),
       newFeeFils: asNumber(pick(row, "NewFeeFils", "newFeeFils")),
       diffFils: asNumber(pick(row, "DiffFils", "diffFils")),
-    })),
+    }));
+
+  return {
+    batchesConsidered: asNumber(pick(decoded, "BatchesConsidered", "batchesConsidered")),
+    adjusted: rows(pick(decoded, "Adjusted", "adjusted")),
+    skipped: rows(pick(decoded, "Skipped", "skipped")),
   };
 }
 
