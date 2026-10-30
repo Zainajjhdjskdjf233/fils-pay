@@ -41,6 +41,8 @@ export async function applyCaptureDiscountAdjustment(
       [input.merchantId],
     );
     const discountBps = merchantRow.rows[0]?.negotiated_discount_bps ?? 0;
+    // Fast path kept for the common case (no negotiated discount): no lock,
+    // no extra queries. The adjustment runs in the capture's own request.
     if (discountBps === 0) return;
 
     // Exactly one adjustment per capture event. A replayed (idempotent)
@@ -61,15 +63,22 @@ export async function applyCaptureDiscountAdjustment(
           AND description = 'capture: negotiated discount adjustment'`,
       [input.transactionId],
     );
-    const events = await client.query<{ metadata: { feeFils?: number } }>(
+    const events = await client.query<{ metadata: { feeFils?: number; discountBps?: number } }>(
       `SELECT metadata FROM transaction_events
         WHERE transaction_id = $1 AND event_type IN ('captured', 'partially_captured')
         ORDER BY id`,
       [input.transactionId],
     );
+    // E178: each event's own recorded rate (capture.ts writes discountBps);
+    // older events without it fall back to the merchant's current rate.
+    const rateOf = (e: { metadata: { discountBps?: number } }): number => {
+      const recorded = e.metadata?.discountBps;
+      return Number.isInteger(recorded) && (recorded as number) >= 0 && (recorded as number) <= 10_000 ? (recorded as number) : discountBps;
+    };
     const discounts = events.rows
-      .map((e) => applyRateFils(toFils(Math.max(0, e.metadata?.feeFils ?? 0)), discountBps))
+      .map((e) => applyRateFils(toFils(Math.max(0, e.metadata?.feeFils ?? 0)), rateOf(e)))
       .filter((d) => d > 0);
+    if (discounts.length === 0) return;
 
     for (const discountFils of discounts.slice(Number(countRow.rows[0]?.adjustments ?? 0))) {
       const entryGroupId = randomUUID();
@@ -109,7 +118,10 @@ export async function sweepMissingDiscountAdjustments(pool: Pool, limit = 100): 
         AND (SELECT count(*) FROM transaction_events e
               WHERE e.transaction_id = t.id AND e.event_type IN ('captured', 'partially_captured')
                 AND (CASE WHEN jsonb_typeof(e.metadata->'feeFils') = 'number' AND e.metadata->>'feeFils' ~ '^[0-9]{1,15}$'
-                          THEN (e.metadata->>'feeFils')::bigint ELSE 0 END) * m.negotiated_discount_bps > 5000)
+                          THEN (e.metadata->>'feeFils')::bigint ELSE 0 END)
+                    * (CASE WHEN jsonb_typeof(e.metadata->'discountBps') = 'number' AND e.metadata->>'discountBps' ~ '^[0-9]{1,5}$'
+                                 AND (e.metadata->>'discountBps')::int <= 10000
+                            THEN (e.metadata->>'discountBps')::int ELSE m.negotiated_discount_bps END) > 5000)
           > (SELECT count(*) FROM ledger_entries l
               WHERE l.transaction_id = t.id AND l.direction = 'credit'
                 AND l.description = 'capture: negotiated discount adjustment')

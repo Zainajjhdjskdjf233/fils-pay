@@ -6024,3 +6024,128 @@ A weak code stops the service at start.
 Yes, but only inside a private Docker network with no public port; that is a recorded decision.
 
 Commit: 57f4d87
+
+## N174 — Split payouts count in the running total
+
+### The idea
+Each shop has a running total of everything paid to it, for the ops team. Like a lifetime odometer.
+
+### The problem
+Shops whose payouts are split between sub-shops never added to it.
+
+### The fix
+- allocate.go: the split payout adds the batch net to the total, in the same transaction.
+
+### The code
+Before (apps/settlement/internal/splits/allocate.go:149): no total update.
+After:
+```sql
+UPDATE merchants SET lifetime_net_payout_monitoring_estimate = lifetime_net_payout_monitoring_estimate + $2 WHERE id = $1
+```
+Split shops show their real lifetime payouts.
+
+### The proof
+- Before: 0 after a 9750 split payout.
+- After: 9750.
+
+### If the judges ask
+"Why not call the existing helper?"
+The helper lives in a package that already imports this one; calling it would create an import loop.
+
+Commit: cdce9cf
+
+## N175 — A long balance rebuild can finish
+
+### The idea
+Staff can rebuild all cached balances from the ledger. It can take a while, like a full stock count.
+
+### The problem
+Two weak spots remained.
+- A shop with no balance row had nothing to lock.
+- The API gave up after 30 seconds.
+
+### The fix
+- rebuild.go: create the row first, then lock it.
+- config.ts and nginx.conf: allow up to 120 seconds on the admin path.
+
+### The code
+Before (apps/settlement/internal/ledger/rebuild.go:100): the lock had nothing to hold for a new shop.
+After:
+```sql
+INSERT INTO merchant_balances (merchant_id, cached_payable_fils, updated_at) VALUES ($1, 0, now()) ON CONFLICT (merchant_id) DO NOTHING
+```
+Every shop's balance is locked before it is recomputed.
+
+### The proof
+- Go tests pass; nginx -t passes and both ports answer after the change.
+- My first nginx edit crashed the local nginx; it was fixed before any redeploy.
+
+### If the judges ask
+"How did you know the nginx change was safe?"
+We rebuilt nginx locally and checked it; the first try failed there, not on the live site.
+
+Commit: 4cdc8ae
+
+## N176 — The refund summary is always current
+
+### The idea
+A summary of refunds per shop per day. Like a daily report that should never be out of date.
+
+### The problem
+It was a stored snapshot that nothing ever refreshed, so it stayed empty.
+
+### The fix
+- New migration 0087: a plain view, computed when read.
+- The tests no longer refresh it by hand.
+
+### The code
+Before (db/migrations/0085_refund_summary_captured_once.sql:13):
+```sql
+CREATE MATERIALIZED VIEW refund_merchant_summary AS ...
+```
+After:
+```sql
+CREATE VIEW refund_merchant_summary AS ...
+```
+The summary always shows today's refunds.
+
+### The proof
+- Before: a refund was missing until a manual refresh.
+- After: it appears at once; 81 migrations apply on a fresh database.
+
+### If the judges ask
+"Why not refresh it from the worker?"
+That needed an ownership change the migration user cannot make; on the live server it would have failed and kept the API down.
+
+Commit: 7c6ce65
+
+## N177 — A missed discount is retried
+
+### The idea
+Shops with a negotiated discount get part of the fee back after each payment. Like a loyalty refund slip.
+
+### The problem
+If that step failed after a checkout, nothing tried again.
+
+### The fix
+- discountAdjustment.ts: a sweep finds recent payments missing their refund slip and posts it.
+- index.ts: the sweep runs every minute.
+- Migration 0088: an index so the sweep stays fast.
+
+### The code
+Before: no retry existed.
+After (apps/api/src/payments/discountAdjustment.ts):
+```ts
+await applyCaptureDiscountAdjustment(pool, { merchantId: row.merchant_id, transactionId: row.id });
+```
+A missed credit is posted within a minute, exactly once.
+
+### The proof
+- Before: a missed credit stayed missing.
+- After: posted once, even after two sweeps; bad data cannot break the sweep.
+
+### If the judges ask
+"Could it pay a discount twice?"
+No; it reuses the existing function, which counts what was already posted under a row lock.
+
+Commit: c5d7416

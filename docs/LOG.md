@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 08:44 PM (30 Oct 2026)
-Summary: Errors 165/178 fixed (+6 partly: E50, E131, E48, E67, E78, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 08:47 PM (30 Oct 2026)
+Summary: Errors 165/178 fixed (+3 partly: E50, E94, E178; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1329,7 +1329,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Error: if the rate changes between a capture and a later call, an old zero-discount event can become non-zero (an extra credit) or a non-zero one can drop out (a missing credit). Example from the fix-reviewer: fees [1, 250] at 2000 bps → one credit of 50; raise to 6000 bps → list [1, 150], count 2 > 1, an extra 150 is posted.
 - Proof: fix-reviewer on E131 (08:47 PM); code read by me. The E131 sweep is limited to captures from the last 2 hours to keep it from triggering this.
 - Fix idea: store the rate and fee used on each adjustment (or the capture event id it belongs to) and match by event, not by position.
-- Severity: low · Status: open
+- Severity: low · Status: partly fixed (see section 5, E178; pre-deploy events and the rate-to-0 case open)
 
 ## 3. Hidden things
 
@@ -2986,6 +2986,12 @@ ROLLBACK;
 - Second review (Copilot): not run — copilot not found (LOG line 1567). fix-reviewer: CHANGES NEEDED on my first version — (1) an unsafe ::bigint cast let one bad event break the sweep for everyone; (2) no index for the per-transaction ledger count; (3) over a 30-day window the sweep could post a wrong extra credit after a discount-rate change, because adjustments are matched to events by position at today's rate. Our answer: agree — cast guarded, index added (0088), window cut to 2 hours, and (3) recorded as new entry E178. It confirmed no double credit (both paths lock the transaction row, then count) and that fee × bps > 5000 matches applyRateFils exactly.
 - With the earlier part (E131 at 05:19 PM) E131 is now fully fixed.
 - check.sh (clean environment): OK. Needs a redeploy (api image, migration).
+
+### E178 — 08:47 PM — a discount adjustment uses the rate recorded on its capture event, not the merchant's rate today (two residual cases open)
+- Changed: apps/api/src/payments/capture.ts writes discountBps (negotiated_discount_bps at capture time) into the capture event metadata. apps/api/src/payments/discountAdjustment.ts sizes each event's discount from that recorded rate (older events without it fall back to the current rate); the E131 sweep query uses the same rule (safe cast, 0-10000). The no-discount fast path is kept.
+- Before: apps/api/src/payments/discountRate.e178.test.ts (fees 1 and 250 at 2000 bps, then the rate raised to 6000 and the function called again) → credits [50, 150]. After: [50]. Payment, payment-link and transaction suites 96/96; sweep tests pass.
+- Second review (Copilot): not run — copilot not found (LOG line 1567). fix-reviewer: APPROVE; capture.ts is the only writer of capture events (pay.ts:186 goes through it); new events keep fixed positions. Residual risks it named, not changed: (1) events captured before this deploy have no recorded rate, so a later rate change can still shift positions for them; (2) if a merchant's rate drops to 0 after a capture whose adjustment was missed, the fast path and the sweep's current-rate > 0 filter skip it. Took its nit (SQL cap 10000).
+- check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy
 

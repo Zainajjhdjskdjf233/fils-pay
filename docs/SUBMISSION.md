@@ -288,7 +288,7 @@ Not changed (recorded): money columns are still left-aligned (29 cells in 10 fil
 ### Every error entry
 
 <!-- errors:start (generated from docs/ERRORS.md) -->
-All 177 entries from docs/ERRORS.md (161 of 177 fixed.). Each ID has its error (section 2) and, when fixed, its fix (section 5) in docs/LOG.md.
+All 178 entries from docs/ERRORS.md (165 of 178 fixed.). Each ID has its error (section 2) and, when fixed, its fix (section 5) in docs/LOG.md.
 
 | ID | Title | Level | Status |
 |---|---|---|---|
@@ -339,7 +339,7 @@ All 177 entries from docs/ERRORS.md (161 of 177 fixed.). Each ID has its error (
 | E45 | [second review] /v1/reporting/export-summary had no login check (always 500) | High | Fixed |
 | E46 | KYC "PDF only" rule checks the filename, not the content | Low | Fixed |
 | E47 | Admin console: session not rotated after OTP; no CSP | Low | Fixed |
-| E48 | Admin run-batch sends no payout notification; split payouts skip the lifetime estimate | Low | Partly fixed |
+| E48 | Admin run-batch sends no payout notification; split payouts skip the lifetime estimate | Low | Fixed |
 | E49 | settlement rebuild-balances --merchant never writes the cache | Low | Fixed |
 | E50 | Fee at capture ignores the negotiated discount that settlement applies | Medium | Partly fixed |
 | E51 | API and seed cannot start: built-in dev key is 34 bytes, check needs 32 | High | Fixed |
@@ -358,7 +358,7 @@ All 177 entries from docs/ERRORS.md (161 of 177 fixed.). Each ID has its error (
 | E64 | [found later] Payout trends never show "paid" (settlement.paid not consumed) | Medium | Fixed |
 | E65 | [found later] The seed wipes real tables (incl. admin audit log) with no environment check | Medium | Fixed |
 | E66 | [found later] expire_holds can delete holds released between its SELECT and DELETE | Low | Fixed |
-| E67 | [found later] refund_merchant_summary counts captured once per refund; never refreshed (my F01e bug) | Low | Partly fixed |
+| E67 | [found later] refund_merchant_summary counts captured once per refund; never refreshed (my F01e bug) | Low | Fixed |
 | E68 | [found later] Seed adds the lifetime payout estimate in float32 | Low | Fixed |
 | E69 | [found later] Seeded fees ignore the seeded fee schedules (suspected) | Low | Open |
 | E70 | [found later] Seeded outbox events do not match the seeded history | Low | Open |
@@ -369,7 +369,7 @@ All 177 entries from docs/ERRORS.md (161 of 177 fixed.). Each ID has its error (
 | E75 | [found later] March sweep posts the opposite legs from ADR-0002, charging merchants | Medium | Fixed |
 | E76 | [found later] Dashboard date filter uses UTC days, not Bahrain days | Medium | Fixed |
 | E77 | [found later] Float and toFixed on money in the batch detail page | Low | Fixed |
-| E78 | [found later] Balance rebuild may hit the 30 s timeout; no row lock (suspected) | Low | Partly fixed |
+| E78 | [found later] Balance rebuild may hit the 30 s timeout; no row lock (suspected) | Low | Fixed |
 | E79 | [found later] Dead helpers with float or wrong-scale money math | Low | Open |
 | E80 | [found later] Scheme export fallback can print more than 2 decimals | Low | Fixed |
 | E81 | [found later] Admin Run batch default date uses the UTC day | Low | Fixed |
@@ -422,7 +422,7 @@ All 177 entries from docs/ERRORS.md (161 of 177 fixed.). Each ID has its error (
 | E128 | [deep review] Suspended merchant keeps sessions and API keys | Medium | Fixed |
 | E129 | [deep review] Capture idempotency hash ignores the transaction id | Medium | Fixed |
 | E130 | [deep review] Failed link capture leaves the card authorization open | Medium | Fixed |
-| E131 | [deep review] Discount error after a paid link gives the buyer a 500 | Medium | Partly fixed |
+| E131 | [deep review] Discount error after a paid link gives the buyer a 500 | Medium | Fixed |
 | E132 | [deep review] Reconciliation reads its figures from different snapshots | Low | Fixed |
 | E133 | [second review] Report filter JSON used without a shape check | Low | Fixed |
 | E134 | [coverage] A credit's effectiveDate has no range: a future date holds the payout for years, an old date lands in a closed period | High | Fixed |
@@ -469,4 +469,5 @@ All 177 entries from docs/ERRORS.md (161 of 177 fixed.). Each ID has its error (
 | E175 | [second review] Webhook URLs with embedded credentials are accepted but never deliverable | Low | Fixed |
 | E176 | [deep review] A redeploy stops settlement after 10 s, although it waits 30 s for a running batch | Low | Fixed |
 | E177 | [deep review] Admin login and admin invites match emails case-sensitively | Low | Fixed |
+| E178 | [deep review] Discount adjustments are matched to capture events by position, at today's rate | Low | Partly fixed |
 <!-- errors:end -->

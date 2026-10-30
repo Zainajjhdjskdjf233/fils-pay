@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 8:32 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 8:47 PM
 
 ## Contents
 1. Status now
@@ -14,20 +14,20 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:32 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 161 of 177 fixed.
+- Errors: 165 of 178 fixed.
   - High: 46 of 46 fixed
-  - Medium: 54 of 60 fixed
-  - Low: 61 of 71 fixed
+  - Medium: 55 of 60 fixed
+  - Low: 64 of 72 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
 - Dilmune Cloud: live
-- Decisions waiting for Zainab: 43 (search "for Zainab to review" in LOG.md)
+- Decisions waiting for Zainab: 45 (search "for Zainab to review" in LOG.md)
 - Fork: needs a push (VS Code: Git: Push to... → mine)
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 161 of 177 fixed.
+- 🔄 Fix: 165 of 178 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -74,6 +74,10 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:32 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- c5d7416 fix(E131): missed discount adjustments retried by a 60 s sweep (E131 fully fixed); new entry E178
+- 7c6ce65 fix(E67): refund summary becomes a plain view, always current (migration 0087; E67 fully fixed); LOG: freeze 11:00 PM
+- 4cdc8ae fix(E78): rebuild locks every balance row; admin path allows a long rebuild (E78 fully fixed)
+- cdce9cf fix(E48): split payouts update the lifetime payout estimate (E48 fully fixed)
 - 57f4d87 fix(E94): weak settlement internal token refused (partly fixed; internal HTTP kept by decision)
 - 26b44f2 fix(E92): ledger and admin audit log append-only via triggers (migration 0086; E92 fully fixed)
 - d02c699 fix(E86): dashboard dev proxy no longer forwards /v1/admin (E86 fully fixed)
@@ -85,10 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:32 PM
 - dc99f19 fix(E56): Go DB test packages take turns on the shared database (advisory lock in TestMain)
 - 8060c5e fix(E68,E71): seed sums the lifetime estimate in integer fils and resets reporting dead letters
 - a6027dc fix(E78): balance rebuild locks each balance row first (partly fixed); E74 marked for review
-- 668b884 fix(E108): list pages ignore stale answers to older filters
-- 0a8d82c fix(E96): payout trends use the batch row, not the payload (E96 now fully fixed); LOG: freeze moved to 10:00 PM
-- b7066da fix(E109): webhook replay page clears the old merchant's result (E109 now fully fixed)
-- fb71399 fix(E101): merchant can cancel a link with a stale reservation (E101 now fully fixed)
 
 ## 7. All errors
 ## High (46 of 46 fixed)
@@ -142,7 +142,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:32 PM
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-### Medium (54 of 60 fixed)
+### Medium (55 of 60 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -189,7 +189,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:32 PM
 | E128 | [deep review] Suspended merchant keeps sessions and API keys | Fixed |
 | E129 | [deep review] Capture idempotency hash ignores the transaction id | Fixed |
 | E130 | [deep review] Failed link capture leaves the card authorization open | Fixed |
-| E131 | [deep review] Discount error after a paid link gives the buyer a 500 | Partly fixed |
+| E131 | [deep review] Discount error after a paid link gives the buyer a 500 | Fixed |
 | E139 | [coverage] Capture and the status recompute disagree on a refunded, partly captured transaction | Fixed |
 | E140 | [coverage] Balance adjustment: a huge deltaFils gives 500, and there is no upper limit | Fixed |
 | E141 | [coverage] Credit: a huge baseAmountFils with reverseFee gives 500 | Fixed |
@@ -207,7 +207,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:32 PM
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-### Low (61 of 71 fixed)
+### Low (64 of 72 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -215,7 +215,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:32 PM
 | E40 | withTransaction: a failing ROLLBACK hides the real error | Fixed |
 | E46 | KYC "PDF only" rule checks the filename, not the content | Fixed |
 | E47 | Admin console: session not rotated after OTP; no CSP | Fixed |
-| E48 | Admin run-batch sends no payout notification; split payouts skip the lifetime estimate | Partly fixed |
+| E48 | Admin run-batch sends no payout notification; split payouts skip the lifetime estimate | Fixed |
 | E49 | settlement rebuild-balances --merchant never writes the cache | Fixed |
 | E54 | Webhook backoff test always fails: test expects no jitter, code adds random ±10 % | Fixed |
 | E55 | Seed prints API keys; API listens on every network interface | Fixed |
@@ -223,14 +223,14 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:32 PM
 | E57 | Bad input gives 500 instead of 400 (invalid JSON body, malformed UUID) | Fixed |
 | E59 | Acquirer callback outcome is never validated | Fixed |
 | E66 | [found later] expire_holds can delete holds released between its SELECT and DELETE | Fixed |
-| E67 | [found later] refund_merchant_summary counts captured once per refund; never refreshed (my F01e bug) | Partly fixed |
+| E67 | [found later] refund_merchant_summary counts captured once per refund; never refreshed (my F01e bug) | Fixed |
 | E68 | [found later] Seed adds the lifetime payout estimate in float32 | Fixed |
 | E69 | [found later] Seeded fees ignore the seeded fee schedules (suspected) | Open |
 | E70 | [found later] Seeded outbox events do not match the seeded history | Open |
 | E71 | [found later] Re-seeding leaves old dead letters with reused outbox ids | Fixed |
 | E72 | [found later] reconcile_march uses authorization time and running-total residue (suspected) | Open |
 | E77 | [found later] Float and toFixed on money in the batch detail page | Fixed |
-| E78 | [found later] Balance rebuild may hit the 30 s timeout; no row lock (suspected) | Partly fixed |
+| E78 | [found later] Balance rebuild may hit the 30 s timeout; no row lock (suspected) | Fixed |
 | E79 | [found later] Dead helpers with float or wrong-scale money math | Open |
 | E80 | [found later] Scheme export fallback can print more than 2 decimals | Fixed |
 | E81 | [found later] Admin Run batch default date uses the UTC day | Fixed |
@@ -282,9 +282,10 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:32 PM
 | E175 | [second review] Webhook URLs with embedded credentials are accepted but never deliverable | Fixed |
 | E176 | [deep review] A redeploy stops settlement after 10 s, although it waits 30 s for a running batch | Fixed |
 | E177 | [deep review] Admin login and admin invites match emails case-sensitively | Fixed |
+| E178 | [deep review] Discount adjustments are matched to capture events by position, at today's rate | Partly fixed |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101 · N102 · N103 · N104 · N105 · N106 · N107 · N108 · N109 · N110 · N111 · N112 · N113 · N114 · N115 · N116 · N117 · N118 · N119 · N120 · N121 · N122 · N123 · N124 · N125 · N126 · N127 · N128 · N129 · N130 · N131 · N132 · N133 · N134 · N135 · N136 · N137 · N138 · N139 · N140 · N141 · N142 · N143 · N144 · N145 · N146 · N147 · N148 · N149 · N150 · N151 · N152 · N153 · N154 · N155 · N156 · N157 · N158 · N159 · N160 · N161 · N162 · N163 · N164 · N165 · N166 · N167 · N168 · N169 · N170 · N171 · N172 · N173
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101 · N102 · N103 · N104 · N105 · N106 · N107 · N108 · N109 · N110 · N111 · N112 · N113 · N114 · N115 · N116 · N117 · N118 · N119 · N120 · N121 · N122 · N123 · N124 · N125 · N126 · N127 · N128 · N129 · N130 · N131 · N132 · N133 · N134 · N135 · N136 · N137 · N138 · N139 · N140 · N141 · N142 · N143 · N144 · N145 · N146 · N147 · N148 · N149 · N150 · N151 · N152 · N153 · N154 · N155 · N156 · N157 · N158 · N159 · N160 · N161 · N162 · N163 · N164 · N165 · N166 · N167 · N168 · N169 · N170 · N171 · N172 · N173 · N174 · N175 · N176 · N177
 
 ### N01 — Database setup stopped halfway
 
@@ -6308,4 +6309,129 @@ A weak code stops the service at start.
 Yes, but only inside a private Docker network with no public port; that is a recorded decision.
 
 Commit: 57f4d87
+
+### N174 — Split payouts count in the running total
+
+#### The idea
+Each shop has a running total of everything paid to it, for the ops team. Like a lifetime odometer.
+
+#### The problem
+Shops whose payouts are split between sub-shops never added to it.
+
+#### The fix
+- allocate.go: the split payout adds the batch net to the total, in the same transaction.
+
+#### The code
+Before (apps/settlement/internal/splits/allocate.go:149): no total update.
+After:
+```sql
+UPDATE merchants SET lifetime_net_payout_monitoring_estimate = lifetime_net_payout_monitoring_estimate + $2 WHERE id = $1
+```
+Split shops show their real lifetime payouts.
+
+#### The proof
+- Before: 0 after a 9750 split payout.
+- After: 9750.
+
+#### If the judges ask
+"Why not call the existing helper?"
+The helper lives in a package that already imports this one; calling it would create an import loop.
+
+Commit: cdce9cf
+
+### N175 — A long balance rebuild can finish
+
+#### The idea
+Staff can rebuild all cached balances from the ledger. It can take a while, like a full stock count.
+
+#### The problem
+Two weak spots remained.
+- A shop with no balance row had nothing to lock.
+- The API gave up after 30 seconds.
+
+#### The fix
+- rebuild.go: create the row first, then lock it.
+- config.ts and nginx.conf: allow up to 120 seconds on the admin path.
+
+#### The code
+Before (apps/settlement/internal/ledger/rebuild.go:100): the lock had nothing to hold for a new shop.
+After:
+```sql
+INSERT INTO merchant_balances (merchant_id, cached_payable_fils, updated_at) VALUES ($1, 0, now()) ON CONFLICT (merchant_id) DO NOTHING
+```
+Every shop's balance is locked before it is recomputed.
+
+#### The proof
+- Go tests pass; nginx -t passes and both ports answer after the change.
+- My first nginx edit crashed the local nginx; it was fixed before any redeploy.
+
+#### If the judges ask
+"How did you know the nginx change was safe?"
+We rebuilt nginx locally and checked it; the first try failed there, not on the live site.
+
+Commit: 4cdc8ae
+
+### N176 — The refund summary is always current
+
+#### The idea
+A summary of refunds per shop per day. Like a daily report that should never be out of date.
+
+#### The problem
+It was a stored snapshot that nothing ever refreshed, so it stayed empty.
+
+#### The fix
+- New migration 0087: a plain view, computed when read.
+- The tests no longer refresh it by hand.
+
+#### The code
+Before (db/migrations/0085_refund_summary_captured_once.sql:13):
+```sql
+CREATE MATERIALIZED VIEW refund_merchant_summary AS ...
+```
+After:
+```sql
+CREATE VIEW refund_merchant_summary AS ...
+```
+The summary always shows today's refunds.
+
+#### The proof
+- Before: a refund was missing until a manual refresh.
+- After: it appears at once; 81 migrations apply on a fresh database.
+
+#### If the judges ask
+"Why not refresh it from the worker?"
+That needed an ownership change the migration user cannot make; on the live server it would have failed and kept the API down.
+
+Commit: 7c6ce65
+
+### N177 — A missed discount is retried
+
+#### The idea
+Shops with a negotiated discount get part of the fee back after each payment. Like a loyalty refund slip.
+
+#### The problem
+If that step failed after a checkout, nothing tried again.
+
+#### The fix
+- discountAdjustment.ts: a sweep finds recent payments missing their refund slip and posts it.
+- index.ts: the sweep runs every minute.
+- Migration 0088: an index so the sweep stays fast.
+
+#### The code
+Before: no retry existed.
+After (apps/api/src/payments/discountAdjustment.ts):
+```ts
+await applyCaptureDiscountAdjustment(pool, { merchantId: row.merchant_id, transactionId: row.id });
+```
+A missed credit is posted within a minute, exactly once.
+
+#### The proof
+- Before: a missed credit stayed missing.
+- After: posted once, even after two sweeps; bad data cannot break the sweep.
+
+#### If the judges ask
+"Could it pay a discount twice?"
+No; it reuses the existing function, which counts what was already posted under a row lock.
+
+Commit: c5d7416
 

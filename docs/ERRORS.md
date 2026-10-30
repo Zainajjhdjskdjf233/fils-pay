@@ -206,4 +206,4 @@ Summary: 165 of 178 fixed.
 | E175 | [second review] Webhook URLs with embedded credentials are accepted but never deliverable | Fixed |
 | E176 | [deep review] A redeploy stops settlement after 10 s, although it waits 30 s for a running batch | Fixed |
 | E177 | [deep review] Admin login and admin invites match emails case-sensitively | Fixed |
-| E178 | [deep review] Discount adjustments are matched to capture events by position, at today's rate | Open |
+| E178 | [deep review] Discount adjustments are matched to capture events by position, at today's rate | Partly fixed |

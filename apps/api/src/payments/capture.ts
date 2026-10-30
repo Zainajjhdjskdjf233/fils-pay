@@ -154,8 +154,8 @@ export async function captureTransaction(
       return { statusCode: 422, body };
     }
 
-    const merchantResult = await client.query<{ mdr_bps: number }>(
-      `SELECT mdr_bps FROM merchants WHERE id = $1`,
+    const merchantResult = await client.query<{ mdr_bps: number; negotiated_discount_bps: number }>(
+      `SELECT mdr_bps, negotiated_discount_bps FROM merchants WHERE id = $1`,
       [input.merchantId],
     );
     const merchant = merchantResult.rows[0];
@@ -269,7 +269,9 @@ export async function captureTransaction(
       eventType: fullyCaptured ? "captured" : "partially_captured",
       amountFils: requestedAmount,
       actor: input.actor,
-      metadata: { feeFils, acquirerReference: acquirerResult.acquirerReference },
+      // E178: record the discount rate in force now, so a later adjustment
+      // (or the E131 sweep) never resizes this capture with a newer rate.
+      metadata: { feeFils, discountBps: merchant.negotiated_discount_bps, acquirerReference: acquirerResult.acquirerReference },
     });
 
     const body = serializeTransaction(updatedTxn);

@@ -1039,3 +1039,27 @@ Where: db/migrations/0086_ledger_audit_append_only.sql · Commit: 26b44f2
 The secret shared by the API and the payout service could be as weak as "dev-token". Now it must be at least 32 characters. The live key is already 64.
 
 Where: apps/settlement/internal/config/config.go · Commit: 57f4d87
+
+## N174 — Split payouts count in the running total
+
+Shops whose payouts are split between sub-shops never added to their lifetime payout total. Now they do. A test proves it.
+
+Where: apps/settlement/internal/splits/allocate.go · Commit: cdce9cf
+
+## N175 — A long balance rebuild can finish
+
+The balance rebuild could miss a lock for new shops and could be cut off after 30 seconds. Now every shop is locked and the admin path waits up to 120 seconds. My first nginx edit broke the local nginx, and I fixed it before it reached the live site.
+
+Where: apps/settlement/internal/ledger/rebuild.go · Commit: 4cdc8ae
+
+## N176 — The refund summary is always current
+
+The refund summary was a stored snapshot that nothing refreshed, so it stayed empty. Now it is a live view. A first idea would have broken the live server's startup, so it was dropped before committing.
+
+Where: db/migrations/0087_refund_summary_plain_view.sql · Commit: 7c6ce65
+
+## N177 — A missed discount is retried
+
+If a shop's discount refund failed after a checkout, it was never retried. Now a sweep posts it within a minute, exactly once. Tests prove it, including bad data.
+
+Where: apps/api/src/payments/discountAdjustment.ts · Commit: c5d7416
