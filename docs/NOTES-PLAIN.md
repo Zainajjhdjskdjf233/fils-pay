@@ -504,4 +504,4 @@ Where: apps/api/src/routes/transactions.ts · Commit: 173bdda
 
 The page-size setting accepted text like "10abc" as 10 and "abc" as an error. Now it must be a whole number. A test checks eight routes.
 
-Where: apps/api/src/lib/queryParsing.ts · Commit: PENDING_N84
+Where: apps/api/src/lib/queryParsing.ts · Commit: e92b748

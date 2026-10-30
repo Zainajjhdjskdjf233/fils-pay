@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
 Updated: 04:54 PM (30 Oct 2026)
-Summary: Errors 81/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Summary: Errors 82/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1217,7 +1217,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: Six decoders check only for a separator and non-empty parts: apps/api/src/transactions/query.ts:53-67, paymentLinks/query.ts, webhooks/deliveries.ts, settlement/query.ts, admin/merchants.ts, admin/credits.ts; the parts go into SQL casts (e.g. transactions/query.ts:123).
 - Error: A cursor such as base64url("abc|def") → `::timestamptz` / `::uuid` cast error → 500 instead of a 400 or page one.
 - Proof: the second review (items 32-45, pasted by Zainab at 4:23 PM); checked by me in the code (04:30 PM).
-- Severity: low · Status: open
+- Severity: low · Status: fixed (by E57's Postgres invalid-input net, see section 5)
 
 ### E160 — [second review] The adjustment-import list pages on created_at text with no tie-breaker
 - Where: apps/api/src/admin/adjustmentImport.ts:173 `created_at::text < $1`, :179 `ORDER BY created_at DESC` only (MK's own comment at :155 names FP-198).
@@ -2288,6 +2288,12 @@ ROLLBACK;
 - Test: apps/api/src/routes/limits.e126.test.ts. Before: `/v1/transactions?limit=10abc: 200`. After: PASS; tests of the 8 routes 100/100.
 - check.sh: OK.
 - Actual result: a malformed limit is refused instead of becoming a different number or a 500.
+
+### E159 — 04:54 PM — malformed cursors are never 500 (covered by the E57 net)
+- No new code: the E57 change (9d35e0f, errorHandler.ts maps Postgres 22P02/22007/22008 to 400) already turns a malformed cursor's bad timestamp or id into 400.
+- Test: apps/api/src/routes/cursors.e159.test.ts (4 malformed cursors × transactions, settlement batches, payment links: 400 or page one). With the errorHandler from before 9d35e0f (`git show 9d35e0f^:…`): `/v1/transactions cursor=YWJjfGRlZg: 500`. With HEAD: PASS. The test locks it in.
+- Left as is (Low, defence in depth): the six decoders still accept any text before the separator; a strict shared decoder (plan C6 in scratchpad/plans/validation.md) would return page one instead of 400.
+- check.sh: OK.
 
 ## 6. Deploy
 
