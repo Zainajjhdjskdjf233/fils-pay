@@ -43,3 +43,9 @@ export function parseLimit(v: unknown): number | undefined {
   }
   return Number(v);
 }
+
+/** E142: true if the text holds a control character (NUL, CR, LF, tab, ESC, DEL ...).
+ *  A NUL makes Postgres throw (500); CR/LF write fake lines into audit exports. */
+export function hasControlChars(v: string): boolean {
+  return /[\u0000-\u001f\u007f]/.test(v);
+}

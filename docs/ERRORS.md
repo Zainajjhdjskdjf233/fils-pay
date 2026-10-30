@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 117 of 175 fixed.
+Summary: 118 of 175 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -66,7 +66,7 @@ Summary: 117 of 175 fixed.
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-## Medium (40 of 60 fixed)
+## Medium (41 of 60 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -117,7 +117,7 @@ Summary: 117 of 175 fixed.
 | E139 | [coverage] Capture and the status recompute disagree on a refunded, partly captured transaction | Open |
 | E140 | [coverage] Balance adjustment: a huge deltaFils gives 500, and there is no upper limit | Fixed |
 | E141 | [coverage] Credit: a huge baseAmountFils with reverseFee gives 500 | Fixed |
-| E142 | [coverage] Control characters in credit memos and adjustment reasons are accepted; a NUL byte likely gives 500 | Open |
+| E142 | [coverage] Control characters in credit memos and adjustment reasons are accepted; a NUL byte likely gives 500 | Fixed |
 | E143 | [coverage] A webhook replay gets a new delivery id; comments and docs/ADMIN.md say it keeps the original | Open |
 | E144 | [coverage] Webhook archive create loads an endpoint's whole history into memory; "pages of 500" is false | Fixed |
 | E145 | [coverage] Signup: no password rule and no type checks; bad input gives 500 | Partly fixed |

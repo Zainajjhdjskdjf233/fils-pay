@@ -44,7 +44,8 @@ export function errorHandler(
   // E57: a malformed value from the request reached a Postgres cast (a bad
   // uuid, number or date). That is the client's input, not a server fault.
   const pgCode = (err as { code?: unknown }).code;
-  if (pgCode === "22P02" || pgCode === "22007" || pgCode === "22008") {
+  // E142: 22021 (a NUL byte in text) and 22P05 (\u0000 in jsonb) are bad input too.
+  if (pgCode === "22P02" || pgCode === "22007" || pgCode === "22008" || pgCode === "22021" || pgCode === "22P05") {
     reply.code(400).send({ error: "invalid_request", message: "a value in the request is not valid" });
     return;
   }

@@ -1,5 +1,6 @@
 import { toFils, type Fils } from "@filspay/money";
 import { BadRequestError } from "../lib/errors.js";
+import { hasControlChars } from "../lib/queryParsing.js";
 
 export type CreditReasonCode = "goodwill" | "dispute_resolution" | "correction";
 
@@ -70,6 +71,9 @@ export function parseCreditRequestInput(body: unknown): CreditRequestDraft {
       throw new BadRequestError("invalid_memo", "memo, if given, must be a string");
     }
     const trimmed = input.memo.trim();
+    if (hasControlChars(trimmed)) {
+      throw new BadRequestError("invalid_memo", "memo must not contain control characters or line breaks");
+    }
     if (trimmed.length > MAX_MEMO_LENGTH) {
       throw new BadRequestError("invalid_memo", `memo must be at most ${MAX_MEMO_LENGTH} characters`);
     }

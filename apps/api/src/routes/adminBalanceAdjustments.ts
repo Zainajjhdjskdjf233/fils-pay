@@ -4,6 +4,7 @@ import { requireAdminRole, requireAdminSession } from "../adminAuth/middleware.j
 import { applyBalanceCorrection } from "../admin/balanceAdjustments.js";
 import { UUID_RE } from "../admin/merchants.js";
 import { BadRequestError, NotFoundError, UnauthorizedError } from "../lib/errors.js";
+import { hasControlChars } from "../lib/queryParsing.js";
 
 interface MerchantIdParams {
   id: string;
@@ -40,6 +41,10 @@ function parseBalanceAdjustmentBody(body: unknown): { deltaFils: Fils; reason: s
   }
   if (typeof source.reason !== "string" || source.reason.trim() === "") {
     throw new BadRequestError("invalid_request", "reason is required");
+  }
+  // E142: no NUL (Postgres 500) and no CR/LF (fake lines in audit exports).
+  if (hasControlChars(source.reason)) {
+    throw new BadRequestError("invalid_request", "reason must not contain control characters or line breaks");
   }
 
   return {

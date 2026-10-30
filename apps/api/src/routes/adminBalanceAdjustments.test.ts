@@ -241,3 +241,14 @@ test("testE140_hugeDeltaIsA400", async () => {
     assert.equal(res.statusCode, 400, `${deltaFils}: ${res.body}`);
   }
 });
+
+// E142 [coverage]: control characters in the reason are refused with 400 —
+// a NUL byte reached Postgres (500) and CR/LF wrote fake lines into audit exports.
+test("testE142_reasonWithControlCharactersIs400", async () => {
+  const admin = await signedInAdmin("finance");
+  const merchantId = await createMerchant(100_000);
+  for (const reason of ["a\u0000b", "refund\r\nFAKE,line", "tab\there"]) {
+    const res = await app.inject({ method: "POST", url: PATH(merchantId), headers: { cookie: admin.cookie }, payload: { deltaFils: 100, reason } });
+    assert.equal(res.statusCode, 400, `${JSON.stringify(reason)}: ${res.statusCode} ${res.body}`);
+  }
+});

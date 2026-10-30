@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 06:58 PM (30 Oct 2026)
-Summary: Errors 117/175 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 2/2 done (F01 done; F02 live, /healthz at the edge waits for the redeploy) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d27ddf0; later fixes need a redeploy, LOG §6) · CHECKPOINT reached
+Updated: 06:59 PM (30 Oct 2026)
+Summary: Errors 118/175 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 2/2 done (F01 done; F02 live, /healthz at the edge waits for the redeploy) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d27ddf0; later fixes need a redeploy, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1115,7 +1115,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/admin/creditRequestValidation.ts:64-68; routes/adminBalanceAdjustments.ts:35-41.
 - Error: memo "a\r\nb" is stored in audit rows (fake lines in exports); "\u0000" is refused by Postgres TEXT/jsonb → 500 (suspected, not run).
 - Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
-- Severity: medium · Status: open
+- Severity: medium · Status: fixed (see section 5, E142)
 
 ### E143 — [coverage] A webhook replay gets a new delivery id; comments and docs/ADMIN.md say it keeps the original
 - Where: apps/api/src/webhooks/replay.ts:48-49 `randomUUID()`; false claims at routes/adminMerchants.ts:211 and docs/ADMIN.md:89.
@@ -2623,6 +2623,13 @@ ROLLBACK;
 - Decision (Zainab to review): API keys may still save filters. The code treats an API key as full merchant authority by design (requireMerchantAuth.ts:141-149, 'keys are owner-issued'), and a saved filter moves no money. Alternative: make the POST session-only.
 - Correction of my notes at E47 and E90 ('possible flaky test'): wrong. In those commands DATABASE_URL was still exported, so check.sh ran the full suite against the shared, already-used e121 test DB (check.sh:15-17). Proof: `env -u DATABASE_URL bash .claude/check.sh` → CHECK OK; the fresh-DB full regression at ceacc85 → api 498/498, money 44/44, events 4/4, reporting 18/18, web 13/13, scripts 10/10, Go 80, failing 0.
 - check.sh: OK. Needs a redeploy.
+
+### E142 — 06:59 PM — control characters in credit memos and balance-adjustment reasons give 400; a NUL anywhere gives 400, not 500 [coverage] [deep review]
+- Changed: apps/api/src/lib/queryParsing.ts hasControlChars() (U+0000-U+001F, U+007F). apps/api/src/admin/creditRequestValidation.ts: memo with one → 400 invalid_memo. apps/api/src/routes/adminBalanceAdjustments.ts: reason with one → 400 invalid_request. apps/api/src/plugins/errorHandler.ts: Postgres 22021 (NUL in text) and 22P05 (\u0000 in jsonb) → 400, a second layer for every other text field (e.g. the CSV import reason; CSV rows are already split on line breaks).
+- Before (suspected in §2, now proven): reason 'a\u0000b' → `500 {"error":"internal_error"}`; memo 'x\u0000y' accepted (Missing expected exception). After: testE142_reasonWithControlCharactersIs400 (NUL, CR LF, tab → 400) and creditRequestValidation.e142.test.ts (NUL, CR LF, ESC → 400; a normal memo is still trimmed and kept). Related suites 41/41.
+- Decision (Zainab to review): tab is refused too in these one-line fields. Alternative: allow tab.
+- Input validation only, no money math changed: no fix-reviewer.
+- check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy
 
