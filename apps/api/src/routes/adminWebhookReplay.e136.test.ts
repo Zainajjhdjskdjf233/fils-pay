@@ -93,3 +93,22 @@ test("testE136_replayIsFinanceOnlyAndAnArchiveReplaysOnce", async () => {
   const queued = await pool.query(`SELECT 1 FROM webhook_deliveries WHERE replay_of_delivery_id = $1`, [originalId]);
   assert.equal(queued.rowCount, 1, "the archived delivery is queued again once, not once per replay");
 });
+
+// E172 [second review, item 81]: archive/replay date ranges must be real dates
+// with a zone (new Date rolled 2026-02-30 over and read zone-less times locally).
+test("testE172_archiveAndReplayDatesAreStrict", async () => {
+  const finance = await admin("finance");
+  const m = await pool.query<{ id: string }>(`INSERT INTO merchants (display_name, mdr_bps) VALUES ($1, 250) RETURNING id`, [`E172 ${randomUUID()}`]);
+  const ep = await pool.query<{ id: string }>(
+    `INSERT INTO webhook_endpoints (merchant_id, url, secret_ciphertext, secret_prefix, created_by_type, created_by_id)
+     VALUES ($1, 'https://example.com/hook', 'x', 'whsec_x', 'merchant_session', gen_random_uuid()) RETURNING id`,
+    [m.rows[0]!.id],
+  );
+  const base = `/v1/admin/merchants/${m.rows[0]!.id}/webhook-endpoints/${ep.rows[0]!.id}`;
+  for (const path of ["/replay-batch", "/archive"]) {
+    for (const range of [{ from: "2026-02-30T00:00:00Z", to: "2026-03-05T00:00:00Z" }, { from: "2026-03-01T00:00:00", to: "2026-03-05T00:00:00Z" }]) {
+      const r = await app.inject({ method: "POST", url: base + path, headers: { cookie: finance.cookie }, payload: { ...range, statuses: ["failed"] } });
+      assert.equal(r.statusCode, 400, `${path} ${JSON.stringify(range)}: ${r.statusCode} ${r.body}`);
+    }
+  }
+});

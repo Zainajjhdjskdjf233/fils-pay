@@ -1,3 +1,4 @@
+import { parseOptionalDate } from "../lib/queryParsing.js";
 import { parseLimit } from "../lib/queryParsing.js";
 import type { FastifyInstance } from "fastify";
 import { requireAdminRole, requireAdminSession } from "../adminAuth/middleware.js";
@@ -226,8 +227,9 @@ export async function adminMerchantRoutes(app: FastifyInstance): Promise<void> {
       if (!from || !to) {
         throw new BadRequestError("invalid_request", "from and to are required ISO-8601 timestamps");
       }
-      const fromDate = new Date(from);
-      const toDate = new Date(to);
+      // E172: real dates with a zone (new Date rolled 2026-02-30 over and read zone-less times in the server zone).
+      const fromDate = parseOptionalDate(from, "from")!;
+      const toDate = parseOptionalDate(to, "to")!;
       if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
         throw new BadRequestError("invalid_request", "from and to must be valid ISO-8601 timestamps");
       }
@@ -272,8 +274,9 @@ export async function adminMerchantRoutes(app: FastifyInstance): Promise<void> {
       if (!from || !to) {
         throw new BadRequestError("invalid_request", "from and to are required ISO-8601 timestamps");
       }
-      const fromDate = new Date(from);
-      const toDate = new Date(to);
+      // E172: real dates with a zone (new Date rolled 2026-02-30 over and read zone-less times in the server zone).
+      const fromDate = parseOptionalDate(from, "from")!;
+      const toDate = parseOptionalDate(to, "to")!;
       if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
         throw new BadRequestError("invalid_request", "from and to must be valid ISO-8601 timestamps");
       }
