@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { getPayoutTrends, getTopLinks, getVolumes } from "../../api/analytics.js";
 import { describeError } from "../../api/client.js";
 import { StalenessBadge } from "../../components/StalenessBadge.js";
-import { bhd, dash, dateTime } from "../../format.js";
+import { bhd, dash, dateTime, statusLabel } from "../../format.js";
 import { formatCount } from "../../utils/helpers.js";
 import type { PayoutTrendsResponse, TopLinksResponse, VolumesResponse } from "../../types.js";
 
@@ -81,7 +81,7 @@ export function OverviewPage() {
           <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
         </label>
         <label>
-          To (exclusive)
+          To (not included)
           <input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
         </label>
         <label>
@@ -99,7 +99,7 @@ export function OverviewPage() {
         </button>
       </form>
 
-      {error ? <p className="dash-error">{error}</p> : null}
+      {error ? <p className="dash-error" role="alert">{error}</p> : null}
 
       <h2>
         Captured volume{" "}
@@ -134,7 +134,7 @@ export function OverviewPage() {
           ))}
           {volumes && volumes.points.length === 0 ? (
             <tr>
-              <td colSpan={5}>No captured volume in this window.</td>
+              <td colSpan={5} className="dash-empty">No captured payments in these dates.</td>
             </tr>
           ) : null}
         </tbody>
@@ -161,7 +161,9 @@ export function OverviewPage() {
               <td>
                 <Link to={`/dashboard/settlement/${point.settlementBatchId}`}>{point.batchDate}</Link>
               </td>
-              <td>{point.status}</td>
+              <td>
+                <span className={`dash-status dash-status-${point.status}`}>{statusLabel(point.status)}</span>
+              </td>
               <td className="dash-num">{bhd(point.grossFils)}</td>
               <td className="dash-num">{bhd(point.feeFils)}</td>
               <td className="dash-num">{bhd(point.netPayoutFils)}</td>
@@ -170,7 +172,7 @@ export function OverviewPage() {
           ))}
           {payouts && payouts.points.length === 0 ? (
             <tr>
-              <td colSpan={6}>No settled batches in this window.</td>
+              <td colSpan={6} className="dash-empty">No settled batches in these dates.</td>
             </tr>
           ) : null}
         </tbody>
@@ -206,7 +208,7 @@ export function OverviewPage() {
           ))}
           {topLinks && topLinks.links.length === 0 ? (
             <tr>
-              <td colSpan={5}>No paid payment links in this window.</td>
+              <td colSpan={5} className="dash-empty">No paid payment links in these dates.</td>
             </tr>
           ) : null}
         </tbody>
