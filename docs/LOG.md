@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 09:30 PM (30 Oct 2026)
-Summary: Errors 171/178 fixed (+3 partly: E50, E94, E178; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 09:31 PM (30 Oct 2026)
+Summary: Errors 172/178 fixed (+3 partly: E50, E94, E178; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1202,7 +1202,8 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/admin/balanceAdjustments.ts:67-114 (no caller, grep).
 - Error: Wire it with the two-person rule or delete it after Zainab agrees.
 - Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E154)
+- Decision (Claude, Zainab approved deciding without review): delete the unused adjustMerchantBalanceJournaled; keep the admin balance adjustment as a cache-only correction and label it so in the console; money corrections go through credits — Why: the 'dead' function was the only path that posts ledger legs, but wiring it in would let one finance admin move money with no second approver (credits have the two-person rule, E09); grep proves nothing calls it — Alternative: wire the journaled function into the route behind the same two-person approval as credits (new approval flow)
 
 ### E155 — [coverage] Webhook PATCH with a bad status gives 500
 - Where: apps/api/src/webhooks/update.ts:35-50 never checks `status`.
@@ -3037,6 +3038,12 @@ ROLLBACK;
 - Accepted (decision): events captured before this deploy have no recorded amount and keep the old position matching; changing them would mean rewriting existing rows.
 - check.sh (clean environment): OK. Needs a redeploy.
 
+### E154 — 09:31 PM — the dead journaled balance adjustment is removed; the admin balance adjustment is labelled as cache-only
+- Changed: apps/api/src/admin/balanceAdjustments.ts: adjustMerchantBalanceJournaled removed (grep: no caller outside its own tests) with its now-unused import; applyBalanceCorrection's comment states it moves no money. apps/api/src/admin/balanceAdjustments.test.ts: the five tests of the removed function removed. apps/admin MerchantDetailPage.tsx: the 'Adjust balance' text says it changes the cached figure only and points to credits; MK's false comment ('it's the journaled one since Sep') annotated.
+- Finding on the way: the route always used applyBalanceCorrection, which is cache-only (no ledger entry), so MK's comment was false and FH's was right.
+- Proof: `grep -rn adjustMerchantBalanceJournaled apps packages scripts db` → 0; balance, route and CSV-import suites 27/27; api and admin tsc clean.
+- check.sh (clean environment): OK. Needs a redeploy (admin text).
+
 ## 6. Deploy
 
 ### Official submission rules (04:28 PM, from Zainab; they override older plans)
@@ -3353,3 +3360,4 @@ Zainab asked for speed without losing safety. Two read-only agents now plan ahea
 - Judge note (09:27 PM): E94 — internal traffic stays on the private network; the shared secret is now refused when weak.
 - Judge note (09:29 PM): E50 — capture and settlement could charge a discounted shop different fees by a fils; capture now records exactly what settlement charges.
 - Judge note (09:30 PM): E178 — a shop whose discount was later set to 0 could lose a credit it was owed; the recorded amount now decides.
+- Judge note (09:31 PM): E154 — I first started to wire the 'dead' journaled function in, then saw it would give one admin unapproved money movement; it was deleted instead and the button now says it moves no money.

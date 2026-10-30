@@ -108,6 +108,7 @@ export function MerchantDetailPage() {
 
   // FH: this ends up in adjustMerchantBalanceCache (cache only)
   // MK: it's the journaled one since Sep
+  // E154: FH was right — it corrects the cached figure only and moves no money.
   async function handleAdjustBalance(): Promise<void> {
     if (!id) return;
     const deltaFils = Number(adjustDeltaFils.trim());
@@ -321,6 +322,10 @@ export function MerchantDetailPage() {
         A direct correction to this merchant&apos;s cached payable balance, for when support has
         confirmed the figure on screen is wrong and it needs to be right now rather than after the
         next settlement cycle. Requires the <code>finance</code> or <code>super_admin</code> role.
+        <br />
+        <strong>It changes the cached figure only and moves no money</strong> (no ledger entry, no
+        payout effect). To pay or charge the merchant, use a credit, which needs a second approver
+        above the threshold.
       </p>
       <RequireRole
         allow={["finance", "super_admin"]}

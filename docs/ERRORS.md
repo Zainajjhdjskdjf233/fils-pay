@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 171 of 178 fixed.
+Summary: 172 of 178 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -131,7 +131,7 @@ Summary: 171 of 178 fixed.
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-## Low (66 of 72 fixed)
+## Low (67 of 72 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -189,7 +189,7 @@ Summary: 171 of 178 fixed.
 | E151 | [coverage] Defence in depth: validateRefundRequest trusts its caller's numbers | Fixed |
 | E152 | [coverage] Go ApplyRateFils: int64 overflow wraps silently (TS throws) | Fixed |
 | E153 | [coverage] A fully refunded, partly captured row refunded again with no amount gives 422 instead of 409 | Fixed |
-| E154 | [coverage] adjustMerchantBalanceJournaled is dead code | Open |
+| E154 | [coverage] adjustMerchantBalanceJournaled is dead code | Fixed |
 | E155 | [coverage] Webhook PATCH with a bad status gives 500 | Fixed |
 | E156 | [coverage] timingSafeEqualHex accepts extra characters after a valid digest | Fixed |
 | E157 | [coverage] Several files in one KYC request: earlier ones are silently dropped; "one file enforced" comment is false | Fixed |
