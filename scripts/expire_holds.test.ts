@@ -5,13 +5,14 @@ import { buildExpiredHoldsDelete } from "./expire_holds.js";
 test("the delete is scoped to exactly the ids it was handed", () => {
   const ids = ["11111111-1111-1111-1111-111111111111", "22222222-2222-2222-2222-222222222222"];
   const { text, values } = buildExpiredHoldsDelete(ids);
-  assert.equal(text, "DELETE FROM holds WHERE id = ANY($1::uuid[])");
-  assert.deepEqual(values, [ids]);
+  // E66: the DELETE also re-checks status = 'active'.
+  assert.equal(text, "DELETE FROM holds WHERE id = ANY($1::uuid[]) AND status = $2");
+  assert.deepEqual(values, [ids, "active"]);
 });
 
 test("a single id still goes through the array predicate rather than a bare equality", () => {
   const { text, values } = buildExpiredHoldsDelete(["33333333-3333-3333-3333-333333333333"]);
-  assert.equal(text, "DELETE FROM holds WHERE id = ANY($1::uuid[])");
+  assert.equal(text, "DELETE FROM holds WHERE id = ANY($1::uuid[]) AND status = $2");
   assert.equal((values[0] as string[]).length, 1);
 });
 

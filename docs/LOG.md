@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 07:22 PM (30 Oct 2026)
-Summary: Errors 130/176 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 07:23 PM (30 Oct 2026)
+Summary: Errors 131/176 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -671,7 +671,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: scripts/expire_holds.ts:43-45 (SELECT ids, then DELETE by id with no status re-check, no transaction). FH's comment :42 names the race; "claude: negligible window, fine."
 - Error: a capture/void that releases a hold in between still has its hold deleted; hard delete although status 'expired' exists (0005).
 - Proof: code read (second bug hunt, bug-hunter agent (12:55 PM); checked by me in the code).
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E66)
 
 ### E67 — [found later] refund_merchant_summary counts the captured amount once per refund; nothing refreshes it (my own F01e bug)
 - Where: db/migrations/0074_refund_reporting.sql:21 `SUM(t.captured_fils)` over refunds JOIN transactions; no `REFRESH MATERIALIZED VIEW` outside a test (grep).
@@ -2707,6 +2707,12 @@ ROLLBACK;
 - Reached only when amount is NULL (0050 backfilled old rows), so no exported file changes today.
 - Script/settlement code is money-adjacent but the change is a format-only fallback with a test: no fix-reviewer.
 - check.sh (clean environment): OK. Needs a redeploy.
+
+### E66 — 07:23 PM — expire_holds no longer deletes a hold that was released between its SELECT and its DELETE
+- Changed: scripts/expire_holds.ts buildExpiredHoldsDelete: the DELETE also requires status = 'active' (DELETE FROM holds WHERE id = ANY($1) AND status = $2). FH's comment (:42) named this race; the AI reply 'negligible window, fine' had left it.
+- Before: scripts/expire_holds.e66.test.ts (expired active hold, then released between SELECT and DELETE) → the released hold was deleted. After: it survives with status 'released'. scripts/expire_holds.test.ts pinned the old SQL text; updated to the new text (values ['ids', 'active']). expire_holds + sqlFilter tests 6/6.
+- Kept: the script still hard-deletes expired holds (MK's FP-219 comment in 0005 says so); using status 'expired' instead is a separate choice, not taken.
+- check.sh (clean environment): OK. No redeploy needed (scripts never run on the live server).
 
 ## 6. Deploy
 

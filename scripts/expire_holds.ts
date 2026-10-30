@@ -22,7 +22,9 @@ export async function fetchExpiredHoldIds(client: Client): Promise<string[]> {
 }
 
 export function buildExpiredHoldsDelete(expiredIds: string[]): { text: string; values: unknown[] } {
-  return buildDelete("holds", { id: expiredIds });
+  // E66: re-check the state in the DELETE itself; a hold released (captured
+  // or voided) after the SELECT no longer matches and is kept.
+  return buildDelete("holds", { id: expiredIds, status: "active" });
 }
 
 /**
@@ -40,6 +42,7 @@ async function main(): Promise<void> {
   await client.connect();
   try {
     // FH: SELECT then DELETE, a hold could be captured in between. claude: "negligible window, fine."
+    // E66: FH was right; the DELETE now also requires status = 'active'.
     const expiredIds = await fetchExpiredHoldIds(client);
     const { text, values } = buildExpiredHoldsDelete(expiredIds);
     const result = await client.query(text, values);
