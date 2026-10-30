@@ -200,3 +200,22 @@ test("testF01e_volumesReportShowsRefunds", async () => {
   assert.equal(point.refundCount, 1);
   assert.equal(point.refundGrossFils, 1_250);
 });
+
+// E67 [found later, my F01e bug]: two refunds of ONE transaction on one day
+// must count that transaction's captured amount once, not twice.
+test("testE67_summaryCountsCapturedOncePerTransaction", async () => {
+  const { merchantId, headers, transactionId } = await merchantWithRefund("e67");
+  const second = await app.inject({
+    method: "POST", url: `/v1/merchants/${merchantId}/refunds`, headers: { ...headers, "idempotency-key": randomUUID() },
+    payload: { transactionId, amountFils: 750, reason: "e67" },
+  });
+  assert.equal(second.statusCode, 200, second.body);
+  await pool.query(`REFRESH MATERIALIZED VIEW refund_merchant_summary`);
+  const r = await pool.query<{ refund_count: string; total_refunded_fils: string; original_captured_fils: string }>(
+    `SELECT refund_count, total_refunded_fils, original_captured_fils FROM refund_merchant_summary WHERE merchant_id = $1`,
+    [merchantId],
+  );
+  assert.equal(Number(r.rows[0]!.refund_count), 2);
+  assert.equal(Number(r.rows[0]!.total_refunded_fils), 2_000);
+  assert.equal(Number(r.rows[0]!.original_captured_fils), 10_000, "captured counted once per transaction");
+});

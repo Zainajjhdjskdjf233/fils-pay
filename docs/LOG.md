@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 08:01 PM (30 Oct 2026)
-Summary: Errors 148/176 fixed (+10 partly: E50, E92, E101, E131, E145, E163, E86, E94, E96, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 08:03 PM (30 Oct 2026)
+Summary: Errors 148/176 fixed (+11 partly: E50, E92, E101, E131, E145, E163, E67, E86, E94, E96, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -679,7 +679,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: db/migrations/0074_refund_reporting.sql:21 `SUM(t.captured_fils)` over refunds JOIN transactions; no `REFRESH MATERIALIZED VIEW` outside a test (grep).
 - Error: two refunds of one transaction on one day → original_captured_fils doubled; the view stays empty in real use. I wrote 0074 today (9afd98d) and tested only one refund.
 - Proof: code read (second bug hunt, bug-hunter agent (12:55 PM); checked by me in the code).
-- Severity: low · Status: open
+- Severity: low · Status: partly fixed (see section 5, E67; refresh job open)
 
 ### E68 — [found later] The seed still adds the lifetime payout estimate in float32
 - Where: db/seed/generate.ts:634-641 `Math.fround(...)` (0077 made the column BIGINT, E24).
@@ -2836,6 +2836,12 @@ ROLLBACK;
 - Proof: no deterministic failing test (the race needs a batch to close between two of the queries); reconciliation and settlement route suites 19/19 on the test DB; full regression on a fresh DB: api 518/518, money 44/44, events 4/4, reporting 21/21, web 13/13, scripts 11/11, Go 83, failing 0.
 - Note: a first targeted run picked up 14 webhook-dispatch tests by mistake (a zsh glob fell back to every file mentioning 'reconciliation') and they failed on the shared, already-used e121 DB; the fresh-DB run above passes all of them.
 - check.sh (clean environment): OK. Needs a redeploy.
+
+### E67 — 08:03 PM — refund_merchant_summary counts each transaction's captured amount once (my F01e bug) — refresh job still open
+- Changed: new db/migrations/0085_refund_summary_captured_once.sql rebuilds the materialized view: refunds per (merchant, Bahrain day) as before, and original_captured_fils summed over the DISTINCT transactions of that day. Nothing in the app reads the view (grep: only refundReports.f01e.test.ts), so drop and recreate is safe; it runs on the live server as a normal migration at the next redeploy.
+- Before: testE67_summaryCountsCapturedOncePerTransaction (two refunds of one 10,000-fils transaction) → `actual: 20000, expected: 10000`. After: 10,000; refund report suites 6/6; migration applied on the test DB (`APPLY 0085_refund_summary_captured_once.sql`).
+- Still open: no job runs REFRESH MATERIALIZED VIEW, so in real use the view stays empty until someone refreshes it.
+- check.sh (clean environment): OK. Needs a redeploy (migration).
 
 ## 6. Deploy
 
