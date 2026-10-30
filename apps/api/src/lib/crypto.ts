@@ -12,6 +12,9 @@ export function sha256Hex(input: string | Buffer): string {
 
 /** Constant-time comparison of two hex-encoded digests. */
 export function timingSafeEqualHex(a: string, b: string): boolean {
+  // E156: Buffer.from(x, "hex") stops at the first non-hex character, so
+  // "61" and "61zz" compared equal. Only whole hex strings may match.
+  if (!/^(?:[0-9a-fA-F]{2})*$/.test(a) || !/^(?:[0-9a-fA-F]{2})*$/.test(b)) return false;
   const bufA = Buffer.from(a, "hex");
   const bufB = Buffer.from(b, "hex");
   if (bufA.length !== bufB.length) {
