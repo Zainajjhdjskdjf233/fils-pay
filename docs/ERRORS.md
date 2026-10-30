@@ -167,7 +167,7 @@ Summary: 143 of 176 fixed.
 | E90 | [found later] KYC download puts the raw filename into a header | Fixed |
 | E94 | [found later] Settlement internal API: plain HTTP on all interfaces; weak token accepted | Partly fixed |
 | E95 | [found later] Internal settlement errors returned to admin browsers | Fixed |
-| E96 | [found later] Reporting trusts payload merchant/amounts; negative amounts pass (my E53 check) | Open |
+| E96 | [found later] Reporting trusts payload merchant/amounts; negative amounts pass (my E53 check) | Partly fixed |
 | E97 | [found later] Reporting config accepts bad numbers ("15s" → 15 ms) | Fixed |
 | E98 | [found later] Raw Postgres error text in logs and dead letters (my E53 code) | Fixed |
 | E107 | [found later] Expired payment links shown as active with Cancel | Fixed |

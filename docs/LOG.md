@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 07:51 PM (30 Oct 2026)
-Summary: Errors 143/176 fixed (+10 partly: E50, E92, E101, E131, E145, E163, E47, E86, E94, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 07:52 PM (30 Oct 2026)
+Summary: Errors 143/176 fixed (+11 partly: E50, E92, E101, E131, E145, E163, E47, E86, E94, E96, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -846,7 +846,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/reporting/src/consumer/applyEvent.ts:93-118 (trend row written under payload.merchantId/amounts, not the batch's own); my E53 validation (`Number.isSafeInteger`) accepts negatives
 - Error: a bad producer can put merchant X's batch into Y's dashboard or push negative volume. (Validation is my own E53 code.)
 - Proof: code read (backend security-review agent (1:03 PM); checked by me).
-- Severity: low · Status: open
+- Severity: low · Status: partly fixed (see section 5, E96; payload merchant trust open)
 
 ### E97 — [found later] Reporting config accepts bad numbers ("15s" → 15 ms)
 - Where: apps/reporting/src/config.ts:22-31 (Number.parseInt; comment "'15s' fails loudly" is false; no lower bound)
@@ -2800,6 +2800,12 @@ ROLLBACK;
 - Changed: apps/api/src/onboarding/businessProfile.ts updateBusinessProfile: a patch that touches IDENTITY_FIELDS (legalName, registrationNumber, businessType) runs in a transaction with SELECT kyc_passed, onboarding_status FROM merchants … FOR UPDATE, and is refused (409 identity_locked_after_kyc) when KYC passed or the status is under_review/approved. Contact fields stay editable; a rejected merchant can still correct its identity before the next review.
 - Before: apps/api/src/onboarding/businessProfile.e83.test.ts — after approval, legalName 'Company B' was accepted (`Missing expected rejection`). After: refused under review and after approval (all three fields); city still editable. Onboarding, signup, app and admin suites 77/77.
 - Second review (Copilot): not run — copilot not found (LOG line 1567). fix-reviewer: APPROVE; kyc_passed is written only by review.ts:50 and bulkKyc.ts:28, both with onboarding_status, and both lock the merchant row, so FOR UPDATE serializes them; only signup inserts profiles; flagged a gap — identity still editable while under_review, so an approval could land on a name the reviewer never saw. Our answer: agree — the lock now also covers under_review, with a test step, before committing.
+- check.sh (clean environment): OK. Needs a redeploy.
+
+### E96 — 07:52 PM — the reporting consumer parks events with a zero or negative captured/refund amount (my E53 check) — merchant-id trust still open
+- Changed: apps/reporting/src/consumer/applyEvent.ts validatePayload: amountCapturedFils / amountFils must be a positive safe integer (was any safe integer).
+- Before: apps/reporting/src/consumer/applyEvent.e96.test.ts — -5 and 0 passed validation. After: PoisonEventError before any query (parked by E53/E98). Reporting consumer suites 19/19.
+- Still open: settlement trend rows are written under payload.merchantId and amounts, not re-read from the batch (applyEvent.ts:93-118).
 - check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy

@@ -227,8 +227,9 @@ function validatePayload(row: OutboxEventRow): void {
   }
   const amountField =
     row.event_type === "transaction.captured" ? "amountCapturedFils" : row.event_type === "refund.succeeded" ? "amountFils" : null;
-  if (amountField && !Number.isSafeInteger(p[amountField])) {
-    throw new PoisonEventError(`${row.event_type} ${String(row.id)}: ${amountField} is not an integer`);
+  // E96: my E53 check accepted negatives; a captured or refunded amount is always > 0.
+  if (amountField && (!Number.isSafeInteger(p[amountField]) || (p[amountField] as number) <= 0)) {
+    throw new PoisonEventError(`${row.event_type} ${String(row.id)}: ${amountField} is not a positive integer`);
   }
 }
 
