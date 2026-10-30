@@ -4,7 +4,7 @@ import type { Pool } from "pg";
 import type { Config } from "../config.js";
 import { withTransaction } from "../db/withTransaction.js";
 import { sha256Hex } from "../lib/crypto.js";
-import { NotFoundError, UnprocessableEntityError } from "../lib/errors.js";
+import { ConflictError, NotFoundError, UnprocessableEntityError } from "../lib/errors.js";
 import { detectFileType, extensionFor, mimeTypeFor } from "./fileSignature.js";
 import { generateKycThumbnail } from "./kycThumbnail.js";
 
@@ -12,6 +12,9 @@ export type KycDocumentType = "commercial_registration" | "owner_id" | "proof_of
 
 /** Document types the registry/bank issues as a PDF, never as a photo. */
 const PDF_ONLY_DOCUMENT_TYPES: readonly KycDocumentType[] = ["commercial_registration", "bank_letter"];
+
+/** E148: most KYC documents one merchant may store (4 types x 5 tries; value for Zainab to review). */
+export const MAX_KYC_DOCUMENTS_PER_MERCHANT = 20;
 
 /** @property fileName Informational only; never used for validation. */
 export interface RecordKycDocumentInput {
@@ -82,6 +85,16 @@ export async function recordKycDocument(
     throw new UnprocessableEntityError("invalid_image", "the image could not be read");
   }
 
+  // E148: refuse before anything is written, so a loop of uploads cannot fill
+  // the disk that Postgres shares. The transaction below re-checks under a lock.
+  const already = await pool.query<{ n: number }>(
+    `SELECT count(*)::int AS n FROM kyc_documents WHERE merchant_id = $1`,
+    [input.merchantId],
+  );
+  if (already.rows[0]!.n >= MAX_KYC_DOCUMENTS_PER_MERCHANT) {
+    throw new ConflictError("too_many_documents", `a merchant can upload at most ${MAX_KYC_DOCUMENTS_PER_MERCHANT} KYC documents`);
+  }
+
   await mkdir(join(config.kycUploadDir, input.merchantId), { recursive: true });
   // written before the db insert, a failed insert leaves an orphan in ./data/kyc — am
   await writeFile(fullPath, input.buffer);
@@ -92,6 +105,15 @@ export async function recordKycDocument(
   }
 
   return withTransaction(pool, async (client) => {
+    // E148: lock the merchant row first, then count — parallel uploads queue here.
+    await client.query(`SELECT 1 FROM merchants WHERE id = $1 FOR UPDATE`, [input.merchantId]);
+    const count = await client.query<{ n: number }>(
+      `SELECT count(*)::int AS n FROM kyc_documents WHERE merchant_id = $1`,
+      [input.merchantId],
+    );
+    if (count.rows[0]!.n >= MAX_KYC_DOCUMENTS_PER_MERCHANT) {
+      throw new ConflictError("too_many_documents", `a merchant can upload at most ${MAX_KYC_DOCUMENTS_PER_MERCHANT} KYC documents`);
+    }
     const inserted = await client.query<{ id: string; uploaded_at: Date }>(
       `INSERT INTO kyc_documents
          (merchant_id, document_type, file_name, mime_type, file_size_bytes, storage_key, sha256, uploaded_by,

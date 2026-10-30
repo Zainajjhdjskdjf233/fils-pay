@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 06:44 PM (30 Oct 2026)
-Summary: Errors 112/175 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 06:48 PM (30 Oct 2026)
+Summary: Errors 113/175 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1151,7 +1151,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/routes/kyc.ts:38-77; onboarding/kyc.ts:71-76.
 - Error: A loop of 8 MiB PDFs fills the `kyc` volume on the same disk as `pgdata`; when it is full Postgres stops.
 - Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
-- Severity: medium · Status: open
+- Severity: medium · Status: fixed (see section 5, E148)
 
 ### E149 — [coverage] Credit effectiveDate "0000-01-01" passes validation; Postgres likely refuses it (500)
 - Where: apps/api/src/admin/creditRequestValidation.ts:29-32; credits.ts:238 `$7::date`.
@@ -2584,6 +2584,14 @@ ROLLBACK;
 - Contradiction (also §3): the comment at savedFilters.ts:44-46 said the cap was 'a CHECK in the 0061 migration'. The table is created in db/migrations/0069_reporting_saved_filters.sql and has no CHECK. Comment corrected.
 - Before: testE171_savedFiltersAreCappedAt50 (45 rows, then 10 parallel saves) → 10 × 201 (`actual: 10, expected: 5`). After: exactly 5 × 201, 5 × 409, 50 rows. Saved-filter suites 6/6.
 - Effect on existing data: none; merchants already above 50 keep their rows and cannot add more.
+- check.sh: OK. Needs a redeploy.
+
+### E148 — 06:48 PM — KYC uploads are capped at 20 documents per merchant, checked before any disk write [coverage] [deep review]
+- Changed: apps/api/src/onboarding/kyc.ts: MAX_KYC_DOCUMENTS_PER_MERCHANT = 20 (4 types × 5 tries). (1) A count before mkdir/writeFile refuses with 409 too_many_documents, so a loop of 8 MiB PDFs writes nothing. (2) Inside the transaction: SELECT 1 FROM merchants WHERE id = $1 FOR UPDATE, then re-count, so parallel uploads queue and cannot pass the cap.
+- Before: apps/api/src/onboarding/kyc.e148.test.ts — upload at 20 docs accepted (`Missing expected rejection`); 5 parallel uploads at 19 all stored. After: 409 and no file on disk; exactly 1 of 5 parallel uploads stored, 20 rows. KYC suites + app.test.ts 13/13.
+- Second review (Copilot): not run — copilot not found (LOG line 1567). fix-reviewer: APPROVE; recordKycDocument is the only writer (only caller routes/kyc.ts:71); no deadlock (the later FOR UPDATE locks the same row in the same transaction); losers of one parallel burst at 19 leave their files (bounded, once per merchant; the old 'am' orphan comment); nothing in src deletes kyc_documents, so 20 is a lifetime cap. Our answer: agree.
+- Decision (Zainab to review): 20 is a lifetime cap per merchant because no code deletes KYC documents. A merchant rejected many times would need support. Alternative: count only documents uploaded since the last review decision, or add a delete for rejected documents.
+- Effect on existing data: none; a merchant already above 20 keeps its documents and cannot add more.
 - check.sh: OK. Needs a redeploy.
 
 ## 6. Deploy

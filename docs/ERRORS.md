@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 112 of 175 fixed.
+Summary: 113 of 175 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -66,7 +66,7 @@ Summary: 112 of 175 fixed.
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-## Medium (39 of 60 fixed)
+## Medium (40 of 60 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -123,7 +123,7 @@ Summary: 112 of 175 fixed.
 | E145 | [coverage] Signup: no password rule and no type checks; bad input gives 500 | Partly fixed |
 | E146 | [coverage] Public signup and login have no rate limit; each call runs argon2 | Open |
 | E147 | [coverage] A broken image upload gives 500 and leaves an orphan file on disk | Fixed |
-| E148 | [coverage] No limit on KYC uploads per merchant: the shared disk can be filled | Open |
+| E148 | [coverage] No limit on KYC uploads per merchant: the shared disk can be filled | Fixed |
 | E163 | [second review] API config never refuses bad settings (prefixes, booleans, NODE_ENV typo turns off security defaults, no ranges) | Partly fixed |
 | E165 | [second review] Authorize and capture accept a zero or negative amount: 0 reaches the acquirer then the DB CHECK (500); negative makes toFils throw (500) | Fixed |
 | E167 | [second review] Merchant OTP promotion keeps the pending session token (session fixation); the admin half is E47 | Fixed |
