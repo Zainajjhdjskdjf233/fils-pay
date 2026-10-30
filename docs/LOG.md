@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 12:41 PM (30 Oct 2026)
-Summary: Errors 46/72 fixed (+2 partly: E13, E50; same count as docs/ERRORS.md) · Hidden 36 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: not started · CHECKPOINT reached
+Updated: 12:44 PM (30 Oct 2026)
+Summary: Errors 47/90 fixed (+2 partly: E13, E50; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -66,9 +66,9 @@ Every line of CASE-FILE.md that names a problem or a requirement, and the entrie
 | Item 01 — money rule: whole fils only (ADR-0001) | E14, E15, E21, E24, E25 (+ ADR check, second bug hunt) | Fixed |
 | Item 01 — settlement closes at midnight Bahrain | E23 | Fixed |
 | Item 01 — `docker compose up` starts everything | E02 | Skipped (Docker; planned next) |
-| Item 01 — read every ADR, code should follow them | ADR check (second bug hunt, running) | In progress |
+| Item 01 — read every ADR, code should follow them | ADR check done: E73 (fixed), E75, E76, E77, E80, E81, H37 | Partly (E73 fixed; others open) |
 | Item 02 — scheme statement always a few fils higher | E14 | Fixed |
-| Item 02 — March sweep ran twice, gap doubled | E16 | Fixed (whether production ran twice: read-only check for a human, LOG E16) |
+| Item 02 — March sweep ran twice, gap doubled | E16 (+ E73 residue now journaled daily; E75 legs, E72 base open) | Fixed (whether production ran twice: read-only check for a human, LOG E16) |
 | Item 02 — split payouts don't add up to the parent | E17 (H27: "tens of fils" not reproduced) | Fixed |
 | Item 02 — "Recalculate cached balances" 135K → 7K | E18 | Fixed |
 | Item 02 — MDR recalculation changed paid batches | E19 | Fixed |
@@ -699,6 +699,114 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Proof: suspected — a transaction captured in two batches (1005 + 1005) would sweep 0 while the scheme lines lost 10.
 - Severity: low · Status: open
 
+### E73 — [found later] CloseBatch never journals the scheme rounding residue (ADR-0002 not implemented)
+- Where: apps/settlement/internal/settlement/batch.go:272-284 (scheme line loop); only scripts/reconcile_march.ts wrote scheme_rounding_residue (grep)
+- Error: the 0-9 fils truncated from each scheme line was never posted, so card_scheme_clearing never tied to the scheme statement after the one-off March sweep — the "leftover gap" of CASE-FILE Item 02. H20 had recorded the false ADR claim but no error entry.
+- Proof: code read (ADR check agent (12:58 PM); checked by me).
+- Severity: high · Status: fixed (see section 5)
+
+### E74 — [found later] Incremental balance cache and the ledger rebuild measure different things
+- Where: apps/settlement/internal/balances/cache.go:25-35 + batch.go (cache moves by net at close/payout) vs ledger/rebuild.go:110-113 (full merchant_payable incl. unbatched captures), button since E18
+- Error: after a rebuild, closing unbatched captures adds them again; the admin balance drifts (display only; payouts use net_payout_fils).
+- Proof: code read (ADR check agent (12:58 PM); checked by me).
+- Severity: medium · Status: open
+
+### E75 — [found later] The March sweep posts the opposite legs from ADR-0002 and charges merchants for the residue
+- Where: scripts/reconcile_march.ts:97-98 (debit merchant_payable / credit scheme_rounding_residue) vs ADR-0002 (credit card_scheme_clearing / debit scheme_rounding_residue)
+- Error: merchants pay the platform's rounding loss; who bears the residue is a finance decision (for Zainab). Overlaps E72 (residue base).
+- Proof: code read (ADR check agent (12:58 PM); checked by me).
+- Severity: medium · Status: open
+
+### E76 — [found later] Dashboard transaction date filter uses UTC days, not Bahrain days
+- Where: apps/web/src/format.ts:37 `${dateValue}T00:00:00.000Z`; false comment :35 "fixed, uses bahrain time now — am"
+- Error: 00:00-03:00 Bahrain activity shows under the previous day; the list disagrees with settlement batches (ADR-0003 daily rule, CASE-FILE midnight Bahrain).
+- Proof: code read (ADR check agent (12:58 PM); checked by me).
+- Severity: medium · Status: open
+
+### E77 — [found later] Float and toFixed on money in the batch detail page
+- Where: apps/web/src/pages/settlement/SettlementBatchDetailPage.tsx:84 `parseFloat((batch.grossFils / 10000).toFixed(2))`
+- Error: the ADR-0001 review-blocker pattern (cosmetic progress bar).
+- Proof: code read (ADR check agent (12:58 PM); checked by me).
+- Severity: low · Status: open
+
+### E78 — [found later] Balance rebuild may hit the API's 30 s timeout and has no row lock (suspected)
+- Where: apps/api/src/config.ts:244 (30_000 ms); apps/settlement/internal/ledger/rebuild.go:96-133 (3 queries per merchant, TODO no lock)
+- Error: long rebuild aborts; a concurrent CloseBatch increment can be overwritten (open since E18).
+- Proof: code read (ADR check agent (12:58 PM); checked by me).
+- Severity: low · Status: open
+
+### E79 — [found later] Dead helpers with float or wrong-scale money math
+- Where: discountAdjustment.ts:13-17 parsePromotionalDiscountFils (×100); fees/estimate.ts (float, unused since E44); scheme_export.go:29-31 SchemeAmountBD (unused since E14); settlementClient.ts:296 (/10, H34); capture.ts:14-41 recordCaptureMetric (UTC date); v1/fees/calculateFee.ts:29
+- Error: no callers today (grep) — a trap if wired up. Deletion needs Zainab.
+- Proof: code read (ADR check agent (12:58 PM); checked by me).
+- Severity: low · Status: open
+
+### E80 — [found later] Scheme export fallback can print more than 2 decimals
+- Where: apps/settlement/internal/settlement/scheme_export.go:71 `COALESCE(sel.amount, sel.amount_fils::numeric / 1000)::text`
+- Error: only when amount is NULL (0050 backfills); breaks ADR-0002 "exactly two decimals" if reached.
+- Proof: code read (ADR check agent (12:58 PM); checked by me).
+- Severity: low · Status: open
+
+### E81 — [found later] Admin "Run batch" default date uses the UTC day
+- Where: apps/admin/src/pages/settlement/SettlementPage.tsx:19-22 `toISOString().slice(0, 10)`
+- Error: between 00:00 and 03:00 Bahrain it pre-fills two days ago.
+- Proof: code read (ADR check agent (12:58 PM); checked by me).
+- Severity: low · Status: open
+
+### E82 — [found later] Admin "rotate API key" hands staff a working merchant key with full merchant power
+- Where: apps/api/src/routes/adminMerchants.ts:176-205 (returns rawKey to finance/super_admin, :198); requireMerchantAuth.ts:155 (API keys skip role checks)
+- Error: bypasses E10's read-only impersonation: an admin can refund, capture, re-point webhooks, all recorded as the merchant's API key; the merchant's integration breaks (old key revoked, E07).
+- Proof: code read (security-review agent (12:59 PM); checked by me).
+- Severity: medium · Status: open
+
+### E83 — [found later] Merchant can change legal name and CR number after KYC approval with no re-review
+- Where: apps/api/src/onboarding/businessProfile.ts:81-92 (PATCHABLE_COLUMNS incl. legal_name, registration_number, business_type), :99-131 (no status change, no audit)
+- Error: pass KYC as company A, rename to company B, stay approved — KYC/AML bypass.
+- Proof: code read (security-review agent (12:59 PM); checked by me).
+- Severity: medium · Status: open
+
+### E84 — [found later] CSRF from same-site pages: SameSite=Lax only, text/plain bodies accepted
+- Where: cookie writes routes/auth.ts:100-106, adminAuth.ts:93,198, adminMerchants.ts:347 (sameSite lax); no Origin/CSRF check; Fastify parses text/plain
+- Error: a same-site HTML form can POST void, logout, otp/resend, admin impersonate/end. Agent verified text/plain → 200 with app.inject (scratchpad/csrf.mjs).
+- Proof: code read (security-review agent (12:59 PM); checked by me).
+- Severity: low · Status: open
+
+### E85 — [found later] Impersonation grant keeps working after the admin is disabled or logs out
+- Where: apps/api/src/admin/impersonation.ts:105-127 (no `au.status = 'active'`); false comment :106 "revoked_at gets set by the admin-disable trigger" (only trigger in db/ is 0021 webhook notify); admin logout routes/adminAuth.ts:221-238 leaves the grant
+- Error: a disabled/logged-out staff member keeps read access until expiry (15 min).
+- Proof: code read (security-review agent (12:59 PM); checked by me).
+- Severity: low · Status: open
+
+### E86 — [found later] Dashboard dev proxy also forwards /v1/admin; both UIs share one cookie jar
+- Where: apps/web/vite.config.ts:12 (`/v1` incl. /v1/admin, E61); cookies ignore ports on localhost
+- Error: any future XSS in the web app (incl. public checkout) reaches the admin API with the admin cookie; hosting must not repeat this (E02 plan: admin on its own host).
+- Proof: code read (security-review agent (12:59 PM); checked by me).
+- Severity: low · Status: open
+
+### E87 — [found later] No anti-framing headers on dashboard and checkout
+- Where: apps/web/index.html; apps/api/src/app.ts (no X-Frame-Options / frame-ancestors / nosniff); E47 covers the admin console only
+- Error: public /pay/:token can be framed (UI redress).
+- Proof: code read (security-review agent (12:59 PM); checked by me).
+- Severity: low · Status: open
+
+### E88 — [found later] Read-only impersonation and API keys can write saved filters
+- Where: apps/api/src/routes/reporting.ts:52-71 (`preHandler: requireMerchantAuth` only)
+- Error: impersonating admin creates merchant data without attribution (minor note under E35).
+- Proof: code read (security-review agent (12:59 PM); checked by me).
+- Severity: low · Status: open
+
+### E89 — [found later] Unsalted SHA-256 of card number and CVV stored in idempotency_keys
+- Where: apps/api/src/payments/authorize.ts:51-55 → idempotency.ts:65-66, :118 (request_hash of the canonical request incl. card)
+- Error: offline brute force of PAN+CVV is small; storing CVV in any form breaks PCI DSS. Low only because the acquirer is simulated.
+- Proof: code read (security-review agent (12:59 PM); checked by me).
+- Severity: low · Status: open
+
+### E90 — [found later] KYC download puts the raw upload filename into Content-Disposition
+- Where: apps/api/src/routes/kyc.ts:98, :115 `filename="${file.fileName}"`
+- Error: a quote injects header params; control characters make Node throw (500).
+- Proof: code read (security-review agent (12:59 PM); checked by me).
+- Severity: low · Status: open
+
 ## 3. Hidden things
 
 ### H01 — "The Order of the Prompt" and its Five Rules
@@ -872,6 +980,19 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - What: 12,000 of 12,000 ledger groups have one leg (the 0007 deferred balance trigger would reject them); unknown accounts (platform_fee, settlement_holding); transaction_events.event_type 'refund.succeeded' breaks the 0044 CHECK; 'paid' batches without paid_at; merchant rates differ from fixtures/merchants.ts. No code references it.
 - Proof: bug-hunter's script scratchpad/ps.py → "groups 12000 unbalanced 12000".
 - Meaning: misleading dead file; label or remove (removal needs Zainab).
+
+### H37 — All six ADRs were committed at once with later dates inside them
+- What: docs/adr/0001-0006 all come from commit 08749ab (Yousif, 2026-02-02 11:00 +0300); none changed since. Yet ADR-0003 is dated 2026-02-26, 0006 2026-05-04, 0005 2026-05-18, 0004 2026-05-30, and 0002 says "implemented (CloseBatch, 2026-03)". They describe work that had not happened when committed. E16 and E18 overrode ADR-0003/0004 without a superseding ADR (docs/adr/README.md:3-4). ADR-0006's reason ("balance the merchant sees on the dashboard") does not match the code (only the admin console reads merchant_balances, admin/merchants.ts:261); ADR-0005's README claim is false; docs/runbooks/shadow-ledger-cutover.md:9-10 says 0054-0056 create ledger_v2_* (they do not).
+- Proof: ADR check agent (git log on docs/adr); adds to H20.
+- Meaning: ADRs are evidence, not rules; CASE-FILE wins. ADR-0002's decision was still implemented (E73) because CASE-FILE Item 01 says to follow the ADRs and nothing contradicts that one.
+
+### H38 — apps/api/src/v1 (partner API) is dead and would be unsafe if wired
+- What: nothing imports transactionRoutesV1 or calculateMdrFeeV1 (grep across apps, packages, scripts, ops, db); app.ts:56 registers ./routes/transactions.js, a different file; no autoload. If registered, POST /:id/capture has no auth and no merchant scoping.
+- Proof: security-review agent, confirmed by grep.
+- Meaning: leave unregistered; deleting it needs Zainab.
+
+### H39 — More false comments found in the second hunt
+- apps/web/src/api/client.ts:40 "CORS is locked to the two origins in config" — there is no CORS at all (E61). apps/api/src/admin/impersonation.ts:106 "admin-disable trigger" — none exists (E85). requireMerchantAuth.ts "impersonation can't reach write routes" — false for saved-filters (E88). apps/reporting runConsumerPass.ts:15-17 "two processes serialize on that row" — false (E62). db/seed/generate.ts:209-210 "safe to run against a shared/staging database" — false (E65).
 
 ## 4. Features (from the brief)
 
@@ -1464,6 +1585,14 @@ ROLLBACK;
 - Proof (live, API + vite on test DB): through http://localhost:5173 — signup 201, login, `otp/verify` → `{"authenticated":true,…} [200]`, `/v1/auth/me` → 200 with the owner's merchant. Before: preflight 404, no CORS header (E61 entry).
 - Found on the way: the API has no `/health` route (it is `/healthz`/`readyz`); F02's expected result corrected.
 - Regression: full-db-test.sh = baseline v3; web and admin builds pass.
+
+### E73 — 12:44 PM — CloseBatch journals the scheme rounding residue (ADR-0002)
+- Changed: apps/settlement/internal/settlement/batch.go (scheme line loop): for each line with residue = gross − truncated > 0, a balanced group in the same transaction: credit card_scheme_clearing, debit scheme_rounding_residue, description 'scheme rounding residue (ADR-0002)', with merchant, transaction and batch ids.
+- Test: settlement/scheme_residue_e73_test.go (lines 4755 and 3000). Before: `residue debit 0, clearing credit 0, groups 0; want 5, 5, 1`. After: PASS; all Go packages pass.
+- Decision (for Zainab to review): the ADR's legs (platform absorbs the residue in suspense, finance clears monthly), not the March sweep's legs (E75, charged merchants). Batches for March 2026 that closed before this change were covered by the sweep; re-closing such a batch today would post residue twice (not a normal flow).
+- Regression: full-db-test.sh = baseline v3; Go 75 pass.
+- Review: one balanced insert next to an existing one → no fix-reviewer.
+- Actual result: matches ADR-0002.
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)

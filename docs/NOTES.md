@@ -1968,3 +1968,36 @@ const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?
 CORS with cookies would let the session cookie go to another address; keeping everything on one address needs no exception at all.
 
 Commit: e5eb890
+
+## N54 — The daily close now books the rounding leftovers
+
+### The idea
+The card scheme file can only carry 2 decimals (10-fils steps), so each line loses 0-9 fils. Those leftover fils must be written down somewhere, like putting loose coins into a labelled jar.
+
+### The problem
+The design (ADR-0002) said the daily close books them in a "rounding residue" account. It never did.
+- Only a one-off March script ever booked them.
+- From April on, every line's leftover went unrecorded, so the scheme clearing account never matched the scheme statement.
+
+### The fix
+- batch.go: for every scheme line with a leftover, book it in the same transaction: credit the scheme clearing account, debit the rounding residue account.
+
+### The code
+Before (apps/settlement/internal/settlement/batch.go:276-284): only the scheme line was inserted.
+After:
+```go
+if residue := line.grossFils - truncated; residue > 0 {
+    // credit card_scheme_clearing, debit scheme_rounding_residue, same amount
+}
+```
+Every cut fil is now on the books, so the clearing account ties to the scheme file.
+
+### The proof
+- Before: a 4.755 BD line booked nothing.
+- After: 5 fils debited to the residue account and 5 credited to scheme clearing; a 3.000 BD line books nothing.
+
+### If the judges ask
+"Who pays for the leftover fils?"
+The ADR says the platform holds them in a suspense account for finance to clear monthly. The old March script charged the merchants instead (E75); that choice is marked for Zainab.
+
+Commit: PENDING_N54

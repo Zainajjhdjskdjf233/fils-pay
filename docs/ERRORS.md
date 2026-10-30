@@ -13,9 +13,9 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 46 of 72 fixed.
+Summary: 47 of 90 fixed.
 
-## High (25 of 27 fixed)
+## High (26 of 28 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -46,8 +46,9 @@ Summary: 46 of 72 fixed.
 | E30 | Incident 2026-08-21: duplicate payout notifications | Fixed |
 | E51 | API and seed cannot start: built-in dev key is 34 bytes, check needs 32 | Fixed |
 | E52 | Every refund fails: code inserts reason = NULL, migration 0070 forbids NULL | Fixed |
+| E73 | [found later] CloseBatch never journals the scheme rounding residue (ADR-0002 not implemented) | Fixed |
 
-## Medium (20 of 26 fixed)
+## Medium (20 of 31 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -77,8 +78,13 @@ Summary: 46 of 72 fixed.
 | E63 | [found later] Admin reporting rebuild double-counts events the worker has not reached | Open |
 | E64 | [found later] Payout trends never show "paid" (settlement.paid not consumed) | Open |
 | E65 | [found later] The seed wipes real tables (incl. admin audit log) with no environment check | Open |
+| E74 | [found later] Balance cache and ledger rebuild measure different things (drift after rebuild) | Open |
+| E75 | [found later] March sweep posts the opposite legs from ADR-0002, charging merchants | Open |
+| E76 | [found later] Dashboard date filter uses UTC days, not Bahrain days | Open |
+| E82 | [found later] Admin "rotate API key" hands staff a full-power merchant key | Open |
+| E83 | [found later] Legal name and CR number editable after KYC approval, no re-review | Open |
 
-## Low (1 of 19 fixed)
+## Low (1 of 31 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -101,3 +107,15 @@ Summary: 46 of 72 fixed.
 | E70 | [found later] Seeded outbox events do not match the seeded history | Open |
 | E71 | [found later] Re-seeding leaves old dead letters with reused outbox ids | Open |
 | E72 | [found later] reconcile_march uses authorization time and running-total residue (suspected) | Open |
+| E77 | [found later] Float and toFixed on money in the batch detail page | Open |
+| E78 | [found later] Balance rebuild may hit the 30 s timeout; no row lock (suspected) | Open |
+| E79 | [found later] Dead helpers with float or wrong-scale money math | Open |
+| E80 | [found later] Scheme export fallback can print more than 2 decimals | Open |
+| E81 | [found later] Admin Run batch default date uses the UTC day | Open |
+| E84 | [found later] CSRF from same-site pages (Lax only, text/plain accepted) | Open |
+| E85 | [found later] Impersonation grant survives admin disable/logout | Open |
+| E86 | [found later] Dashboard dev proxy forwards /v1/admin; shared cookie jar | Open |
+| E87 | [found later] No anti-framing headers on dashboard and checkout | Open |
+| E88 | [found later] Read-only impersonation and API keys can write saved filters | Open |
+| E89 | [found later] Unsalted SHA-256 of card number and CVV stored | Open |
+| E90 | [found later] KYC download puts the raw filename into a header | Open |

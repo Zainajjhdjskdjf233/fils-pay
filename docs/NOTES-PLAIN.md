@@ -319,3 +319,9 @@ Where: apps/web/src/pages/transactions/RefundDrawer.tsx · Commit: e5eb890
 The shop dashboard and the admin website ran on their own web addresses and called the API on another one, which browsers block unless the API allows it, and it did not. So neither website could actually work. Instead of opening the API to other addresses, we made both websites call the API through their own address, which is safer. A live test of signup, login and the login code through the dashboard address now works.
 
 Where: apps/web/vite.config.ts:12 · Commit: e5eb890
+
+## N54 — The daily close now books the rounding leftovers
+
+The card network's file only has room for two decimals, so each payment line loses a few fils. The design said those fils are written into a special "leftovers" account every day, but the code never did it, so the books never matched the network's statement. Now the daily close writes them down for every line. A test shows a 4.755 BD payment puts exactly 5 fils into the leftovers account.
+
+Where: apps/settlement/internal/settlement/batch.go:289 · Commit: PENDING_N54
