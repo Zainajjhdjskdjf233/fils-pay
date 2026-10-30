@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 07:01 PM (30 Oct 2026)
-Summary: Errors 119/175 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 2/2 done (F01 done; F02 live, /healthz at the edge waits for the redeploy) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d27ddf0; later fixes need a redeploy, LOG §6) · CHECKPOINT reached
+Updated: 07:02 PM (30 Oct 2026)
+Summary: Errors 120/175 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 2/2 done (F01 done; F02 live, /healthz at the edge waits for the redeploy) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d27ddf0; later fixes need a redeploy, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -624,7 +624,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Proof: fix-reviewer on E08 (1:10 AM).
 - Severity: low (needs a valid signature since E08)
 - Proposed fix: check outcome against the allowed list; 400 otherwise.
-- Status: open
+- Status: fixed (see section 5, E59)
 
 ### E60 — [found later] Reconciliation counts payouts of earlier days as an unexplained gap
 - Where: apps/api/src/settlement/query.ts:304-307 (ledger figure: all merchant_payable lines in the window); apps/settlement/internal/settlement/batch.go:360-363 (payout lines get `settlement_batch_id` and `occurred_at = now()`).
@@ -2635,6 +2635,12 @@ ROLLBACK;
 - Changed: apps/api/src/admin/adjustmentImport.ts listAdjustmentImports: cursor is '<created_at>|<id>'; WHERE (created_at, id) < ($1::timestamptz, $2::uuid) ORDER BY created_at DESC, id DESC. A cursor without a valid id → 400 invalid_cursor; an impossible date → Postgres 22008 → 400 (errorHandler, E57). MK's FP-198 comment kept, marked fixed.
 - Before: testE160_sameTimestampImportsAreNotSkippedAcrossPages (3 imports with one created_at, pages of 2) → one import never shown. After: all three exactly once. Suites 23/23. Probe: 'garbage' → 400 invalid_cursor; '2026-02-30|<uuid>' → 22008 (400 through the handler).
 - The admin app passes nextCursor back unchanged (apps/admin/src/api/adjustmentImports.ts:35), so it needs no change; an old-format cursor in an open tab gets 400 once.
+- check.sh (clean environment): OK. Needs a redeploy.
+
+### E59 — 07:02 PM — the acquirer callback outcome must be cleared or confirmed_fraud
+- Changed: apps/api/src/routes/acquirerCallbacks.ts: any other outcome → 400 invalid_request, checked with the other field checks; the 'as' cast is gone (TypeScript now narrows the type from the check). The comments at routes/acquirerCallbacks.ts:10-12 and acquirer/callbacks.ts:4 said this was validated; it was not (contradiction, §3 style).
+- Before: testE59_unknownOutcomeIs400AndStoresNothing — a correctly signed callback with outcome 'approved_by_magic' was accepted and stored. After: 400 and 0 notes. Callback suites 18/18.
+- Small single check: no fix-reviewer.
 - check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy

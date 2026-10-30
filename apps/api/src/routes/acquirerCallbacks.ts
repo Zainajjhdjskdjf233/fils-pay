@@ -54,6 +54,11 @@ export async function acquirerCallbackRoutes(app: FastifyInstance): Promise<void
       );
     }
 
+    // E59: the comment above promised this check; it was never made.
+    if (body.outcome !== "cleared" && body.outcome !== "confirmed_fraud") {
+      throw new BadRequestError("invalid_request", "outcome must be cleared or confirmed_fraud");
+    }
+
     const verification = verifyAcquirerCallbackSignature(
       body,
       getSignatureHeader(request),
@@ -69,7 +74,7 @@ export async function acquirerCallbackRoutes(app: FastifyInstance): Promise<void
       type: "fraud_review.completed",
       transactionId: body.transactionId,
       occurredAt: body.occurredAt,
-      outcome: body.outcome as AcquirerCallbackInput["outcome"],
+      outcome: body.outcome,
       note: body.note,
     };
 

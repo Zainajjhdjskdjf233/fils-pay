@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 119 of 175 fixed.
+Summary: 120 of 175 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -131,7 +131,7 @@ Summary: 119 of 175 fixed.
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-## Low (32 of 69 fixed)
+## Low (33 of 69 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -145,7 +145,7 @@ Summary: 119 of 175 fixed.
 | E55 | Seed prints API keys; API listens on every network interface | Open |
 | E56 | Go DB tests are flaky when packages run in parallel | Open |
 | E57 | Bad input gives 500 instead of 400 (invalid JSON body, malformed UUID) | Fixed |
-| E59 | Acquirer callback outcome is never validated | Open |
+| E59 | Acquirer callback outcome is never validated | Fixed |
 | E66 | [found later] expire_holds can delete holds released between its SELECT and DELETE | Open |
 | E67 | [found later] refund_merchant_summary counts captured once per refund; never refreshed (my F01e bug) | Open |
 | E68 | [found later] Seed adds the lifetime payout estimate in float32 | Open |
