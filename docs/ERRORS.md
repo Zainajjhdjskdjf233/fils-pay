@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 176 of 178 fixed.
+Summary: 177 of 179 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -131,7 +131,7 @@ Summary: 176 of 178 fixed.
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-## Low (71 of 72 fixed)
+## Low (72 of 73 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -207,3 +207,4 @@ Summary: 176 of 178 fixed.
 | E176 | [deep review] A redeploy stops settlement after 10 s, although it waits 30 s for a running batch | Fixed |
 | E177 | [deep review] Admin login and admin invites match emails case-sensitively | Fixed |
 | E178 | [deep review] Discount adjustments are matched to capture events by position, at today's rate | Fixed |
+| E179 | [deep review] Admin credits: "Load more" works only once per list load | Fixed |

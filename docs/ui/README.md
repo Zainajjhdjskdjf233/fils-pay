@@ -22,6 +22,22 @@ dashboard and the admin console.
    390x844 (phone) for checkout. Login went through the real login and OTP routes
    (dev OTP shown, local only).
 
+## Second set: the UX pass (30 Oct 2026, before at 10:36 PM, after at 11:05 PM)
+
+The whole set was re-taken for the UX pass, with more screens (checkout states,
+link creation, refund, not-found pages, admin merchant detail). Same method as above,
+one script for both sets (kept outside the repo: scratchpad/shot/ux-shots.mjs):
+
+1. The local database used for the first set, migrated to today's migrations (0085-0088).
+2. Today's API (restarted on the code-freeze commit) served both sets.
+3. `before/`: the original apps/web and apps/admin at a12d4c7 (proxy config outside
+   the repo, as above). `after/`: today's apps/web and apps/admin.
+4. The script logs in through the forms, creates its own payment links through the
+   public API (one paid, one left to expire after 70 s), pays one with a declining
+   card and then an approving test card, refunds 5.000 BHD, and saves each screen.
+   Desktop 1280x860; phone 390x844 for the checkout states and one dashboard list.
+5. Only screens with a before file were copied into `after/` (28 pairs). The refund form does not exist in the inherited code; its picture is `after/refund-partial-transaction.png` from the first set.
+
 ## What changed in the UI
 
 | Screen | Before | After | Where |

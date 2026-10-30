@@ -29,10 +29,10 @@
 We inherited FilsPay: a Fastify/TypeScript payments API, a Go settlement service, a reporting worker, two React apps (merchant dashboard and checkout, admin console) and a Postgres database. On arrival it could not be installed: migrations stopped at 0054 (E01) and `docker compose up` failed (E02).
 
 What we did, with sources:
-- **Errors:** 178 entries recorded with file:line proof (docs/ERRORS.md, docs/LOG.md section 2). 176 fixed, 2 closed by a recorded decision (E58 is not a bug, locked by a test; E150 kept as designed), 0 partly fixed, 0 open. All 46 High entries are fixed (docs/ERRORS.md, "High (46 of 46 fixed)").
+- **Errors:** 179 entries recorded with file:line proof (docs/ERRORS.md, docs/LOG.md section 2). 177 fixed, 2 closed by a recorded decision (E58 is not a bug, locked by a test; E150 kept as designed), 0 partly fixed, 0 open. All 46 High entries are fixed (docs/ERRORS.md, "High (46 of 46 fixed)").
 - **Hidden things:** 40 entries in docs/LOG.md section 3 (false comments, planted AI instruction files, a staged git history, missing commits).
 - **Features from the case file:** both done. F01 (refund flow end to end) and F02 (live on Dilmune Cloud) (docs/LOG.md section 4).
-- **Tests:** every fix started with a test that failed for the right reason, except a few UI-only and timing-race fixes where LOG says so. Latest full regression on a fresh database (commit 4a8c129, 10:01 PM): API 531/531, money 44/44, events 4/4, reporting 23/23, web 13/13, scripts 12/12, Go 86 pass, 0 failures; seed tests 3/3 on a fresh local database (docs/LOG.md section 6).
+- **Tests:** every fix started with a test that failed for the right reason, except a few UI-only and timing-race fixes where LOG says so. Latest full regression on a fresh database (commit b9a2841, after the UX pass, 10:48 PM): API 531/531, money 44/44, events 4/4, reporting 23/23, web 13/13, scripts 12/12, Go 86 pass, admin typecheck and test 1/1, 0 failures; seed tests 3/3 on a fresh local database (docs/LOG.md section 6).
 - **Live check:** 45 public and 29 logged-in checks against the live server, including a full refund (10.000 BD) and a partial refund (4.000 BD), with a reconciliation gap of 0 (docs/LOG.md section 6).
 - **Case:** the inherited history was staged after 12 Sep 2026. Main actor: Mahmood Khalil (medium confidence). Full reasoning: docs/CASE-MAP.md.
 
@@ -123,7 +123,7 @@ Not done (open risk): no live test of a redeploy during a running batch.
 
 ## 4. Findings report
 
-Each finding below follows the same pattern: symptom, how it was found and reproduced, root cause, fix, how it was verified, and the effect on existing data. The ones shown are the High findings with the largest effect on money or access. All 176 entries, with the same fields, are in docs/LOG.md (section 2 = the error, section 5 = the fix) and docs/ERRORS.md.
+Each finding below follows the same pattern: symptom, how it was found and reproduced, root cause, fix, how it was verified, and the effect on existing data. The ones shown are the High findings with the largest effect on money or access. All 179 entries, with the same fields, are in docs/LOG.md (section 2 = the error, section 5 = the fix) and docs/ERRORS.md.
 
 ### F-1 (E29) One payment link charged twice — incident 2026-05-14
 - **Symptom:** a buyer was charged twice for one link; the second buyer also saw "paid".
@@ -200,50 +200,167 @@ Each finding below follows the same pattern: symptom, how it was found and repro
 
 ## 5. UI and UX changes
 
-Screenshots: docs/ui/before/ (the inherited screens, commit a12d4c7) and docs/ui/after/ (the same pages and data now). How they were made: docs/ui/README.md. Left = before, right = after.
+Screenshots: docs/ui/before/ (the inherited screens, commit a12d4c7) and docs/ui/after/ (the same screens at the code freeze). Both sets were taken on 30 Oct 2026 by one puppeteer-core script against one local database and today's API, so the pages, data and window sizes match (1280x860 desktop, 390x844 phone). How they were made: docs/ui/README.md. In each pair, left = before, right = after.
 
-### Checkout layout (desktop and phone)
-Before: the expiry and CVV row was wider than the form; on a phone the CVV box ran off the screen. After: three equal columns that fit (apps/web/src/pages/checkout/CheckoutPage.css).
+### What was done (UX pass, 10:02-11:05 PM, frontend only)
+- Scope: apps/web (checkout and merchant dashboard) and apps/admin. No API route, response, money calculation or database change. Each screen is one commit (`git log --oneline --grep "^ux("` lists 27 commits).
+- Checks after every screen: web typecheck and web tests (13/13), admin typecheck and admin test (1/1). Full regression at the end: commit b9a2841, 10:48 PM: API 531/531, money 44/44, events 4/4, reporting 23/23, web 13/13, scripts 12/12, Go 86 pass, admin typecheck and test 1/1, 0 failures.
+- One bug found on the way and fixed: E179 (admin credits "Load more" worked only once).
+
+### Journey review
+The three main journeys were walked end to end in Chrome on the local stack (a script typed, clicked and confirmed like a user; every screen was saved and read). Each point of friction found, and what was done:
+
+| Journey | Friction found | Fix | Commit |
+|---|---|---|---|
+| Merchant: create a link | Amount typed in fils ("Amount in fils"), while refunds use BHD | Amount in BHD with a live preview ("The customer will pay 12.500 BHD"); converted by the shared parseBhdToFils, the API still receives fils | 37be82b |
+| Merchant: create a link | Expiry had no default; the form could not be sent until a date was picked | Default expiry 7 days ahead, editable | 37be82b |
+| Merchant: link created | The page did not say the link was created or what to do next | "Payment link created. Copy it below and send it to your customer.", primary Copy button with "Link copied" | 37be82b |
+| Merchant: link created | The "created" message came back after a reload | Shown once (history state cleared) | 37be82b |
+| Merchant: share the link (live site) | "Copy link" used navigator.clipboard, which exists only on HTTPS or localhost; on the plain-HTTP live site the button did nothing | Fallback copy through a temporary text field, and a message if the browser still blocks it (same for the webhook secret) | f5b4221 |
+| Merchant: refund | No message after a refund; after a full refund the form disappeared with no word | "Refunded 5.000 BHD. 7.500 BHD is still refundable." / "…now fully refunded."; confirm shows the amount and what stays refundable; "Use full amount" button | e57ef32 |
+| Merchant: transaction page | Heading "Transaction" with only a UUID; raw event names | Heading with amount and reference, back link, readable event and actor names | e57ef32, 0db1446 |
+| Merchant: lists | Filter boxes showed codes (partially_refunded) | Plain labels (Partially refunded) on every filter and status | e4f42c1 |
+| Merchant: dates | Times in the browser's zone; business dates as 2026-10-30 | Every time in Bahrain time ("30 Oct 2026, 10:23 PM"); business dates "30 Oct 2026" | e4f42c1, 32a1fd4 |
+| Merchant: phone | The amount column was off-screen on the transaction list | Two less-needed columns hidden below 700px; compact tables that wrap at spaces only (table 324px in a 390px screen); header fits one row at 1280px | 372eaba, b9a2841, f5b4221 |
+| Merchant: session end | Login page appeared with no reason | "Please sign in to continue. You will go back to the page you were on." (the return already worked) | e9cbf5c |
+| Buyer: checkout | A plain page with no grouping; no label saying who is paid; standard-size Pay button on a phone | Card layout: merchant name, large amount with BHD, invoice reference; thumb-sized Pay button | bdffa5a |
+| Buyer: declined card | "Your card was declined." with no next step | "…Please check the card details or use another card."; the message takes focus; capture failures say "You have not been charged" | bdffa5a |
+| Buyer: paying | "Processing..." only | Spinner and "Processing payment…", the whole form locked, a second click in the same moment ignored | bdffa5a |
+| Buyer: success | Transaction id and time only | Receipt: amount paid, merchant, invoice reference, payment reference, time (Bahrain), and "Keep the payment reference" | bdffa5a |
+| Buyer: expired, paid, canceled, unknown link | One-line pages | One layout with an icon, the merchant's name and the next step ("Ask the merchant for a new link", "You do not need to pay again") | bdffa5a |
+| Admin: merchant detail | Raw values (approved, passed, live, llc); the cache-drift warning sat inside a sentence | Plain values; drift warning on its own line with a link to Settlement ops; jump bar to each section | f07543d, dbf89c9 |
+| Admin: money actions | Balance correction, credit, credit approval, KYC reject, bulk approve, settlement run, MDR recalculation and CSV import ran with one click or without the amount | Every one asks first and names the amount, date or row count | 171ea03, 6dd7e1c, 8d4ec4b, f07543d, 189e0fd |
+| Admin: messages | Success texts showed internal ids ("entry group …", "kycPassed: true") | Plain sentences ("Approved. 25.000 BHD was added to the merchant's balance.") | 171ea03, 6dd7e1c |
+| Admin and dashboard: unknown address or a crash | React Router's "Unexpected Application Error" with a stack trace | "Page not found" / "Something went wrong. Nothing was changed." with a way back | 56f820c |
+
+### Changes by area (what and why)
+- **Messages everywhere** (e4f42c1, b177f34): describeError returned the server's code (e.g. `transaction_not_found`). It now maps 46 merchant codes and 36 admin codes to plain sentences (3 CSV codes keep the server's row detail); a lost connection says so. Why: a user cannot act on a code.
+- **Confirm and success** (all screens): every irreversible or money action asks first and shows the amount; every action ends with a message saying what happened.
+- **Loading, empty and busy states**: spinners with text on every list and detail page; empty tables say why and what to do; buttons are disabled and relabelled ("Refunding…") while a request runs, so a double click cannot send twice.
+- **Money** (e4f42c1, b177f34, df37cb0): 46 money cells right-aligned (31 dashboard, 15 admin), every amount "x.xxx BHD"; this closes the "29 left-aligned cells" noted earlier in this section.
+- **Forms**: labels say the unit and give an example; inline hints and checks (amount preview, merchant ID format, 6-digit code); focus starts in the first field; card fields use the phone's number keypad and autofill names.
+- **Contrast and focus**: muted text #555/#4a4f57 instead of #666/#777; input borders #8a9099 (3:1) instead of #bbb (1.9:1); disabled buttons readable (no 60% opacity); a visible focus ring on every control.
+- **Navigation and headings**: nav labels match page headings ("Webhook endpoints", "Settlement batches", "Merchant credits"); Overview first; back links on every detail page; browser tab titles per page; detail headings carry the amount and reference.
+
+### Screens (before | after)
+**Checkout, desktop**
 
 ![before](ui/before/checkout-pay.png) ![after](ui/after/checkout-pay.png)
 
+**Checkout, phone**
+
 ![before](ui/before/checkout-pay-mobile.png) ![after](ui/after/checkout-pay-mobile.png)
 
-### Tables: tabular numbers
-Before: digits of different widths, so amounts did not line up. After: every digit the same width (apps/web/src/dashboard.css, apps/admin/src/admin.css).
+**Declined card, phone**
+
+![before](ui/before/checkout-declined-mobile.png) ![after](ui/after/checkout-declined-mobile.png)
+
+**Payment successful, phone**
+
+![before](ui/before/checkout-success-mobile.png) ![after](ui/after/checkout-success-mobile.png)
+
+**Already-paid link, phone**
+
+![before](ui/before/checkout-already-paid-mobile.png) ![after](ui/after/checkout-already-paid-mobile.png)
+
+**Expired link, phone**
+
+![before](ui/before/checkout-expired-mobile.png) ![after](ui/after/checkout-expired-mobile.png)
+
+**Unknown link, phone**
+
+![before](ui/before/checkout-not-found-mobile.png) ![after](ui/after/checkout-not-found-mobile.png)
+
+**Merchant login, step 1**
+
+![before](ui/before/dashboard-login.png) ![after](ui/after/dashboard-login.png)
+
+**Merchant login, step 2**
+
+![before](ui/before/dashboard-login-otp.png) ![after](ui/after/dashboard-login-otp.png)
+
+**Overview**
+
+![before](ui/before/dashboard-overview.png) ![after](ui/after/dashboard-overview.png)
+
+**Transactions**
 
 ![before](ui/before/dashboard-transactions.png) ![after](ui/after/dashboard-transactions.png)
 
-![before](ui/before/admin-merchants.png) ![after](ui/after/admin-merchants.png)
+**Transactions, phone**
 
-### Dashboard settlement and reconciliation with refunds (E106)
-Before: the refund parts were missing, so Gross − Fee did not equal Net on screen. After: refund and fee-returned rows; the numbers add up (20.000 − 0.450 − 14.000 + 0.315 = 5.865).
+![before](ui/before/dashboard-transactions-mobile.png) ![after](ui/after/dashboard-transactions-mobile.png)
+
+**Transaction detail**
+
+![before](ui/before/dashboard-transaction-detail.png) ![after](ui/after/dashboard-transaction-detail.png)
+
+**Payment links**
+
+![before](ui/before/dashboard-payment-links.png) ![after](ui/after/dashboard-payment-links.png)
+
+**New payment link**
+
+![before](ui/before/dashboard-payment-link-new.png) ![after](ui/after/dashboard-payment-link-new.png)
+
+**Payment link detail**
+
+![before](ui/before/dashboard-payment-link-detail.png) ![after](ui/after/dashboard-payment-link-detail.png)
+
+**Settlement batches**
 
 ![before](ui/before/dashboard-settlement.png) ![after](ui/after/dashboard-settlement.png)
 
+**Reconciliation**
+
 ![before](ui/before/dashboard-reconciliation.png) ![after](ui/after/dashboard-reconciliation.png)
 
-Refund screens (new, after only):
+**Webhook endpoints**
 
-![after](ui/after/refund-batch-list.png)
+![before](ui/before/dashboard-webhooks.png) ![after](ui/after/dashboard-webhooks.png)
 
-![after](ui/after/refund-batch-detail.png)
+**Unknown dashboard address**
 
-### Transaction detail: refund drawer (F01f)
-New screen; after only.
+![before](ui/before/dashboard-not-found.png) ![after](ui/after/dashboard-not-found.png)
 
-![after](ui/after/refund-partial-transaction.png)
+**Admin login**
 
-### Admin settlement: skipped batches notice (E120)
-Before: no warning when MDR recalculation skipped a batch. After: a red notice lists the skipped dates.
+![before](ui/before/admin-login.png) ![after](ui/after/admin-login.png)
+
+**Admin merchants**
+
+![before](ui/before/admin-merchants.png) ![after](ui/after/admin-merchants.png)
+
+**Admin merchant detail**
+
+![before](ui/before/admin-merchant-detail.png) ![after](ui/after/admin-merchant-detail.png)
+
+**Admin merchant credits**
+
+![before](ui/before/admin-credits.png) ![after](ui/after/admin-credits.png)
+
+**Admin settlement ops**
 
 ![before](ui/before/admin-settlement.png) ![after](ui/after/admin-settlement.png)
 
-### Behaviour changes without a new screen
-- Checkout: an expired link is no longer payable (server-side expiry, E06).
-- Payment links list: an expired link shows "expired" with no Cancel button, and the filter has "expired" (E107).
+**Admin import adjustments**
 
-Not changed (recorded): money columns are still left-aligned (29 cells in 10 files).
+![before](ui/before/admin-adjustments.png) ![after](ui/after/admin-adjustments.png)
+
+**Admin webhook replay**
+
+![before](ui/before/admin-webhooks.png) ![after](ui/after/admin-webhooks.png)
+
+**Unknown admin address**
+
+![before](ui/before/admin-not-found.png) ![after](ui/after/admin-not-found.png)
+
+
+### Earlier UI fixes (from the error list)
+- Settlement and reconciliation show refunds and fee returned, so Gross − Fee − Refunds + fee returned = Net (E106).
+- Transaction detail has the refund form (F01f).
+- Admin settlement lists batches skipped by an MDR recalculation (E120).
+- Checkout: an expired link cannot be paid (server-side expiry, E06). Payment links list: an expired link shows "Expired" with no Cancel button (E107).
 
 ## 6. AI usage
 
@@ -288,7 +405,7 @@ Not changed (recorded): money columns are still left-aligned (29 cells in 10 fil
 ### Every error entry
 
 <!-- errors:start (generated from docs/ERRORS.md) -->
-All 178 entries from docs/ERRORS.md (176 of 178 fixed.). Each ID has its error (section 2) and, when fixed, its fix (section 5) in docs/LOG.md.
+All 179 entries from docs/ERRORS.md (177 of 179 fixed.). Each ID has its error (section 2) and, when fixed, its fix (section 5) in docs/LOG.md.
 
 | ID | Title | Level | Status |
 |---|---|---|---|
@@ -470,4 +587,5 @@ All 178 entries from docs/ERRORS.md (176 of 178 fixed.). Each ID has its error (
 | E176 | [deep review] A redeploy stops settlement after 10 s, although it waits 30 s for a running batch | Low | Fixed |
 | E177 | [deep review] Admin login and admin invites match emails case-sensitively | Low | Fixed |
 | E178 | [deep review] Discount adjustments are matched to capture events by position, at today's rate | Low | Fixed |
+| E179 | [deep review] Admin credits: "Load more" works only once per list load | Low | Fixed |
 <!-- errors:end -->

@@ -18,17 +18,19 @@ Prepared on 30 Oct 2026 at 9:20 PM through the public API (the same calls the da
 
 ## Steps
 
+Labels below are those of the UX pass (30 Oct, 10:02-11:05 PM); they reach the live site with the code-freeze redeploy (LOG.md section 6).
+
 | # | Time | Do this | Expected result |
 |---|---|---|---|
 | 1 | 0:00 | Open **http://139.59.57.26/dashboard/login**. Paste the Merchant ID, type the email and password, click **Continue**. | A second form asks for the one-time code. On this demo server only, the code appears on the page under the form as **"Development code: 123456"** (no SMS or email sender exists; see SUBMISSION "Decisions and open risks"). |
-| 2 | 0:10 | Type that code, click **Verify**. | The dashboard opens on **Transactions**; your email and role "owner" are in the header. |
-| 3 | 0:15 | Open **http://139.59.57.26/dashboard/transactions/eb2fd0ad-03b1-44a0-937b-f9fb790863a0** (or click the row with reference **demo-partial-refund**). | Status **captured**, captured 10.000 BHD, refunded amount 0.000 BHD. A **Refund** button is shown. |
-| 4 | 0:25 | Click **Refund**. Type **4.000** in **Amount (BD)**, reason "partial demo", click **Refund**, confirm the browser dialog. | The page reloads: status **partially_refunded**, refunded amount **4.000 BHD**; the form line shows "still refundable 6.000 BHD". |
-| 5 | 0:40 | Open **http://139.59.57.26/dashboard/transactions/31eaaf5a-0c3b-4267-b467-4ff179db7875** (reference **demo-full-refund**). Click **Refund**, type **10.000**, click **Refund**, confirm. | Status **refunded**, refunded amount **10.000 BHD**; the Refund button disappears (nothing left to refund). |
+| 2 | 0:10 | Type that code, click **Verify and sign in**. | The dashboard opens on **Transactions**; your email and the role chip "Owner" are in the header. |
+| 3 | 0:15 | Open **http://139.59.57.26/dashboard/transactions/eb2fd0ad-03b1-44a0-937b-f9fb790863a0** (or click the row with reference **demo-partial-refund**). | Heading "Transaction 10.000 BHD · demo-partial-refund", status **Captured**, captured 10.000 BHD, refunded amount 0.000 BHD. A **Refund…** button is shown. |
+| 4 | 0:25 | Click **Refund…**. Type **4.000** in **Amount (BHD)**, reason "partial demo", click **Refund**; the dialog reads "Refund 4.000 BHD to the cardholder? 6.000 BHD will still be refundable." — click OK. | Green message "Refunded 4.000 BHD. 6.000 BHD is still refundable."; status **Partially refunded**, refunded amount **4.000 BHD**. |
+| 5 | 0:40 | Open **http://139.59.57.26/dashboard/transactions/31eaaf5a-0c3b-4267-b467-4ff179db7875** (reference **demo-full-refund**). Click **Refund…**, click **Use full amount** (fills 10.000), click **Refund**, confirm. | Green message "Refunded 10.000 BHD. The payment is now fully refunded."; status **Refunded**; the Refund button disappears (nothing left to refund). |
 | 6 | 0:55 | Open **http://139.59.57.26/dashboard/settlement**. | The settlement batch list loads. Today's payments join a batch when the nightly run closes the Bahrain business day; earlier batches show Gross, Fee, Refunds and Net, and Gross − Fee − Refunds + fee returned = Net. |
 | 7 | 1:05 | Open **http://139.59.57.26/dashboard/reconciliation** (the page preselects the last 30 days up to tomorrow, Bahrain time). | The figures load, including the two refunds, with the green badge **"Reconciled — no gap"** (Gap 0.000 BHD). |
-| 8 | 1:15 | Open **http://139.59.57.26/pay/plink_YBZmrrqbXxSjaQ3VhxmRcJ** in a new tab. | Checkout page: **Case Closed Demo Shop W.L.L.**, "Judges demo demo-checkout", **4.750 BHD**, a card form and a **Pay 4.750** button. |
-| 9 | 1:20 | Card **4242 4242 4242 4242**, expiry **12 / 2030**, CVV **123**, click **Pay 4.750**. | "Payment successful", with the transaction id and the paid time. Opening the link again shows it as already paid. |
+| 8 | 1:15 | Open **http://139.59.57.26/pay/plink_YBZmrrqbXxSjaQ3VhxmRcJ** in a new tab. | Checkout card: "PAY", **Case Closed Demo Shop W.L.L.**, **4.750 BHD**, "Judges demo demo-checkout", invoice reference, a card form and a **Pay 4.750 BHD** button. |
+| 9 | 1:20 | Card **4242 4242 4242 4242**, month **12**, year **2030**, CVV **123**, click **Pay 4.750 BHD**. | "Payment successful" receipt: amount paid, merchant, invoice reference, payment reference and paid time (Bahrain). Opening the link again shows "Already paid … You do not need to pay again." |
 
 ## What the rehearsal showed (9:20 PM, live server, second set)
 
@@ -42,4 +44,4 @@ Prepared on 30 Oct 2026 at 9:20 PM through the public API (the same calls the da
 
 ## If the live site is down
 
-Use the screenshots in **docs/ui/after/**: `dashboard-login.png`, `dashboard-transactions.png`, `refund-partial-transaction.png`, `refund-batch-list.png`, `refund-batch-detail.png`, `dashboard-settlement.png`, `dashboard-reconciliation.png`, `checkout-pay.png` and `checkout-pay-mobile.png`.
+Use the screenshots in **docs/ui/after/** (local stack, same code), in demo order: `dashboard-login.png`, `dashboard-login-otp.png`, `dashboard-transactions.png`, `dashboard-transaction-detail.png`, `refund-partial-transaction.png`, `dashboard-settlement.png`, `dashboard-reconciliation.png`, `checkout-pay.png`, `checkout-pay-mobile.png`, `checkout-declined-mobile.png` and `checkout-success-mobile.png`. Earlier refund screens: `refund-batch-list.png`, `refund-batch-detail.png`.

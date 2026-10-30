@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 10:00 PM (30 Oct 2026)
-Summary: Errors 176/178 fixed (+0 partly: none; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 10:35 PM (30 Oct 2026)
+Summary: Errors 177/179 fixed (+0 partly: none; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1357,6 +1357,12 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Proof: fix-reviewer on E131 (08:47 PM); code read by me. The E131 sweep is limited to captures from the last 2 hours to keep it from triggering this.
 - Fix idea: store the rate and fee used on each adjustment (or the capture event id it belongs to) and match by event, not by position.
 - Severity: low · Status: fixed (see section 5, E178)
+
+### E179 — [deep review] Admin credits: "Load more" works only once per list load
+- Where: apps/admin/src/pages/credits/CreditsPage.tsx loadMore (at commit 6dd7e1c^, lines 62-72): it sets loadingMore.current = true and never sets it back; only load() (a full reload) clears it.
+- Error: after one "Load more", every later click returns at the guard, so a finance admin cannot reach the third page of credit requests without changing tab or reloading. The E109 double-click guard caused it.
+- Proof: found by reading the whole function during the UX pass (10:18 PM); the function has no finally block and no other write to loadingMore.current.
+- Severity: low · Status: fixed (see section 5, E179)
 
 ## 3. Hidden things
 
@@ -3093,6 +3099,22 @@ ROLLBACK;
 - Dev data only; never run on the live server (E65 guard).
 - check.sh (clean environment): OK.
 
+### E179 — 10:35 PM — a finance admin can press "Load more" on Merchant credits more than once
+- Changed (commit 6dd7e1c, ux(admin-credits)): apps/admin/src/pages/credits/CreditsPage.tsx loadMore now clears loadingMore.current in a finally block and shows a busy, disabled button (moreBusy) while the page loads.
+- Before: loadMore set the guard and never cleared it (read line by line). After: the guard is cleared after every request, success or error; the double-click protection (E109) stays, because the button is disabled and the ref still blocks a second call while one runs.
+- Proof: admin tsc clean; admin test 1/1. No automated UI test exists for this page (the admin app has one unit test); checked by reading the function.
+- Found during the UX pass [deep review].
+
+### UX pass — 10:02-11:05 PM — every screen of checkout, dashboard and admin (frontend only)
+- Request: organizers asked for production-quality UX ("the overall experience, not just colors"); frontend only, no API or money logic change, one commit per screen, tests green.
+- Method: two read-only planning agents mapped the dashboard and admin screens (file:line); Claude edited. Then the three journeys (merchant, buyer, admin) were walked in headless Chrome on the local stack and every friction point fixed (list: docs/SUBMISSION.md section 5, "Journey review").
+- Commits: `git log --oneline --grep "^ux("` (bdffa5a … b9a2841). Shared layer: plain-English error map (apps/web/src/api/client.ts, apps/admin/src/api/client.ts), Bahrain-time and business-date helpers (apps/web/src/format.ts, apps/admin/src/lib/format.ts), right-aligned BHD cells (46), contrast, focus, phone layout.
+- Money-adjacent UI changes (no logic change): payment-link amount is typed in BHD and converted by the shared parseBhdToFils (same parser as the refund form; the API still receives fils); every money action now asks first and shows the amount.
+- Found on the way: E179 (credits Load more worked once) — fixed in 6dd7e1c; a flaky script test (two files sweep March on one database) — test command serialized in bf1e439.
+- Proof: web typecheck + web tests 13/13 and admin typecheck + admin test 1/1 after every screen; full regression at the end (LOG §6 not affected; see SUBMISSION "Tests"). Screenshots: docs/ui/before/ and docs/ui/after/ (method: docs/ui/README.md).
+- No fix-reviewer for UI-only changes (Zainab's speed rule, 10:07 PM). Second review (Copilot): not run — copilot not found (LOG line 1567).
+- Needs the code-freeze redeploy to reach the live site.
+
 ## 6. Deploy
 
 ### Official submission rules (04:28 PM, from Zainab; they override older plans)
@@ -3422,3 +3444,8 @@ Zainab asked for speed without losing safety. Two read-only agents now plan ahea
 - Judge note (09:34 PM): E72 — the March sweep miscounts residue for split captures; the right figure is now a read-only query, and the script was not run.
 - Judge note (09:34 PM): E69 — sample fees ignore their own fee schedules; recorded with the exact places, not changed.
 - Judge note (09:34 PM): E70 — sample outbox events do not match sample history; dev-only, recorded, not changed.
+- Judge note (10:18 PM): E179 — while polishing the credits page, reading the whole function showed "Load more" could only ever work once (a guard set and never cleared); fixed in the same screen commit (6dd7e1c).
+- Judge note (10:21 PM): UX journey — the admin merchant page crashed in the browser walk; the cause was the local API still running 3:15 PM code (no ledgerPayableFils), not the new UI. Restarted the local API on current code (local database migrated to 0088) before judging the screen.
+- Judge note (10:31 PM): UX — a checkout footer first said "encrypted connection"; removed, because the live site is plain HTTP (organizers: IP only, no SSL). Trust only what the system does.
+- Judge note (10:38 PM): E72 follow-up — the final regression caught a flaky script test (9 !== 12, 1 of 3 parallel runs): two test files sweep the same month on one database. Script tests now run one file at a time (bf1e439); 5 of 5 serial runs green.
+- Judge note (10:43 PM): UX — the visual check showed "Copy link" could never work on the live site: the browser clipboard API exists only on HTTPS or localhost, and the site is plain HTTP. A textarea fallback now copies (proved in an insecure context: copyText → true) and a blocked copy says what to do (f5b4221).
