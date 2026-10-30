@@ -13,9 +13,9 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 49 of 109 fixed.
+Summary: 51 of 109 fixed.
 
-## High (28 of 31 fixed)
+## High (29 of 31 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -47,11 +47,11 @@ Summary: 49 of 109 fixed.
 | E51 | API and seed cannot start: built-in dev key is 34 bytes, check needs 32 | Fixed |
 | E52 | Every refund fails: code inserts reason = NULL, migration 0070 forbids NULL | Fixed |
 | E73 | [found later] CloseBatch never journals the scheme rounding residue (ADR-0002 not implemented) | Fixed |
-| E99 | [found later] Dashboard capture makes a new Idempotency-Key on every click (double capture on retry) | Open |
+| E99 | [found later] Dashboard capture makes a new Idempotency-Key on every click (double capture on retry) | Fixed |
 | E102 | [found later] Merchant dashboard logs out after 10 minutes and does not notice | Fixed |
 | E104 | [found later] Bulk Approve KYC approves hidden merchants; server checks no status | Fixed |
 
-## Medium (20 of 39 fixed)
+## Medium (21 of 39 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -92,7 +92,7 @@ Summary: 49 of 109 fixed.
 | E100 | [found later] Checkout tells a charged buyer to try again (reservation_lost) | Open |
 | E101 | [found later] Expired link with stale reservation: Pay form forever, cannot cancel | Open |
 | E103 | [found later] View as merchant cannot work end to end | Open |
-| E105 | [found later] Refund drawer keeps its key after a definite 4xx (my F01f bug) | Open |
+| E105 | [found later] Refund drawer keeps its key after a definite 4xx (my F01f bug) | Fixed |
 | E106 | [found later] Reconciliation and batch pages leave out refund parts | Open |
 
 ## Low (1 of 39 fixed)

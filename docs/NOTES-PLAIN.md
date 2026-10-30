@@ -337,3 +337,9 @@ Where: apps/api/src/routes/auth.ts:217 · Commit: 0d04c29
 Admins can approve the identity checks of many shops at once. The list kept shops selected after the filter changed, and the server approved whatever it was sent, even shops that had been rejected. Now the server only approves shops that are waiting for review, and the list forgets its selection when the filter changes. A test shows a rejected shop stays rejected.
 
 Where: apps/api/src/admin/bulkKyc.ts:30 · Commit: 850275f
+
+## N57 — Retrying a capture or refund can no longer take money twice
+
+Each money action carries a ticket number so the server can spot a repeat. The capture button made a new ticket on every click, so retrying after a lost answer could take the money twice, and my refund screen kept an old ticket even after a clear refusal. Now both keep the ticket only when no clear answer came back, and use a new one after a clear refusal. A test checks the rule for each kind of error.
+
+Where: apps/web/src/api/idempotencyKey.ts:11 · Commit: PENDING_N57

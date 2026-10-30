@@ -17,6 +17,7 @@ import { RequireRole } from "../../auth/RequireRole.js";
 import { bhd } from "../../format.js";
 import type { TransactionDto } from "../../types.js";
 import { isRefundable, parseRefundAmount } from "./refundForm.js";
+import { keepKeyAfterError } from "../../api/idempotencyKey.js";
 
 interface RefundResponse {
   id: string;
@@ -92,6 +93,9 @@ export function RefundDrawer({ txn, onRefunded }: RefundDrawerProps) {
       await onRefunded();
     } catch (err) {
       setError(describeError(err));
+      // E105: after a definite 4xx the server stored that answer under the key;
+      // a corrected retry needs a new key (my F01f version kept it).
+      if (!keepKeyAfterError(err)) setIdempotencyKey(crypto.randomUUID());
     } finally {
       setSubmitting(false);
     }

@@ -2072,3 +2072,39 @@ The server now refuses to approve a shop that is not waiting for review, whateve
 The server is the real gate: any client (or a crafted request) could send the wrong ids. The screen fix just avoids surprises.
 
 Commit: 850275f
+
+## N57 — Retrying a capture or refund can no longer take money twice
+
+### The idea
+An Idempotency-Key is a "request ticket number". If the same ticket arrives twice, the server answers the first result again instead of doing the work twice.
+
+### The problem
+- Capture made a new ticket on every click, so a retry after a lost answer could capture twice.
+- My refund screen (F01f) kept the same ticket even after the server clearly said "no", so a corrected retry was refused.
+
+### The fix
+- idempotencyKey.ts (new): one rule for both. Keep the ticket when we got no clear answer (network error, server error 5xx). Use a new ticket after a clear "no" (4xx).
+- Capture and the refund drawer both use this rule.
+
+### The code
+Before (apps/web/src/pages/transactions/TransactionDetailPage.tsx:79):
+```ts
+await captureTransaction(id, input, crypto.randomUUID());
+```
+After:
+```ts
+const key = captureKey ?? crypto.randomUUID();
+setCaptureKey(key);
+await captureTransaction(id, input, key);
+```
+The same attempt keeps the same ticket until it succeeds, is cancelled, or gets a clear answer.
+
+### The proof
+- The rule test: network error, 500 and 502 keep the ticket; 402, 409 and 422 get a new one.
+- The web app builds; all web tests pass.
+
+### If the judges ask
+"Why not always keep the key?"
+After a clear "no" the server has saved that "no" under the key; reusing it would just replay the "no" forever.
+
+Commit: PENDING_N57

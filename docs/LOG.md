@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 12:56 PM (30 Oct 2026)
-Summary: Errors 49/109 fixed (+2 partly: E13, E50; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: not started · CHECKPOINT reached
+Updated: 12:57 PM (30 Oct 2026)
+Summary: Errors 51/109 fixed (+2 partly: E13, E50; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -859,7 +859,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/web/src/pages/transactions/TransactionDetailPage.tsx:76-79 (`captureTransaction(id, input, crypto.randomUUID())`); capture.ts:135-150 allows another partial capture
 - Error: a partial capture whose response is lost, retried, is captured twice (500 + 500 of a 1000 authorization). The amount field is also in fils while the refund drawer takes BD.
 - Proof: code read (web/admin bug-hunt agent (1:10 PM); checked by me).
-- Severity: high · Status: open
+- Severity: high · Status: fixed (see section 5)
 
 ### E100 — [found later] Checkout tells a buyer whose card WAS charged to try again (reservation_lost)
 - Where: apps/web/src/pages/checkout/CheckoutPage.tsx:77-78 (any 409 → "try again shortly", retryable); server pay.ts returns `payment_link_reservation_lost` + transactionId after a successful capture (E29)
@@ -895,7 +895,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/web/src/pages/transactions/RefundDrawer.tsx (key made in openForm, dropped only on success/cancel); processRefund.ts stores 402/409/422 under the key
 - Error: after a 422 the corrected retry gets idempotency_key_reused until Cancel. I only considered network errors in F01f.
 - Proof: code read (web/admin bug-hunt agent (1:10 PM); checked by me).
-- Severity: medium · Status: open
+- Severity: medium · Status: fixed (see section 5)
 
 ### E106 — [found later] Reconciliation and batch pages leave out the refund parts, so shown figures do not add up
 - Where: apps/web/src/pages/settlement/ReconciliationPage.tsx:124-137 (no refundsFromOtherPeriodsFils; formula text without it); SettlementBatchDetailPage.tsx:103-108, SettlementBatchListPage.tsx:117-119 (gross, fee, net only)
@@ -1719,6 +1719,13 @@ ROLLBACK;
 - Test: apps/api/src/admin/bulkKyc.e104.test.ts (under_review, rejected, submitted). Before: all three ids approved. After: only the under_review one; the others keep their status and kyc_passed = false.
 - Regression: full-db-test.sh = baseline v3; admin typecheck passes.
 - Actual result: a rejected or never-submitted merchant can no longer be approved in bulk.
+
+### E99 + E105 — 12:57 PM — one Idempotency-Key per money attempt in the dashboard
+- Changed: apps/web/src/api/idempotencyKey.ts (new) `keepKeyAfterError`: keep the key after a network error or 5xx (no definite answer → the retry is the same request), new key after a definite 4xx (the server stored that answer under the key). apps/web/src/pages/transactions/TransactionDetailPage.tsx: capture keeps one key per attempt (was `crypto.randomUUID()` per click, :79), cleared on success/cancel, replaced after a 4xx. RefundDrawer.tsx: new key after a 4xx (E105; my F01f version kept it, so a corrected retry got idempotency_key_reused).
+- Test: apps/web/src/refund.f01f.test.ts testE99_keyRuleAfterErrors (network, 500, 502 → keep; 402, 409, 422 → new). Before: helper missing; capture used a new key per click (code at TransactionDetailPage.tsx:79). After: PASS (web 13/13); web build passes.
+- Not changed: the capture amount field is still in fils (UX, part of E99 note) — Low, left.
+- Regression: full-db-test.sh = baseline v3.
+- Actual result: a capture retried after a lost response replays the first answer instead of capturing again (server idempotency, capture.ts).
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)

@@ -7,6 +7,7 @@ import {
   voidTransaction,
 } from "../../api/transactions.js";
 import { ApiError, describeError } from "../../api/client.js";
+import { keepKeyAfterError } from "../../api/idempotencyKey.js";
 import { RequireRole } from "../../auth/RequireRole.js";
 import { bhd, dash, dateTime } from "../../format.js";
 import type { TransactionDto, TransactionEventDto } from "../../types.js";
@@ -38,6 +39,9 @@ export function TransactionDetailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [captureOpen, setCaptureOpen] = useState(false);
   const [captureAmount, setCaptureAmount] = useState("");
+  // E99: one key per capture attempt (was a new key per click, so a retry
+  // after a lost response could capture twice).
+  const [captureKey, setCaptureKey] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!id) {
@@ -74,16 +78,19 @@ export function TransactionDetailPage() {
       // everything still outstanding — its own documented default. Computing
       // the remainder here would just be a second, staler copy of that rule.
       const input = trimmed === "" ? {} : { amountFils: Number(trimmed) };
-      // A fresh Idempotency-Key per click, including a retry after a decline —
-      // same discipline as the checkout page's submit handler.
-      await captureTransaction(id, input, crypto.randomUUID());
+      // E99: the attempt's key, reused for a retry after a network error.
+      const key = captureKey ?? crypto.randomUUID();
+      setCaptureKey(key);
+      await captureTransaction(id, input, key);
       setCaptureOpen(false);
       setCaptureAmount("");
+      setCaptureKey(null);
       // Refetch rather than patch: a capture wrote a new transaction_events
       // row server-side, so the timeline is stale, not merely shorter.
       await load();
     } catch (err) {
       setActionError(describeError(err));
+      if (!keepKeyAfterError(err)) setCaptureKey(null); // definite answer → next try is a new attempt
     } finally {
       setSubmitting(false);
     }
@@ -202,7 +209,10 @@ export function TransactionDetailPage() {
                     type="button"
                     className="dash-button"
                     disabled={submitting}
-                    onClick={() => setCaptureOpen(false)}
+                    onClick={() => {
+                      setCaptureOpen(false);
+                      setCaptureKey(null);
+                    }}
                   >
                     Cancel
                   </button>

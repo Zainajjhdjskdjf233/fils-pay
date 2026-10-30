@@ -48,3 +48,16 @@ test("testE102_401FiresSessionExpired", async () => {
   }
   assert.equal(fired, 1);
 });
+
+// E99/E105: one Idempotency-Key per attempt — kept when the server gave no
+// definite answer (network error, 5xx), replaced after a definite 4xx.
+test("testE99_keyRuleAfterErrors", async () => {
+  const { ApiError } = await import("./api/client.js");
+  const { keepKeyAfterError } = await import("./api/idempotencyKey.js");
+  assert.equal(keepKeyAfterError(new TypeError("Failed to fetch")), true, "network error: same request again");
+  assert.equal(keepKeyAfterError(new ApiError(502, { error: "acquirer_unavailable" })), true);
+  assert.equal(keepKeyAfterError(new ApiError(500, { error: "internal" })), true);
+  assert.equal(keepKeyAfterError(new ApiError(422, { error: "refund_exceeds_captured" })), false, "definite answer: new attempt");
+  assert.equal(keepKeyAfterError(new ApiError(409, { error: "x" })), false);
+  assert.equal(keepKeyAfterError(new ApiError(402, { error: "declined" })), false);
+});
