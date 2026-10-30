@@ -74,6 +74,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:25 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- ce6d4f0 fix(E135): single KYC review decides only a merchant under review (atomic UPDATE, 409 otherwise)
 - 235fb29 fix(E75): March sweep posts ADR-0002 legs (clearing/residue), never merchant_payable
 - d4df731 fix(E64): reporting consumes settlement.paid so payout trends show paid
 - 8720dd6 fix(E62): reporting cursor read locked (FOR UPDATE) so concurrent passes cannot double count
@@ -88,7 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:25 PM
 - fb945fa fix(E118): a business day can only be closed after it has ended — early close stranded later captures
 - a3975a9 fix(E117): OTP guess limit per user across logins; older codes and pending sessions end at login
 - a8fdcb1 feat(capacity): load shedding (503 + Retry-After), CPU rebalanced to Postgres, k6 checkout test; capacity ~15 checkouts/s
-- d7d17b2 fix(E02): Docker stack within 1 vCPU/2 GB — Dockerfiles, compose limits, restarts, health checks, volumes, per-service DB roles
 
 ## 7. All errors
 ## High (40 of 45 fixed)
@@ -3014,5 +3014,5 @@ If no row matches, nothing is written and the admin gets 409.
 "Why did you change two old tests?"
 They approved a shop with no documents and expected success, so they protected the bug. A real upload moves the shop to "under review" first.
 
-Commit: PENDING_N74
+Commit: ce6d4f0
 

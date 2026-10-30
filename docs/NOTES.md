@@ -2749,4 +2749,4 @@ If no row matches, nothing is written and the admin gets 409.
 "Why did you change two old tests?"
 They approved a shop with no documents and expected success, so they protected the bug. A real upload moves the shop to "under review" first.
 
-Commit: PENDING_N74
+Commit: ce6d4f0
