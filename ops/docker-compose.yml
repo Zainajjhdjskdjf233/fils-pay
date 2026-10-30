@@ -74,6 +74,7 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
+      HOST: 0.0.0.0   # E55: explicit; nginx reaches the API over the internal network
       PORT: "3000"
       DATABASE_URL: postgres://filspay_api:${FILSPAY_API_DB_PASSWORD}@postgres:5432/filspay?sslmode=disable
       PG_POOL_MAX: "20"

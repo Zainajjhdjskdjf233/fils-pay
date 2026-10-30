@@ -913,7 +913,8 @@ export async function generate(pool: Pool): Promise<SeedSummary> {
     apiKeyCount += 1;
     // Dev/test convenience only: the raw key is never stored, so this is
     // the only place it's ever visible. Fine to print for seed data.
-    console.log(`seed: issued API key for ${merchant.displayName}: ${issued.rawKey}`);
+    // E55: never print a full API key; issue one in the dashboard to use it.
+    console.log(`seed: issued API key for ${merchant.displayName}: ${issued.rawKey.slice(0, 12)}… (masked)`);
   }
 
   return {

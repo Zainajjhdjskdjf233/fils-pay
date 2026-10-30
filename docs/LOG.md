@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 07:57 PM (30 Oct 2026)
-Summary: Errors 146/176 fixed (+10 partly: E50, E92, E101, E131, E145, E163, E86, E94, E96, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 07:59 PM (30 Oct 2026)
+Summary: Errors 147/176 fixed (+10 partly: E50, E92, E101, E131, E145, E163, E86, E94, E96, E109; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -591,7 +591,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Error: the seed writes full API keys to the terminal/log. The API listens on `192.168.100.103:3000` as well as localhost, so anyone on the same Wi-Fi can reach a dev API.
 - Proof: scratchpad/seed.txt; scratchpad/api-run3.txt `Server listening at http://192.168.100.103:3000`.
 - Severity: low (dev only; hosting needs 0.0.0.0 anyway, so make it configurable by HOST)
-- Status: open
+- Status: fixed (see section 5, E55)
 
 ### E56 — [found later] Go DB tests are flaky when packages run in parallel
 - Where: apps/settlement/internal/ledger/refresh_test.go:61-67 and internal/settlement/*_test.go (both write merchant_balances in the same DB)
@@ -2825,6 +2825,11 @@ ROLLBACK;
 - Why it is safe: a fresh vite build of apps/web and apps/admin has one module script from /assets each, no inline script, no eval/new Function, no outside host loaded (grep of the built files); no embed/object/iframe in either app.
 - Proof: local stack, nginx rebuilt (`curl -sI` shows the header on :8080 and :8081); headless Chrome loaded /dashboard/login (form rendered), /pay/nope ('Payment link not found' — scripts ran and the API call worked) and :8081/login (form rendered) with 0 CSP messages in the console log.
 - check.sh (clean environment): OK. Needs a redeploy (nginx image).
+
+### E55 — 07:59 PM — a dev API listens on localhost only, and the seed prints masked API keys
+- Changed: new apps/api/src/lib/listenHost.ts (HOST if set; else 0.0.0.0 in production, 127.0.0.1 otherwise); apps/api/src/index.ts uses it instead of the fixed 0.0.0.0. ops/docker-compose.yml api: HOST: 0.0.0.0 set explicitly, so the container keeps listening for nginx even if NODE_ENV changes (`docker compose config` → api HOST = 0.0.0.0). db/seed/generate.ts:916 prints only the first 12 characters of each issued key.
+- Before: index.ts listened on 0.0.0.0 everywhere (scratchpad/api-run3.txt 'Server listening at http://192.168.100.103:3000'); the seed printed full fp_test_ keys. After: apps/api/src/lib/listenHost.e55.test.ts 1/1 (dev/test → 127.0.0.1, production → 0.0.0.0, HOST wins).
+- check.sh (clean environment): OK. Needs a redeploy (api image); the HOST line keeps the live container reachable.
 
 ## 6. Deploy
 

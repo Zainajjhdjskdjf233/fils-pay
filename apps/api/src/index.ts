@@ -5,6 +5,7 @@ import { markDbConnectedOnce } from "./health/state.js";
 import { formatIsoDate } from "./lib/dateFormat.js";
 import { startWebhookDispatcher, type WebhookDispatcherHandle } from "./webhooks/dispatcher.js";
 import { createFetchTransport } from "./webhooks/transport.js";
+import { listenHost } from "./lib/listenHost.js";
 
 async function main(): Promise<void> {
   const config = loadConfig(process.env);
@@ -20,7 +21,8 @@ async function main(): Promise<void> {
   markDbConnectedOnce();
 
   // YA: 0.0.0.0 is required inside docker. not a finding
-  await app.listen({ port: config.port, host: "0.0.0.0" });
+  // E55: true for Docker only; a dev API listened on the Wi-Fi too. See lib/listenHost.ts.
+  await app.listen({ port: config.port, host: listenHost(process.env, config.nodeEnv) });
 
   // Started explicitly here, after app.listen() — never inside buildApp()
   // (see webhooks/dispatcher.ts): buildApp()'s whole value is that it
