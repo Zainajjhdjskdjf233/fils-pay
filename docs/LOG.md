@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
 Updated: 07:06 PM (30 Oct 2026)
-Summary: Errors 123/176 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 2/2 done (F01 done; F02 live, /healthz at the edge waits for the redeploy) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d27ddf0; later fixes need a redeploy, LOG §6) · CHECKPOINT reached
+Summary: Errors 123/176 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live, /healthz at the edge waits for the redeploy) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d27ddf0; later fixes need a redeploy, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1308,7 +1308,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 ### E176 — [deep review] A redeploy stops settlement after 10 s, although it is built to wait 30 s for a running batch
 - Where: ops/docker-compose.yml:107-128 (settlement has no stop_grace_period, so Docker's default 10 s applies); apps/settlement/internal/internalapi/server.go:39-43 (shutdownTimeout = 30 s "so a SIGTERM does not sever a batch that is already committing"); cmd/settlement/main.go:55 (SIGTERM cancels the daemon context).
 - Error: on `compose up -d --build` the old settlement container gets SIGTERM and is killed with SIGKILL 10 s later, cutting the 30 s graceful wait short. No money is lost: every batch step is one Postgres transaction that rolls back (scheduler/daemon.go:5-9), and the daemon re-runs the same business day idempotently (daemon.go:22-29; batch.go:82 ON CONFLICT DO NOTHING, :95 FOR UPDATE). But a run that was nearly done starts over.
-- Proof: code read (07:12 PM) while answering the submission question "how does a redeploy avoid interrupting a settlement run"; `grep -n stop_grace_period ops/docker-compose.yml` → nothing.
+- Proof: code read (07:05 PM) while answering the submission question "how does a redeploy avoid interrupting a settlement run"; `grep -n stop_grace_period ops/docker-compose.yml` → nothing.
 - Severity: low · Status: fixed (see section 5, E176)
 
 ## 3. Hidden things
@@ -1564,7 +1564,7 @@ Open questions: who is `p@x` (needs host push logs or the pre-rewrite repo); is 
 - Required by: CASE-FILE.md Item 04 ("The app is live on Dilmune Cloud, our hosting provider").
 - Plan: /deploy. Needs E01, E51 and E02 first; health route; env names only.
 - Expected result: live URL answers `GET /healthz` with 200 (the API's route is /healthz, health.ts:13; there is no /health).
-- Status: done, one step waiting — live at http://139.59.57.26/ and :8081 since commit d27ddf0; live end-to-end check 45 public + 29 logged-in checks OK (LOG §6). `GET /healthz` through nginx on port 80 gave 404 (E164); fixed in ops/nginx/nginx.conf and verified on the local stack; live after the next redeploy.
+- Status: done, one step waiting — live at http://139.59.57.26/ and :8081 since commit d27ddf0; live end-to-end check 45 public + 29 logged-in checks OK (LOG §6). `GET /healthz` through nginx on port 80 returned the web page (200 text/html), not the API (E164); fixed in ops/nginx/nginx.conf and verified on the local stack; live after the next redeploy.
 
 ## 5. Fixes
 
@@ -2662,7 +2662,7 @@ ROLLBACK;
 
 ### E176 — 07:06 PM — settlement gets 40 s to finish a running batch on redeploy [deep review]
 - Changed: ops/docker-compose.yml settlement: stop_grace_period: 40s (above its own 30 s shutdownTimeout, internalapi/server.go:42).
-- Before: no stop_grace_period → Docker default 10 s, then SIGKILL. After: `docker compose config` → settlement stop_grace_period = 40s (command output 07:14 PM).
+- Before: no stop_grace_period → Docker default 10 s, then SIGKILL. After: `docker compose config` → settlement stop_grace_period = 40s (command output 07:06 PM).
 - Not proven by a live stop during a batch (time); the safety net is unchanged and is the real guarantee: one transaction per batch step + idempotent re-run (daemon.go:5-9, :22-29).
 - Found while writing SUBMISSION section 2 (redeploy and settlement).
 - check.sh (clean environment): OK. Needs a redeploy (settlement container is recreated with the new setting).

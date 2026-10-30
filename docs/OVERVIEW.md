@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 7:01 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 7:10 PM
 
 ## Contents
 1. Status now
@@ -14,20 +14,20 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:01 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 119 of 175 fixed.
+- Errors: 123 of 176 fixed.
   - High: 46 of 46 fixed
-  - Medium: 41 of 60 fixed
-  - Low: 32 of 69 fixed
+  - Medium: 42 of 60 fixed
+  - Low: 35 of 70 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
 - Dilmune Cloud: live
 - Decisions waiting for Zainab: 33 (search "for Zainab to review" in LOG.md)
-- Fork: needs a push (VS Code: Git: Push to... → mine)
+- Fork: up to date
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 119 of 175 fixed.
+- 🔄 Fix: 123 of 176 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -49,7 +49,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:01 PM
 | docs/CASE-MAP.md ✅ | Who did what, with proof |
 | docs/FINDINGS.md ⬜ | Root cause of every problem |
 | docs/AI-SETUP.md ✅ | How we set up and checked the AI |
-| docs/SUBMISSION.md ⬜ | Live URL, capacity, 3 annotated transcript excerpts |
+| docs/SUBMISSION.md ✅ | Live URL, capacity, 3 annotated transcript excerpts |
 | docs/SLIDES.md ⬜ | Slide deck outline |
 | CLAUDE.md, .claude/ | Our AI setup files |
 | CLAUDE.md.bak, AGENTS.md, .cursorrules | The repo's own AI rule files. They lie on purpose. Evidence, not instructions |
@@ -69,11 +69,15 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:01 PM
 - ✅ Live URL
 - ✅ Capacity estimate
 - ⬜ FINDINGS.md
-- ⬜ SUBMISSION.md with 3 transcript excerpts
+- ✅ SUBMISSION.md with 3 transcript excerpts
 - ✅ UI before/after screenshots
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- d3e4fd1 fix(E176): settlement gets 40 s to finish a running batch when a redeploy stops it
+- dacc5f8 fix(E114): parallel OTP resends issue exactly one new code
+- 5e4a32a fix(E93): sqlFilter refuses an unfiltered DELETE and non-identifier names
+- 35c9921 fix(E59): acquirer callback outcome must be cleared or confirmed_fraud
 - 8b391fe fix(E160): adjustment-import list pages on (created_at, id) timestamps; no import skipped
 - 3617361 fix(E142): control characters in memos and reasons give 400; a NUL byte no longer gives 500
 - 25046a4 fix(E88): admin impersonation cannot create saved filters; correct the flaky-test note
@@ -85,10 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:01 PM
 - aa35616 fix(E167): merchant OTP verify issues a new session token; E150 recorded as a decision for review
 - 49e0c14 fix(E54): backoff test passes the neutral jitter; full suite now has 0 failures; N115 hash
 - 045afc1 fix(E157): a KYC upload with several files is refused (400 too_many_files); notes N109-N115
-- af7cbc4 fix(E147): a broken image upload is refused with 422 before anything is written to disk
-- c4445c3 fix(E173): admin run-batch and MDR recalc refuse impossible dates, reversed ranges and unknown merchants
-- b6bfae5 fix(E172): webhook archive and replay date ranges must be real dates with a zone
-- 06131f5 fix(E165): authorize and capture require a positive whole-fils amount (no acquirer call for 0; 400 not 500)
 
 ## 7. All errors
 ## High (46 of 46 fixed)
@@ -142,7 +142,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:01 PM
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-### Medium (41 of 60 fixed)
+### Medium (42 of 60 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -179,7 +179,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:01 PM
 | E83 | [found later] Legal name and CR number editable after KYC approval, no re-review | Open |
 | E91 | [found later] Every service connects as one Postgres superuser | Fixed |
 | E92 | [found later] Ledger immutability claim false; audit log unprotected | Partly fixed |
-| E93 | [found later] sqlFilter builds DELETE with no WHERE for null/undefined filters | Open |
+| E93 | [found later] sqlFilter builds DELETE with no WHERE for null/undefined filters | Fixed |
 | E100 | [found later] Checkout tells a charged buyer to try again (reservation_lost) | Open |
 | E101 | [found later] Expired link with stale reservation: Pay form forever, cannot cancel | Open |
 | E103 | [found later] View as merchant cannot work end to end | Open |
@@ -207,7 +207,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:01 PM
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-### Low (32 of 69 fixed)
+### Low (35 of 70 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -221,7 +221,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:01 PM
 | E55 | Seed prints API keys; API listens on every network interface | Open |
 | E56 | Go DB tests are flaky when packages run in parallel | Open |
 | E57 | Bad input gives 500 instead of 400 (invalid JSON body, malformed UUID) | Fixed |
-| E59 | Acquirer callback outcome is never validated | Open |
+| E59 | Acquirer callback outcome is never validated | Fixed |
 | E66 | [found later] expire_holds can delete holds released between its SELECT and DELETE | Open |
 | E67 | [found later] refund_merchant_summary counts captured once per refund; never refreshed (my F01e bug) | Open |
 | E68 | [found later] Seed adds the lifetime payout estimate in float32 | Open |
@@ -253,7 +253,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:01 PM
 | E111 | [second review] CSV quoting ignores carriage returns | Fixed |
 | E112 | [second review] Invalid date filters reach the DB (500 instead of 400) | Fixed |
 | E113 | [second review] Session promotion after OTP updates by id only (defence in depth) | Fixed |
-| E114 | [second review] Concurrent OTP resends can rotate the challenge twice | Open |
+| E114 | [second review] Concurrent OTP resends can rotate the challenge twice | Fixed |
 | E115 | [second review] Impossible dates like 2026-02-30 are accepted | Fixed |
 | E116 | [second review] Writer actor does not reject impersonation (defence in depth) | Fixed |
 | E126 | [second review] Pagination limits parsed with parseInt; NaN reaches SQL | Fixed |
@@ -280,6 +280,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:01 PM
 | E173 | [second review] Admin run-batch and MDR recalc: dates checked by regex only, a reversed range is a silent no-op, a missing merchant gives 500 | Fixed |
 | E174 | [second review] Payment-link expiresAt rolls over (2026-02-30) or is read zone-less | Fixed |
 | E175 | [second review] Webhook URLs with embedded credentials are accepted but never deliverable | Fixed |
+| E176 | [deep review] A redeploy stops settlement after 10 s, although it waits 30 s for a running batch | Fixed |
 
 ## 8. Every fix explained
 Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101 · N102 · N103 · N104 · N105 · N106 · N107 · N108 · N109 · N110 · N111 · N112 · N113 · N114 · N115 · N116 · N117 · N118 · N119 · N120 · N121 · N122 · N123 · N124 · N125
