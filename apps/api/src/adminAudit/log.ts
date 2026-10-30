@@ -4,6 +4,7 @@ export type AdminAuditAction =
   | "kyc_review"
   | "kyc_bulk_approve"
   | "api_key_rotate"
+  | "api_key_revoke" // E82
   | "settlement_run_batch"
   | "balance_rebuild"
   | "webhook_batch_replay"

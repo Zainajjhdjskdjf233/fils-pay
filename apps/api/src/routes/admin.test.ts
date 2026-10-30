@@ -656,36 +656,33 @@ test("a forced audit-write failure rolls the WHOLE action back — the KYC revie
   assert.equal(retry.statusCode, 200, retry.body);
 });
 
-test("a forced audit-write failure rolls back an API key rotation entirely", async () => {
-  const finance = await signedInAdmin("finance", "auditfail-rotate");
-  const { merchantId, ownerUserId } = await createMerchant("auditfail-rotate");
+test("a forced audit-write failure rolls back an admin API key revoke entirely", async () => {
+  // E82: rotate became revoke; the same all-or-nothing rule applies.
+  const finance = await signedInAdmin("finance", "auditfail-revoke");
+  const { merchantId, ownerUserId } = await createMerchant("auditfail-revoke");
   const original = await issueApiKey(pool, config, { merchantId, createdBy: ownerUserId, label: "orig" });
 
   await pool.query(
     `ALTER TABLE admin_audit_log
-       ADD CONSTRAINT test_block_rotate_audit CHECK (action <> 'api_key_rotate') NOT VALID`,
+       ADD CONSTRAINT test_block_revoke_audit CHECK (action <> 'api_key_revoke') NOT VALID`,
   );
   try {
     const res = await app.inject({
       method: "POST",
-      url: `/v1/admin/merchants/${merchantId}/api-keys/${original.id}/rotate`,
+      url: `/v1/admin/merchants/${merchantId}/api-keys/${original.id}/revoke`,
       headers: { cookie: finance.cookie },
-      payload: {},
     });
     assert.equal(res.statusCode, 500, res.body);
   } finally {
-    await pool.query(`ALTER TABLE admin_audit_log DROP CONSTRAINT test_block_rotate_audit`);
+    await pool.query(`ALTER TABLE admin_audit_log DROP CONSTRAINT test_block_revoke_audit`);
   }
 
-  // Neither half of the rotation survived: the old key is NOT revoked (which
-  // would have been the dangerous outcome) and no replacement exists.
   const keys = await pool.query<{ id: string; revoked_at: Date | null }>(
     `SELECT id, revoked_at FROM api_keys WHERE merchant_id = $1`,
     [merchantId],
   );
   assert.equal(keys.rowCount, 1);
-  assert.equal(keys.rows[0]!.id, original.id);
-  assert.equal(keys.rows[0]!.revoked_at, null, "a failed rotation must not leave a revoked key with no replacement");
+  assert.equal(keys.rows[0]!.revoked_at, null, "a revoke whose audit row failed must not stand");
 });
 
 // ------------------------------------------- merchant list/detail
@@ -802,80 +799,38 @@ test("GET /v1/admin/merchants/:id 404s for an unknown or malformed id", async ()
 // -------------------------------------------------- API key rotation
 
 // Rotation = revoke + reissue in one transaction (0037:12-14). No grace period exists (LOG.md E07).
-test("API key rotation issues a new key atomically, revokes the previous key, and audits it", async () => {
-  const finance = await signedInAdmin("finance", "rotate");
-  const { merchantId, ownerUserId } = await createMerchant("rotate");
+test("admin API key revoke cuts the key off and audits it; no new key is issued (E82)", async () => {
+  const finance = await signedInAdmin("finance", "revoke");
+  const { merchantId, ownerUserId } = await createMerchant("revoke");
   const original = await issueApiKey(pool, config, { merchantId, createdBy: ownerUserId, label: "original" });
-
-  // The old key works before the rotation.
-  const before = await app.inject({
-    method: "GET",
-    url: "/v1/transactions",
-    headers: { authorization: `Bearer ${original.rawKey}` },
-  });
+  const before = await app.inject({ method: "GET", url: "/v1/transactions", headers: { authorization: `Bearer ${original.rawKey}` } });
   assert.equal(before.statusCode, 200, before.body);
 
   const res = await app.inject({
     method: "POST",
-    url: `/v1/admin/merchants/${merchantId}/api-keys/${original.id}/rotate`,
+    url: `/v1/admin/merchants/${merchantId}/api-keys/${original.id}/revoke`,
     headers: { cookie: finance.cookie },
-    payload: { label: "rotated by admin" },
   });
-  assert.equal(res.statusCode, 201, res.body);
-  const rotated = res.json() as { id: string; prefix: string; rawKey: string; previousKeyId: string };
-  assert.equal(rotated.previousKeyId, original.id);
-  assert.notEqual(rotated.id, original.id);
-  assert.ok(rotated.rawKey.startsWith("fp_test_"));
-  assert.equal(rotated.prefix, rotated.rawKey.slice(0, 16));
+  assert.equal(res.statusCode, 200, res.body);
+  assert.deepEqual(res.json(), { revokedKeyId: original.id });
 
-  // E07: rotation revokes the previous key in the same transaction (0037:12-14,
-  // issue.ts:22). The old "overlap window" expectation locked in the bug.
-  const after = await app.inject({
-    method: "GET",
-    url: "/v1/transactions",
-    headers: { authorization: `Bearer ${original.rawKey}` },
-  });
-  assert.equal(after.statusCode, 401, "the previous key must stop working after rotation");
+  const after = await app.inject({ method: "GET", url: "/v1/transactions", headers: { authorization: `Bearer ${original.rawKey}` } });
+  assert.equal(after.statusCode, 401, "the revoked key must stop working");
 
-  // The new key works too.
-  const withNew = await app.inject({
-    method: "GET",
-    url: "/v1/transactions",
-    headers: { authorization: `Bearer ${rotated.rawKey}` },
-  });
-  assert.equal(withNew.statusCode, 200, withNew.body);
-
-  const rows = await pool.query<{
-    id: string;
-    revoked_at: Date | null;
-    revoked_reason: string | null;
-    created_by: string | null;
-    created_by_admin_user_id: string | null;
-    rotated_from_key_id: string | null;
-    label: string | null;
-  }>(
-    `SELECT id, revoked_at, revoked_reason, created_by, created_by_admin_user_id, rotated_from_key_id, label
-       FROM api_keys WHERE merchant_id = $1 ORDER BY created_at`,
+  const rows = await pool.query<{ revoked_at: Date | null; revoked_reason: string | null }>(
+    `SELECT revoked_at, revoked_reason FROM api_keys WHERE merchant_id = $1`,
     [merchantId],
   );
-  assert.equal(rows.rowCount, 2);
-  const [oldRow, newRow] = rows.rows;
-  assert.ok(oldRow!.revoked_at, "rotation revokes the previous key");
-  assert.equal(oldRow!.revoked_reason, "rotated");
-  assert.equal(newRow!.id, rotated.id);
-  assert.equal(newRow!.revoked_at, null);
-  assert.equal(newRow!.created_by, null, "0037's XOR: an admin-issued key has no merchant_users actor");
-  assert.equal(newRow!.created_by_admin_user_id, finance.id);
-  assert.equal(newRow!.rotated_from_key_id, original.id);
-  assert.equal(newRow!.label, "rotated by admin");
+  assert.equal(rows.rowCount, 1, "staff never create a replacement key");
+  assert.ok(rows.rows[0]!.revoked_at);
+  assert.equal(rows.rows[0]!.revoked_reason, "admin_revoked");
 
-  const audit = await auditRowsFor(finance.id, "api_key_rotate");
+  const audit = await auditRowsFor(finance.id, "api_key_revoke");
   assert.equal(audit.length, 1);
   assert.equal(audit[0]!.target_id, original.id);
-  assert.equal((audit[0]!.metadata as { newKeyId?: string }).newKeyId, rotated.id);
 });
 
-test("rotating an already-revoked key is a 409; rotating another merchant's key is a 404", async () => {
+test("revoking an already-revoked key is a 409; revoking another merchant's key is a 404 (E82)", async () => {
   const finance = await signedInAdmin("finance", "rotate-edge");
   const { merchantId, ownerUserId } = await createMerchant("rotate-edge");
   const other = await createMerchant("rotate-edge-other");
@@ -888,9 +843,8 @@ test("rotating an already-revoked key is a 409; rotating another merchant's key 
 
   const second = await app.inject({
     method: "POST",
-    url: `/v1/admin/merchants/${merchantId}/api-keys/${key.id}/rotate`,
+    url: `/v1/admin/merchants/${merchantId}/api-keys/${key.id}/revoke`,
     headers: { cookie: finance.cookie },
-    payload: {},
   });
   assert.equal(second.statusCode, 409);
   assert.equal(second.json().error, "api_key_already_revoked");
@@ -898,9 +852,8 @@ test("rotating an already-revoked key is a 409; rotating another merchant's key 
   // Merchant-scoped by construction: the key exists, but not under this merchant.
   const crossTenant = await app.inject({
     method: "POST",
-    url: `/v1/admin/merchants/${other.merchantId}/api-keys/${key.id}/rotate`,
+    url: `/v1/admin/merchants/${other.merchantId}/api-keys/${key.id}/revoke`,
     headers: { cookie: finance.cookie },
-    payload: {},
   });
   assert.equal(crossTenant.statusCode, 404);
 });
@@ -1768,4 +1721,24 @@ test("testE103_meAcceptsTheImpersonationGrant", async () => {
   assert.equal(body.role, "support");
   assert.equal(body.email, admin.email, "the header shows who is viewing");
   assert.equal((await app.inject({ method: "GET", url: "/v1/auth/me" })).statusCode, 401, "no cookie is still 401");
+});
+
+// E82 [found later], decided: staff must never receive a working merchant key
+// (it bypassed read-only impersonation, E10). Admin revokes; the merchant
+// owner issues the replacement in the dashboard.
+test("testE82_adminRevokesButNeverReceivesAMerchantKey", async () => {
+  const finance = await signedInAdmin("finance", "e82");
+  const { merchantId, ownerUserId } = await createMerchant("e82");
+  const key = await issueApiKey(pool, config, { merchantId, createdBy: ownerUserId, label: "e82" });
+  const rotate = await app.inject({ method: "POST", url: `/v1/admin/merchants/${merchantId}/api-keys/${key.id}/rotate`, headers: { cookie: finance.cookie }, payload: {} });
+  assert.equal(rotate.statusCode, 410, rotate.body);
+  assert.equal((rotate.json() as { rawKey?: string }).rawKey, undefined, "no raw key is ever returned to staff");
+  const revoke = await app.inject({ method: "POST", url: `/v1/admin/merchants/${merchantId}/api-keys/${key.id}/revoke`, headers: { cookie: finance.cookie } });
+  assert.equal(revoke.statusCode, 200, revoke.body);
+  assert.equal((revoke.json() as { rawKey?: string }).rawKey, undefined);
+  const after = await app.inject({ method: "GET", url: "/v1/transactions", headers: { authorization: `Bearer ${key.rawKey}` } });
+  assert.equal(after.statusCode, 401, "the revoked key stops working");
+  const keys = await pool.query(`SELECT count(*)::int AS n FROM api_keys WHERE merchant_id = $1 AND revoked_at IS NULL`, [merchantId]);
+  assert.equal(keys.rows[0].n, 0, "no replacement key was created by staff");
+  assert.equal((await auditRowsFor(finance.id, "api_key_revoke")).length, 1);
 });

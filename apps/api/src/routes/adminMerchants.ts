@@ -9,10 +9,10 @@ import {
   merchantExists,
   UUID_RE,
 } from "../admin/merchants.js";
-import { rotateApiKeyAsAdmin } from "../admin/apiKeys.js";
+import { revokeApiKeyAsAdmin } from "../admin/apiKeys.js";
 import { startImpersonation } from "../admin/impersonation.js";
 import { withTransaction } from "../db/withTransaction.js";
-import { BadRequestError, NotFoundError, UnauthorizedError } from "../lib/errors.js";
+import { BadRequestError, NotFoundError, UnauthorizedError, GoneError } from "../lib/errors.js";
 import { recordKycReviewInTx } from "../onboarding/review.js";
 import { createWebhookDeliveryArchive, replayWebhookDeliveryArchive } from "../webhooks/archiveReplay.js";
 import { DEFAULT_REPLAY_STATUSES, replayWebhookDeliveriesBatch } from "../webhooks/replayBatch.js";
@@ -175,33 +175,35 @@ export async function adminMerchantRoutes(app: FastifyInstance): Promise<void> {
     },
   );
 
-  /** Atomic rotate: revoke + reissue + audit in one transaction. */
-  app.post<{ Params: ApiKeyRotateParams; Body: RotateBody }>(
+  /**
+   * E82 (decided): the old admin "rotate" handed staff a working merchant key
+   * (full merchant power, bypassing read-only impersonation). It is gone:
+   * 410 with a pointer to /revoke. The old rotateApiKeyAsAdmin was removed
+   * (no caller left, grep).
+   */
+  app.post<{ Params: ApiKeyRotateParams }>(
     "/:id/api-keys/:keyId/rotate",
+    { preHandler: [requireAdminSession, requireAdminRole("finance", "super_admin")] },
+    async () => {
+      throw new GoneError("rotate_removed", "Staff can revoke a key (POST …/revoke); the merchant owner issues the new key in the dashboard.");
+    },
+  );
+
+  /** E82: revoke + audit in one transaction; no new key is created or shown. */
+  app.post<{ Params: ApiKeyRotateParams }>(
+    "/:id/api-keys/:keyId/revoke",
     { preHandler: [requireAdminSession, requireAdminRole("finance", "super_admin")] },
     async (request, reply) => {
       const adminAuth = request.adminAuth;
       if (!adminAuth) throw new UnauthorizedError("unauthenticated");
-
       assertUuidParam(request.params.id, "merchant_not_found");
       assertUuidParam(request.params.keyId, "api_key_not_found");
-
-      const rotated = await rotateApiKeyAsAdmin(app.db, app.config, {
+      const result = await revokeApiKeyAsAdmin(app.db, {
         merchantId: request.params.id,
         apiKeyId: request.params.keyId,
         adminUserId: adminAuth.adminUserId,
-        label: request.body?.label,
       });
-
-      // rawKey appears in this response body and nowhere else, ever — the
-      // same show-once semantics as merchant-issued keys.
-      reply.code(201).send({
-        id: rotated.id,
-        prefix: rotated.prefix,
-        rawKey: rotated.rawKey,
-        createdAt: rotated.createdAt.toISOString(),
-        previousKeyId: rotated.previousKeyId,
-      });
+      reply.code(200).send(result);
     },
   );
 

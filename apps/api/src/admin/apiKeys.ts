@@ -1,55 +1,37 @@
 import type { Pool } from "pg";
-import type { Config } from "../config.js";
 import { insertAdminAuditLog } from "../adminAudit/log.js";
-import { issueApiKeyInTx, type IssuedApiKey } from "../apiKeys/issue.js";
 import { withTransaction } from "../db/withTransaction.js";
 import { ConflictError, NotFoundError } from "../lib/errors.js";
 
-export interface RotatedApiKey extends IssuedApiKey {
-  previousKeyId: string;
-}
-
-/** Rotates a merchant's API key, atomically with its audit row. */
-export async function rotateApiKeyAsAdmin(
+/**
+ * E82 (decided): staff revoke a merchant's key but never receive a new raw
+ * key — a working merchant key in staff hands bypassed read-only
+ * impersonation (E10). The merchant owner issues the replacement in the
+ * dashboard. Revoke and audit commit together or not at all.
+ */
+export async function revokeApiKeyAsAdmin(
   pool: Pool,
-  config: Pick<Config, "nodeEnv">,
-  input: { merchantId: string; apiKeyId: string; adminUserId: string; label?: string },
-): Promise<RotatedApiKey> {
+  input: { merchantId: string; apiKeyId: string; adminUserId: string },
+): Promise<{ revokedKeyId: string }> {
   return withTransaction(pool, async (client) => {
-    const existing = await client.query<{ id: string; label: string | null; revoked_at: Date | null }>(
-      `SELECT id, label, revoked_at FROM api_keys WHERE id = $1 AND merchant_id = $2 FOR UPDATE`,
+    const revoked = await client.query<{ id: string }>(
+      `UPDATE api_keys SET revoked_at = now(), revoked_reason = 'admin_revoked'
+        WHERE id = $1 AND merchant_id = $2 AND revoked_at IS NULL
+        RETURNING id`,
       [input.apiKeyId, input.merchantId],
     );
-    const row = existing.rows[0];
-    if (!row) {
-      throw new NotFoundError("api_key_not_found");
-    }
-    if (row.revoked_at) {
+    if (!revoked.rows[0]) {
+      const exists = await client.query(`SELECT 1 FROM api_keys WHERE id = $1 AND merchant_id = $2`, [input.apiKeyId, input.merchantId]);
+      if ((exists.rowCount ?? 0) === 0) throw new NotFoundError("api_key_not_found");
       throw new ConflictError("api_key_already_revoked");
     }
-
-    const issued = await issueApiKeyInTx(client, config, {
-      merchantId: input.merchantId,
-      createdByAdminUserId: input.adminUserId,
-      label: input.label ?? row.label ?? undefined,
-      rotatedFromKeyId: input.apiKeyId,
-    });
-
-    // E07: a rotation must cut off the old key, in this same transaction (0037:12-14).
-    await client.query(
-      `UPDATE api_keys SET revoked_at = now(), revoked_reason = 'rotated'
-        WHERE id = $1 AND merchant_id = $2 AND revoked_at IS NULL`,
-      [input.apiKeyId, input.merchantId],
-    );
-
     await insertAdminAuditLog(client, {
       adminUserId: input.adminUserId,
-      action: "api_key_rotate",
+      action: "api_key_revoke",
       targetType: "api_key",
       targetId: input.apiKeyId,
-      metadata: { merchantId: input.merchantId, newKeyId: issued.id },
+      metadata: { merchantId: input.merchantId },
     });
-
-    return { ...issued, previousKeyId: input.apiKeyId };
+    return { revokedKeyId: input.apiKeyId };
   });
 }

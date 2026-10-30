@@ -4,12 +4,12 @@ import { formatBhd, parseBhdToFils, toFils } from "@filspay/money";
 import { getMerchant, recomputeTransactionStatuses, submitKycReview } from "../../api/merchants.js";
 import { adjustBalance } from "../../api/balanceAdjustments.js";
 import { issueCredit } from "../../api/credits.js";
-import { rotateApiKey } from "../../api/apiKeys.js";
+import { revokeApiKey } from "../../api/apiKeys.js";
 import { startImpersonation } from "../../api/impersonation.js";
 import { describeError, WEB_BASE_URL } from "../../api/client.js";
 import { useAdminAuth } from "../../auth/AdminAuthContext.js";
 import { RequireRole } from "../../auth/RequireRole.js";
-import type { AdminMerchantDetail, CreditReasonCode, RotatedApiKey } from "../../types.js";
+import type { AdminMerchantDetail, CreditReasonCode } from "../../types.js";
 
 function bhd(fils: number): string {
   return `${formatBhd(toFils(fils, { allowNegative: true }))} BHD`;
@@ -37,9 +37,7 @@ export function MerchantDetailPage() {
 
   /** Which key the operator has asked to rotate and not yet confirmed. */
   const [pendingRotation, setPendingRotation] = useState<string | null>(null);
-  const [rotationLabel, setRotationLabel] = useState("");
   /** Shown exactly once: `rawKey` exists in the rotate response and nowhere else. */
-  const [rotatedKey, setRotatedKey] = useState<RotatedApiKey | null>(null);
 
   const [impersonationUrl, setImpersonationUrl] = useState<string | null>(null);
 
@@ -90,19 +88,16 @@ export function MerchantDetailPage() {
     }
   }
 
-  /** The old key keeps working for a 24h overlap window, then stops. */
-  async function handleRotate(keyId: string): Promise<void> {
+  /** E82: staff revoke; the merchant owner issues the new key in the dashboard. */
+  async function handleRevoke(keyId: string): Promise<void> {
     if (!id) return;
     setBusy(true);
     setActionError(null);
     setNotice(null);
     try {
-      const rotated = await rotateApiKey(id, keyId, {
-        label: rotationLabel.trim() ? rotationLabel.trim() : undefined,
-      });
-      setRotatedKey(rotated);
+      await revokeApiKey(id, keyId);
       setPendingRotation(null);
-      setRotationLabel("");
+      setNotice("Key revoked. The merchant owner can issue a new key in the dashboard.");
       await load();
     } catch (err) {
       setActionError(describeError(err));
@@ -479,25 +474,6 @@ export function MerchantDetailPage() {
       )}
 
       <h2>API keys</h2>
-      {rotatedKey ? (
-        <div className="admin-notice">
-          <p>
-            <strong>New key issued — copy it now.</strong> This value is shown once and is not
-            recoverable afterwards.
-          </p>
-          <p>
-            <code>{rotatedKey.rawKey}</code>
-          </p>
-          <p className="admin-muted">
-            New key id <code>{rotatedKey.id}</code>, replacing previous key{" "}
-            <code>{rotatedKey.previousKeyId}</code>.
-          </p>
-          <button type="button" onClick={() => setRotatedKey(null)}>
-            Dismiss
-          </button>
-        </div>
-      ) : null}
-
       {apiKeys.length === 0 ? (
         <p className="admin-muted">No API keys.</p>
       ) : (
@@ -529,7 +505,7 @@ export function MerchantDetailPage() {
                       fallback={<span className="admin-muted">finance role required</span>}
                     >
                       <button type="button" onClick={() => setPendingRotation(key.id)}>
-                        Rotate
+                        Revoke
                       </button>
                     </RequireRole>
                   )}
@@ -543,28 +519,13 @@ export function MerchantDetailPage() {
       {pendingRotation ? (
         <div className="admin-confirm">
           <p>
-            <strong>Rotate this API key?</strong> The current key is revoked and a replacement is
-            issued in the same transaction, so the merchant is never left without a working key —
-            but any integration still sending the old key will start failing immediately.
+            <strong>Revoke this API key?</strong> It stops working at once. Staff do not receive a
+            replacement (E82): the merchant owner issues a new key in the dashboard.
           </p>
-          <label>
-            Label for the new key (optional)
-            <input
-              type="text"
-              value={rotationLabel}
-              onChange={(e) => setRotationLabel(e.target.value)}
-            />
-          </label>
-          <button type="button" disabled={busy} onClick={() => void handleRotate(pendingRotation)}>
-            {busy ? "Rotating..." : "Yes, rotate it"}
+          <button type="button" disabled={busy} onClick={() => void handleRevoke(pendingRotation)}>
+            {busy ? "Revoking..." : "Yes, revoke it"}
           </button>{" "}
-          <button
-            type="button"
-            onClick={() => {
-              setPendingRotation(null);
-              setRotationLabel("");
-            }}
-          >
+          <button type="button" onClick={() => setPendingRotation(null)}>
             Cancel
           </button>
         </div>

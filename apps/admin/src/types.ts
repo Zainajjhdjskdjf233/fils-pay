@@ -176,16 +176,6 @@ export interface BulkApproveKycResult {
   approvedMerchantIds: string[];
 }
 
-/** `POST /v1/admin/merchants/:id/api-keys/:keyId/rotate` →
- *  `201 { id, prefix, rawKey, createdAt, previousKeyId }`. `rawKey` is
- *  show-once: it exists in this response and nowhere else, ever. */
-export interface RotatedApiKey {
-  id: string;
-  prefix: string;
-  rawKey: string;
-  createdAt: string;
-  previousKeyId: string;
-}
 
 // ---------------------------------------------------------------------------
 // Settlement re-run and balance rebuild

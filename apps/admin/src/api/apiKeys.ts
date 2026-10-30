@@ -1,22 +1,15 @@
 import { request } from "./client.js";
-import type { RotatedApiKey } from "../types.js";
 
 /**
- * `POST /v1/admin/merchants/:id/api-keys/:keyId/rotate`.
+ * `POST /v1/admin/merchants/:id/api-keys/:keyId/revoke` (E82).
  *
- * One call, one server-side transaction: the old key is revoked and a new
- * one issued together, so there is no window in which the merchant has no
- * working key. The returned `rawKey` is shown once and never retrievable
- * again.
+ * Staff revoke a merchant's key; they never receive a new raw key (it gave
+ * staff full merchant power and bypassed read-only impersonation). The
+ * merchant owner issues the replacement in the dashboard.
  */
-// FH: old key is revoked server side
-export function rotateApiKey(
-  merchantId: string,
-  keyId: string,
-  input: { label?: string } = {},
-): Promise<RotatedApiKey> {
+export function revokeApiKey(merchantId: string, keyId: string): Promise<{ revokedKeyId: string }> {
   return request(
-    `/v1/admin/merchants/${encodeURIComponent(merchantId)}/api-keys/${encodeURIComponent(keyId)}/rotate`,
-    { method: "POST", body: JSON.stringify(input) },
+    `/v1/admin/merchants/${encodeURIComponent(merchantId)}/api-keys/${encodeURIComponent(keyId)}/revoke`,
+    { method: "POST" },
   );
 }

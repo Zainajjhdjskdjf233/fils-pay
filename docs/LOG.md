@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 08:47 PM (30 Oct 2026)
-Summary: Errors 165/178 fixed (+3 partly: E50, E94, E178; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 09:16 PM (30 Oct 2026)
+Summary: Errors 166/178 fixed (+3 partly: E50, E94, E178; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -765,8 +765,9 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/routes/adminMerchants.ts:176-205 (returns rawKey to finance/super_admin, :198); requireMerchantAuth.ts:155 (API keys skip role checks)
 - Error: bypasses E10's read-only impersonation: an admin can refund, capture, re-point webhooks, all recorded as the merchant's API key; the merchant's integration breaks (old key revoked, E07).
 - Proof: code read (security-review agent (12:59 PM); checked by me).
-- Severity: medium · Status: open — for Zainab to review (07:46 PM)
+- Severity: medium · Status: fixed (see section 5, E82)
 - Options: (a) admin rotate only revokes the old key (no new raw key shown); the merchant owner issues a new one in the dashboard — closes the bypass, but support can no longer hand over a key; (b) keep issuing, but mark the new key as admin-issued and limit it to read-only routes — needs a scope column (migration); (c) keep as is and rely on the audit row. Recommended: (a), smallest and matches E10 (staff are read-only in the merchant plane). Not changed tonight: it changes the admin console flow (apps/admin) and needs your decision.
+- Decision (Claude, Zainab approved deciding without review): admin 'rotate API key' becomes 'revoke API key'; staff never receive a new raw key; the merchant owner issues the replacement in the dashboard — Why: a working merchant key in staff hands gave full merchant power and bypassed read-only impersonation (E10, E116) — Alternative: keep issuing keys but limit admin-issued keys to read-only routes (needs a scope column and a migration)
 
 ### E83 — [found later] Merchant can change legal name and CR number after KYC approval with no re-review
 - Where: apps/api/src/onboarding/businessProfile.ts:81-92 (PATCHABLE_COLUMNS incl. legal_name, registration_number, business_type), :99-131 (no status change, no audit)
@@ -2993,6 +2994,12 @@ ROLLBACK;
 - Second review (Copilot): not run — copilot not found (LOG line 1567). fix-reviewer: APPROVE; capture.ts is the only writer of capture events (pay.ts:186 goes through it); new events keep fixed positions. Residual risks it named, not changed: (1) events captured before this deploy have no recorded rate, so a later rate change can still shift positions for them; (2) if a merchant's rate drops to 0 after a capture whose adjustment was missed, the fast path and the sweep's current-rate > 0 filter skip it. Took its nit (SQL cap 10000).
 - check.sh (clean environment): OK. Needs a redeploy.
 
+### E82 — 09:16 PM — admin can revoke a merchant API key but never receives a new one
+- Changed: apps/api/src/admin/apiKeys.ts revokeApiKeyAsAdmin (revoke + 'api_key_revoke' audit in one transaction; 404 unknown, 409 already revoked); apps/api/src/routes/adminMerchants.ts: new POST /v1/admin/merchants/:id/api-keys/:keyId/revoke (finance/super_admin); the old /rotate answers 410 rotate_removed and returns no key. apps/admin: the button is 'Revoke', the confirm text says the owner issues the new key; revokeApiKey client. Dead code removed after grep showed no caller: rotateApiKeyAsAdmin and RotatedApiKey (api and admin types).
+- Before: testE82_adminRevokesButNeverReceivesAMerchantKey (admin.test.ts) failed — /rotate returned 201 with a working rawKey. After: /rotate 410 with no key; /revoke 200, the key gets 401, no replacement exists, one api_key_revoke audit row.
+- Tests changed: three admin.test.ts tests pinned the removed behaviour (rotation issues a new key); rewritten for revoke, keeping what they protected — an audit-write failure rolls the revoke back, a second revoke is 409, another merchant's key is 404. Admin and API key suites 123/123; api and admin tsc clean.
+- check.sh (clean environment): OK. Needs a redeploy.
+
 ## 6. Deploy
 
 ### Official submission rules (04:28 PM, from Zainab; they override older plans)
@@ -3293,3 +3300,4 @@ Zainab asked for speed without losing safety. Two read-only agents now plan ahea
 - Judge note (07:33 PM): the fix-reviewer stopped a regression in my own E139 fix. I changed the status rule in capture, but two later lines still used the status label to mean "fully captured"; a card hold would have stayed active. Fixed before the commit, with asserts on the hold and the event.
 - Judge note (08:36 PM): a one-line nginx change of mine (a second proxy_read_timeout in the same location) crashed the local nginx into a restart loop. Because every nginx change is rebuilt and checked locally before a redeploy, the live site was never affected. Fixed by editing the existing line; nginx -t and both ports verified.
 - Judge note (08:40 PM): before committing a migration that changed a view's owner, I checked which database user runs migrations on the live server. It is a non-superuser that cannot give ownership away, so that migration would have failed at the redeploy and kept the API down. My superuser test databases could not show this. I switched to a plain view, which needs no special rights.
+- Judge note (09:16 PM): E82 — staff could quietly obtain a full-power merchant key; now they can only cut a key off, and the shop issues its own.
