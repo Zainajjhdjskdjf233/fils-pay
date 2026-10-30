@@ -59,7 +59,14 @@ export function SettlementBatchDetailPage() {
     };
   }, [id]);
 
-  if (state.kind === "loading") return <p>Loading...</p>;
+  if (state.kind === "loading") {
+    return (
+      <section>
+        <h1>Settlement batch</h1>
+        <p className="dash-loading">Loading settlement batch…</p>
+      </section>
+    );
+  }
   if (state.kind === "not_found") {
     return (
       <section>
@@ -75,7 +82,8 @@ export function SettlementBatchDetailPage() {
     return (
       <section>
         <h1>Settlement batch</h1>
-        <p className="dash-error">{state.message}</p>
+        <p className="dash-error" role="alert">{state.message}</p>
+        <p><Link to="/dashboard/settlement">Back to settlement batches</Link></p>
       </section>
     );
   }
@@ -86,6 +94,7 @@ export function SettlementBatchDetailPage() {
 
   return (
     <section>
+      <p><Link to="/dashboard/settlement">← Settlement batches</Link></p>
       <h1>Settlement batch {batch.batchDate}</h1>
       {batch.status === "closed" && (
         <div className="dash-progress-bar" style={{ width: "100%", background: "#e0e0e0", height: 6, borderRadius: 3 }}>
@@ -155,7 +164,7 @@ export function SettlementBatchDetailPage() {
                 </Link>
               </td>
               <td>{dash(line.reference)}</td>
-              <td>{line.status}</td>
+              <td>{statusLabel(line.status)}</td>
               <td className="dash-num">{bhd(line.authorizedFils)}</td>
               <td className="dash-num">{bhd(line.capturedFils)}</td>
               <td className="dash-num">{bhd(line.schemeAmountFils)}</td>
@@ -163,7 +172,7 @@ export function SettlementBatchDetailPage() {
           ))}
           {lines.length === 0 ? (
             <tr>
-              <td colSpan={7}>No scheme export lines in this batch.</td>
+              <td colSpan={7} className="dash-empty">No scheme export lines in this batch.</td>
             </tr>
           ) : null}
         </tbody>

@@ -70,6 +70,7 @@ export function SettlementBatchListPage() {
   return (
     <section>
       <h1>Settlement batches</h1>
+      <p className="dash-muted">One batch per Bahrain business day. Net payout = gross − fee − refunds + fee returned. Click a date for the lines.</p>
 
       <fieldset className="dash-filters">
         <legend>Batch date</legend>
@@ -78,7 +79,7 @@ export function SettlementBatchListPage() {
           <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
         </label>
         <label>
-          To (exclusive)
+          To (not included)
           <input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
         </label>
       </fieldset>
@@ -92,12 +93,12 @@ export function SettlementBatchListPage() {
               checked={statuses.includes(status)}
               onChange={() => toggleStatus(status)}
             />
-            {status}
+            {statusLabel(status)}
           </label>
         ))}
       </fieldset>
 
-      {error ? <p className="dash-error">{error}</p> : null}
+      {error ? <p className="dash-error" role="alert">{error}</p> : null}
 
       <table className="dash-table">
         <thead>
@@ -131,13 +132,13 @@ export function SettlementBatchListPage() {
           ))}
           {batches.length === 0 && !loading ? (
             <tr>
-              <td colSpan={7}>No settlement batches match these filters.</td>
+              <td colSpan={8} className="dash-empty">No settlement batches match these filters. Today's payments join a batch when the day closes.</td>
             </tr>
           ) : null}
         </tbody>
       </table>
 
-      {loading ? <p>Loading...</p> : null}
+      {loading ? <p className="dash-loading">Loading…</p> : null}
 
       <Pagination nextCursor={nextCursor} loading={loading} onLoadMore={() => void load(nextCursor)} />
     </section>

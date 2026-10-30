@@ -93,15 +93,15 @@ export function ReconciliationPage() {
           <input type="date" required value={from} onChange={(e) => setFrom(e.target.value)} />
         </label>
         <label>
-          To (exclusive)
+          To (not included)
           <input type="date" required value={to} onChange={(e) => setTo(e.target.value)} />
         </label>
         <button type="submit" className="dash-button" disabled={loading}>
-          {loading ? "Loading..." : "Run report"}
+          {loading ? "Running…" : "Run report"}
         </button>
       </form>
 
-      {error ? <p className="dash-error">{error}</p> : null}
+      {error ? <p className="dash-error" role="alert">{error}</p> : null}
 
       {report ? (
         <>
@@ -145,7 +145,7 @@ export function ReconciliationPage() {
         </>
       ) : null}
 
-      {loading && !report ? <p>Loading...</p> : null}
+      {loading && !report ? <p className="dash-loading">Building the report…</p> : null}
     </section>
   );
 }
