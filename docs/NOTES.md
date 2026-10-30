@@ -1390,3 +1390,44 @@ randomInt comes from Node's crypto module and is safe for secrets.
 It cannot prove "random", but it proves the source: if the code still used Math.random, fixing Math.random would freeze the output.
 
 Commit: 971474c
+
+## N38 — Five wrong login codes really means five
+
+### The idea
+After the password, the user types a 6-digit code (OTP). Only 5 wrong tries are allowed, like a card that locks after a few wrong PINs.
+
+### The problem
+The limit could be skipped.
+- The code read the try count, checked the guess, and only then added one. 50 guesses sent at once all saw "0 tries" and 48 were checked.
+- "Resend code" started a new code with 0 tries, so the limit reset every 30 seconds.
+- The admin login had the same problem; its comment said the row was locked. It was not.
+
+### The fix
+- auth.ts and adminAuth.ts: one database statement adds the try first, and only if fewer than 5 were used. Only then is the guess checked.
+- A code that was already used (for example a double-click) gets "expired" and does not log the user out.
+- Resend carries the try count to the new code.
+
+### The code
+Before (apps/api/src/routes/auth.ts:158-167):
+```ts
+if (challenge.attempt_count >= challenge.max_attempts) { ... }
+const matches = verifyOtpCode(code, challenge.code_salt, challenge.code_hash);
+if (!matches) { await app.db.query(`UPDATE otp_challenges SET attempt_count = attempt_count + 1 ...`) }
+```
+After:
+```ts
+`UPDATE otp_challenges SET attempt_count = attempt_count + 1
+  WHERE id = $1 AND consumed_at IS NULL AND attempt_count < max_attempts AND expires_at > now()
+  RETURNING id`
+```
+The database hands out at most 5 "try tickets", even to 50 requests at once.
+
+### The proof
+- Before: 50 parallel guesses → 48 checked; after a resend, 5 more tries.
+- After: at most 5 checked; after 3 wrong and a resend, only 2 more. A double-click on the right code stays logged in.
+
+### If the judges ask
+"Why does the right code also use a try?"
+The try is taken before we know if the guess is right; that is what makes it safe. A user who gets it right on try 5 still logs in.
+
+Commit: PENDING_N38

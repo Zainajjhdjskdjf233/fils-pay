@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 11:29 AM (30 Oct 2026)
-Summary: Errors 35/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
+Updated: 11:33 AM (30 Oct 2026)
+Summary: Errors 36/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -387,7 +387,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: medium
 - Proposed fix: atomic `UPDATE ... SET attempt_count = attempt_count + 1 WHERE ... AND attempt_count < max RETURNING`; carry count on resend.
 - Expected result: 50 parallel guesses → at most 5 checked.
-- Status: open
+- Status: fixed (see section 5)
 
 ### E35 — Void and capture have no role check
 - Where: apps/api/src/routes/transactions.ts:94-95, :120-123
@@ -1216,6 +1216,13 @@ ROLLBACK;
 - Review: security change but a drop-in source swap with a direct test → no fix-reviewer; Copilot CLI not installed.
 - Actual result: matches expected.
 
+### E34 — 11:33 AM — the OTP guess limit holds for parallel guesses and across resend
+- Changed: apps/api/src/routes/auth.ts (/otp/verify): before comparing the code, `UPDATE otp_challenges SET attempt_count = attempt_count + 1 WHERE id AND consumed_at IS NULL AND attempt_count < max_attempts RETURNING id`; 0 rows → revoke session + 429. A correct code is consumed with `… AND consumed_at IS NULL RETURNING` (0 rows → 410), so two correct guesses cannot both log in. /otp/resend copies the old challenge's attempt_count onto the new one (the docblock promised this; the code started at 0). apps/api/src/routes/adminAuth.ts (/otp/verify): same atomic reservation and single consume; MK's comment "read FOR UPDATE" was false (plain SELECT) — kept with a correction.
+- Test: apps/api/src/routes/auth.e34.test.ts (merchant login through the API, 3 tests). Before: `48 guesses were checked against the code (limit 5)`; `after 3 wrong guesses and a resend, 5 more guesses were checked (should be at most 2)`. After: PASS (2 runs). Third test (double-click on the correct code → one 200, /me still 200) added after review; not run against the first version, so it guards the case rather than proving it red.
+- Regression: full-db-test.sh = baseline (5 known failures); api 419 tests.
+- Review: fix-reviewer → CHANGES: (1) 0 rows from the reservation also happens when the challenge was already consumed (double-click, resend in flight) and my first version then revoked the session the user had just logged into; now it re-reads the row and answers 410 without revoking; only real exhaustion revokes. (2) reservation also requires `expires_at > now()`. (3) resend reads the count while consuming the old challenge (`UPDATE … RETURNING attempt_count` inside the transaction), so guesses landing in between are carried over. (4) the resend test now moves only its own challenge's created_at. All applied (Judge note J23). Copilot CLI not installed.
+- Actual result: matches expected (50 parallel guesses → at most 5 checked).
+
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)
 - Status: not started
@@ -1329,4 +1336,9 @@ ROLLBACK;
 - What happened: my first E29 fix passed its test, but fix-reviewer showed a double charge was still possible while the acquirer capture itself was slow (it was only detected and logged). I wrote a second test with a 500 ms capture: it failed (`link charged 2 times`). I then held a row lock on the link through capture and finalize; both tests pass 3/3.
 - Why it matters: the incident (2026-05-14) was exactly a slow payment; a test that only covers the easy window can give false confidence.
 - Proof: section 5 E29; paymentLinks.e29.test.ts testE29_secondBuyerDuringASlowCaptureIsRefused.
+
+### J23 — 11:33 AM — the reviewer caught a logout bug in my OTP fix
+- What happened: my first E34 fix passed its tests, but fix-reviewer showed that a double-click on the correct code (or a resend while a verify was in flight) would revoke the session the user had just opened, because "challenge already used" and "out of attempts" both returned 0 rows. I split the two cases (410 vs 429 + revoke) and added a double-click test.
+- Why it matters: a security fix that logs real users out gets reverted; the review checked usability, not only the attack.
+- Proof: section 5 E34; auth.e34.test.ts testE34_doubleClickCorrectCodeStaysLoggedIn.
 

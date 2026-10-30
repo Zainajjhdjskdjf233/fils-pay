@@ -223,3 +223,9 @@ Where: apps/api/src/webhooks/dispatcher.ts:176 · Commit: 8c76fb8
 The one-time login codes, payment-link addresses and admin invite codes were made with a random generator that is not meant for secrets and can be predicted. A comment said a secure one was used, but it was not. We switched all three to the secure random generator from Node's crypto library. A test proves the codes no longer depend on the old generator.
 
 Where: apps/api/src/lib/random.ts:10 · Commit: 971474c
+
+## N38 — Five wrong login codes really means five
+
+The login code allowed only 5 wrong tries, but sending many guesses at the same moment got around it: 48 out of 50 were checked. Asking for a new code also reset the count. Now the database hands out each try before the guess is checked, and never more than 5, and a new code keeps the old count. The reviewer also made sure a double-click on the right code does not log the user out again.
+
+Where: apps/api/src/routes/auth.ts: · Commit: PENDING_N38
