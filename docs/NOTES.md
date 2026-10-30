@@ -1249,4 +1249,4 @@ updated := current + batchGrossFils
 "These are only monitoring numbers. Why fix them?"
 The volume counter is not only monitoring: it decides the 0.15% fee discount for every shop. A negative value would silently remove it.
 
-Commit: PENDING_N33
+Commit: effaf33

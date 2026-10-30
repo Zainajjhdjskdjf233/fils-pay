@@ -198,4 +198,4 @@ Where: apps/api/src/admin/adjustmentImport.ts:65 · Commit: c32a3d4
 
 Two running totals were stored in number types that were too small. The shop's lifetime payout total drifted because it used rough decimals, and the platform's total volume would flip to a large negative number just after passing 2 million BD, which would also switch off a fee discount for every shop. We changed both to large whole numbers. Tests now give the exact totals and no negative value.
 
-Where: apps/settlement/internal/settlement/platform_volume.go:26 · Commit: PENDING_N33
+Where: apps/settlement/internal/settlement/platform_volume.go:26 · Commit: effaf33
