@@ -246,4 +246,4 @@ Where: apps/api/src/webhooks/ssrfGuard.ts:9 · Commit: fb51fca
 
 A testing shortcut sent the one-time login code back in the login answer and wrote it to the log, and it was switched on by default unless the server was marked as "production". The hosted setup never marked it, so anyone with a password also got the code. Now the shortcut is off unless a developer turns it on on purpose. A test shows it is off when nothing is set.
 
-Where: apps/api/src/config.ts:212 · Commit: PENDING_N41
+Where: apps/api/src/config.ts:212 · Commit: f588a09
