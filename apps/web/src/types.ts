@@ -267,6 +267,8 @@ export interface ReconciliationReport {
   settlementNetPayoutFils: number;
   pendingUnbatchedFils: number;
   refundsFromOtherPeriodsFils: number;
+  /** E121: credits a batch in this period paid that happened in another period (signed). */
+  creditsFromOtherPeriodsFils?: number;
   gapFils: number;
   explained: boolean;
 }

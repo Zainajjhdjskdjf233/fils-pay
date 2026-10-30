@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 04:42 PM (30 Oct 2026)
-Summary: Errors 74/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 04:44 PM (30 Oct 2026)
+Summary: Errors 75/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -903,7 +903,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/web/src/pages/settlement/ReconciliationPage.tsx:124-137 (no refundsFromOtherPeriodsFils; formula text without it); SettlementBatchDetailPage.tsx:103-108, SettlementBatchListPage.tsx:117-119 (gross, fee, net only)
 - Error: with refunds, Gross − Fee ≠ Net on screen and the gap formula shown is wrong.
 - Proof: code read (web/admin bug-hunt agent (1:10 PM); checked by me).
-- Severity: medium · Status: open
+- Severity: medium · Status: fixed (see section 5)
 
 ### E107 — [found later] Dashboard shows expired payment links as active with a Cancel button
 - Where: apps/web/src/pages/payment-links/PaymentLinkDetailPage.tsx:162; serialize.ts `status: row.status` ("expired" never stored)
@@ -2248,6 +2248,17 @@ ROLLBACK;
 - fix-reviewer: APPROVE (counter cannot leak; 413 path unchanged; one API container; no other AppError 503). Noted: `streamTransactionsExportCsv` (exportCsv.ts:93) is dead code with SELECT *, an `occurred_at >` cursor that skips ties (E110) and no cap — do not wire it as is.
 - check.sh: OK.
 - Actual result: exports can no longer crash the API by running in parallel.
+
+### Refund demo check — 04:44 PM — full and partial refund, end to end (submission rule)
+- Where: local dev API (latest code, OTP shown) on the seeded UI database; script scratchpad/refund-check.sh.
+- Steps and results: two 10.000 BD links paid by card; FULL refund → 200 `refunded`, fee reversed 225; PARTIAL refund 4.000 BD → 200 `partially_refunded`, fee reversed 90 (40 % of 225). Dashboard API `GET /v1/transactions/:id`: refundedFils 10000 and 4000. Then (test DB only) both payments moved to yesterday, and `settlement run-batch --date 2026-10-29` (the real Go CLI): batch gross 20000, fee 450, refundFils 14000, feeReversedFils 315, **net 5865** = 20000 − 450 − 14000 + 315 (checked in SQL: balanced = t); both refunds stamped with the batch id; reconciliation 29-30 Oct: gap 0, explained.
+- Found: the API was right but the dashboard pages left the refund parts out (E106), so "Gross − Fee = Net" did not hold on screen. Fixed below. Screenshots: docs/ui/after/refund-batch-detail.png, refund-batch-list.png, refund-partial-transaction.png.
+
+### E106 — 04:44 PM — dashboard settlement pages show the refund parts
+- Changed (apps/web/src): SettlementBatchDetailPage.tsx adds "Refunds" and "Fee returned on refunds"; SettlementBatchListPage.tsx adds "Refunds (net of fee returned)"; ReconciliationPage.tsx adds refunds and credits from other periods and corrects the gap formula text; types.ts adds creditsFromOtherPeriodsFils (E121).
+- Test: no failing test (UI only); proof by screenshots of the real pages after the refund demo (batch 2026-10-29: 20.000 − 0.450 − 14.000 + 0.315 = 5.865). My own mistake caught by the screenshot: I added a second "Refunded amount" row to TransactionDetailPage.tsx, which already had one (F01f); removed before commit.
+- web tsc clean; web tests 13/13; check.sh OK.
+- Actual result: the numbers on the merchant dashboard add up with refunds.
 
 ## 6. Deploy
 
