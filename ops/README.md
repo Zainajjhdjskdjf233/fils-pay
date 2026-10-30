@@ -22,7 +22,7 @@ each package), not services with their own database connection.
 | File | Purpose |
 |---|---|
 | `docker-compose.yml` | the stack |
-| `.env.docker` | shared service settings, loaded by compose for every service |
+| `.env.docker` | shared service settings (gitignored; copy from `.env.docker.example`). Note: compose has no `env_file:` yet, see E02 |
 | `Dockerfile.node` | image for api, reporting, migrate and seed (`node:20`, full install) |
 | `Dockerfile.go` | multi-stage build of `apps/settlement` |
 

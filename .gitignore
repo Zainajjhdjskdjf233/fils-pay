@@ -6,3 +6,6 @@ dist/
 npm-debug.log*
 .DS_Store
 .claude/
+
+# E13: compose env file holds secrets; only the .example is tracked
+ops/.env.docker

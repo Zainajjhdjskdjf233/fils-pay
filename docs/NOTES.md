@@ -620,3 +620,41 @@ Refund events now go out, using a fixed public shape (refundId, amountFils, feeR
 The webhook is a contract shops write code against. A field-by-field mapping keeps internal fields private and lets us change internals without breaking shops.
 
 Commit: 079aeea
+
+## N17 — The compose secrets file is no longer in git
+
+### The idea
+Git keeps every file you give it, forever, for everyone who copies the repo. A secrets file in git is like a house key taped to the front door.
+
+### The problem
+ops/.env.docker was tracked by git, but its own comment says it is ignored.
+- It holds the acquirer callback signing secret.
+- Anyone with the repo could sign fake acquirer callbacks.
+
+### The fix
+- git rm --cached ops/.env.docker: git stops tracking it, but the file stays on disk.
+- .gitignore: ops/.env.docker added, so it cannot be added again by mistake.
+- ops/.env.docker.example: the same names, with no secret value.
+
+### The code
+Before (.gitignore:1-8):
+```
+.env
+.env.local
+```
+After (.gitignore:10-11):
+```
+# E13: compose env file holds secrets; only the .example is tracked
+ops/.env.docker
+```
+The old rule `.env` matches only a file named exactly .env. The new line names the real file.
+
+### The proof
+- Before: git ls-files ops → ops/.env.docker is listed; git check-ignore → exit 1 (not ignored).
+- After: git ls-files ops → no .env.docker; git check-ignore → .gitignore:11:ops/.env.docker.
+
+### If the judges ask
+"Is the secret safe now?"
+No. It is still in old commits since 669af52, so a human must rotate it. Untracking only stops new copies.
+
+Commit: PENDING_N17

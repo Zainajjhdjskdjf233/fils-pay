@@ -97,3 +97,9 @@ Where: apps/api/src/routes/refunds.ts:24 · Commit: f84083a, 8f05f9e
 Shops get automatic messages (webhooks) when something happens to their payments, but refunds never sent one. The refund event was recorded, yet it was missing from the list of events to send, and there was no message format for it. We added the format and then the list entry. A test that made a refund used to see only the payment message; now the refund message arrives with the right amount.
 
 Where: apps/api/src/webhooks/dispatcher.ts:31 · Commit: 079aeea
+
+## N17 — The compose secrets file is no longer in git
+
+A settings file with a real secret (the key that proves a message came from the card acquirer) was saved in git, even though a comment in it said it was not. A developer had trusted an AI tool that said the `.env` rule also covers `.env.docker`; it does not. We told git to stop tracking the file and to ignore it, and we added an example file with only the names. Git now shows the file as ignored. The secret is still in old history, so a person must change it.
+
+Where: .gitignore:11 · Commit: PENDING_N17

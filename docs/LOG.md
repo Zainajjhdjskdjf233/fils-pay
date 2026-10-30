@@ -1,6 +1,6 @@
 # LOG
 Mode: Competition
-Updated: 4:55 AM (30 Oct 2026)
+Updated: 9:50 AM (30 Oct 2026)
 Summary: Errors 15/59 fixed · Hidden 33 found · Features 0/2 done (F01 API part done) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
@@ -187,7 +187,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: high
 - Proposed fix: untrack `.env.docker`, ship `.env.example` with names only, stop publishing 5432, remove the fallback key. Rotating the real secret is a human task.
 - Expected result: `git ls-files ops` shows no env file with values; API refuses to start in production without the key.
-- Status: partly fixed (E51 da3ab76); rest skipped — needs git rm --cached, Docker, or a human (see section 5)
+- Status: partly fixed (E51 da3ab76; ops/.env.docker untracked 9:50 AM, see section 5); rest waits for /deploy (Docker) or a human (rotation)
 
 ### E14 — Scheme statement always a few fils higher than ours
 - Where: apps/settlement/internal/settlement/scheme_export.go:29-31, :71; batch.go:255; db/migrations/0050:12
@@ -947,6 +947,15 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Review: small two-file feature, not a security fix → no fix-reviewer (cost rule); Copilot not installed.
 - Commit: 079aeea
 
+### E13 (part 2) — 9:50 AM — untrack ops/.env.docker (Zainab approved at the checkpoint)
+- Changed: `git rm --cached ops/.env.docker` (the file stays on disk, only git stops tracking it); `.gitignore:11` adds `ops/.env.docker`; new `ops/.env.docker.example` with the three names and no secret value; ops/README.md:25 row corrected (gitignored; compose has no `env_file:` yet, see E02).
+- Before: `git ls-files ops` → `ops/.env.docker ops/README.md ops/docker-compose.yml`; `git check-ignore -v ops/.env.docker` → exit 1 (not ignored).
+- After: `git ls-files ops` → `ops/README.md ops/docker-compose.yml` (+ the example once committed); `git check-ignore -v ops/.env.docker` → `.gitignore:11:ops/.env.docker`. `ls -a ops` still shows `.env.docker`, so local runs are unchanged.
+- Expected result: no tracked env file with a secret value. Actual: matches.
+- Still open (E13): the secret is in git history since 669af52 (2025-08-03), so it must be rotated by a human; port 5432 and the compose password wait for /deploy (Docker).
+- Review: git index and config only, no code → no fix-reviewer; Copilot CLI not installed.
+- Decision: keep the local file and add an example — Why: compose users still need the values; the example documents the names without a secret — Alternative: delete the file (breaks local runs, and history still holds the value).
+
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)
 - Status: not started
@@ -1036,3 +1045,9 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - What happened: the overnight run reached the checkpoint. Done: app-stopping errors E01, E51; high security E03-E12 (E13 partly, E02 skipped: needs Docker); refunds core, route and webhook (E52, F01a/E28, F01b, F01c). Remaining F01 parts (settlement payouts in Go, reports, refund page) and F02 (Dilmune Cloud) need Zainab's design choices or tools she has not approved. Per the rules the run stops here and waits for her choice of next entries.
 - Why it matters: the AI does not choose the money design or install Docker on its own.
 - Proof: git log since a12d4c7; full-db-test.sh = 5 known failures only.
+
+### J18 — 9:50 AM — decisions made by the human at the checkpoint
+- What happened: Zainab chose the order: F01 settlement (design choice asked first), then F01 reports and reconciliation, then E21, E23, E14, E17; the web refund page last. Credits rule (H32): support stays blocked, because the code wins over docs/ADMIN.md. E04 findOtpRecipient and E06 expiryReferenceTime stay as dead code (not deleted). E13: untrack ops/.env.docker (done). Docker waits for the hosting talk. Her CLAUDE.md change committed (e34d70c).
+- Why it matters: deletions, money design and installs are the human's call, not the AI's.
+- Proof: this LOG entry; e34d70c; E13 part 2 in section 5.
+
