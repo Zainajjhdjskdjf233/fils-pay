@@ -408,4 +408,4 @@ Where: apps/settlement/internal/settlement/batch.go:238 · Commit: d97de16
 
 One report address forgot to check who was calling, so anyone could reach it without logging in. It only failed with an error because it looked for a user who was not there, and a quick fix of that error would have shown shop data to strangers. We added the same login check the other reports use. A test shows a stranger now gets "not logged in" (401) and a real shop gets its own numbers.
 
-Where: apps/api/src/routes/reporting.ts:80 · Commit: PENDING_N68
+Where: apps/api/src/routes/reporting.ts:80 · Commit: 26856d3

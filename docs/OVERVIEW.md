@@ -74,6 +74,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:13 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- 26856d3 fix(E45): export-summary requires a merchant login (second review item 29; re-rated High)
 - d97de16 fix(E121): credits and balance adjustments are paid through the daily batch (negative ones carry like refunds)
 - cc6d252 fix(E120): MDR recalculation skips and reports a batch instead of storing a negative payout
 - 1d456a8 fix(E124): one discount adjustment per capture event, sized from its own fee
@@ -88,7 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:13 PM
 - 850275f fix(E104): bulk KYC approval only approves under_review merchants; selection cleared on filter change
 - 0d04c29 fix(E102): merchant OTP verify re-issues the session cookie for 12 h; dashboard goes to login on 401
 - 184c0b2 fix(E73): CloseBatch journals the scheme rounding residue (ADR-0002); record E74-E90, H37-H39
-- e5eb890 feat(F01f): dashboard refund page; fix(E61): same-origin API calls for web and admin
 
 ## 7. All errors
 ## High (39 of 40 fixed)
@@ -2767,5 +2767,5 @@ The login check runs first; no login means 401.
 "It only gave 500, so why High?"
 The real bug is the missing login check. It leaked nothing only by luck; the second review found this root cause.
 
-Commit: PENDING_N68
+Commit: 26856d3
 

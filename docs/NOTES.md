@@ -2527,4 +2527,4 @@ The login check runs first; no login means 401.
 "It only gave 500, so why High?"
 The real bug is the missing login check. It leaked nothing only by luck; the second review found this root cause.
 
-Commit: PENDING_N68
+Commit: 26856d3
