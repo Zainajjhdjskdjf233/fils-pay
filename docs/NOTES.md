@@ -2150,4 +2150,4 @@ No password in the file, no open database port, and fixed limits per service.
 "How do you know the limits are real?"
 docker inspect shows them on each running container (0.50 CPU and 512 MB for the API), and the load test runs against exactly this stack.
 
-Commit: PENDING_N58
+Commit: d7d17b2

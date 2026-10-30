@@ -348,4 +348,4 @@ Where: apps/web/src/api/idempotencyKey.ts:11 · Commit: 0cf9a60
 
 The instructions said to start the app with Docker, but the files it needed were missing, the database password was in plain sight, and the database was open to the internet. We wrote the missing files and set each part's CPU and memory so the whole app fits the competition's small server. Parts restart by themselves after a crash, data is kept on disk, and only the website is reachable from outside. We crashed the database and the API on purpose and both came back with no data lost.
 
-Where: ops/docker-compose.yml · Commit: PENDING_N58
+Where: ops/docker-compose.yml · Commit: d7d17b2
