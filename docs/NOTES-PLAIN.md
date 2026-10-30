@@ -186,4 +186,10 @@ Where: apps/settlement/internal/settlement/payout_notify.go:40 · Commit: 8d56ba
 
 Finance saw a 2.45% fee on the dashboard while payments were charged 2.25%. The dashboard picked the fee row that was typed in last, even if it was a correction for an old period, while payments used the row that is currently in effect. Now both use the same rule, and the settlement program uses the same tie-break too. A test with the exact case-file numbers now shows 2.25% on both.
 
-Where: apps/api/src/fees/currentFeeScheduleDisplay.ts:38 · Commit: 5b2599c
+Where: apps/api/src/fees/currentFeeScheduleDisplay.ts:39 · Commit: 5b2599c
+
+## N32 — The same correction file cannot be applied twice
+
+Finance's balance-correction upload had no protection against uploading the same file twice, so every correction could be counted double. A code comment claimed the filename blocked it, but it did not. Now each upload is fingerprinted by its contents, and the database refuses a second upload with the same fingerprint. A test shows the second upload is rejected and the money is posted only once.
+
+Where: apps/api/src/admin/adjustmentImport.ts:65 · Commit: PENDING_N32

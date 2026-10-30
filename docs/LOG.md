@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 11:19 AM (30 Oct 2026)
-Summary: Errors 28/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
+Updated: 11:21 AM (30 Oct 2026)
+Summary: Errors 29/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -277,7 +277,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: medium
 - Proposed fix: unique content hash column.
 - Expected result: second upload of the same file → 409.
-- Status: open
+- Status: fixed (see section 5)
 
 ### E23 — Daily close runs at 3:00 AM Bahrain, not midnight
 - Where: apps/settlement/internal/settlement/window.go:44; apps/settlement/internal/scheduler/daemon.go:80-81
@@ -1168,6 +1168,14 @@ ROLLBACK;
 ### E50 — 11:19 AM — skipped (needs a design decision)
 - Found: the negotiated discount is applied three different ways. (1) Settlement: discount the amount, then apply MDR (discounted_fee.go:7-10). (2) Card API capture: full MDR at capture (capture.ts:196), then a separate ledger credit of fee × discount (discountAdjustment.ts, called only from routes/transactions.ts:111). (3) Payment-link checkout: no discount at all — MK's comment at pay.ts:117-118 "it's applied for both now (moved into capture.ts in July)" is false (grep: applyCaptureDiscountAdjustment has one caller).
 - Why skipped: making them agree changes merchant fees; which formula is the contract (partner-pricing addendum) is a business decision, not provable from code. Decision for Zainab: pick one formula (recommend settlement's, since payouts already use it).
+
+### E22 — 11:21 AM — the same adjustment CSV cannot be applied twice
+- Changed: db/migrations/0076_adjustment_import_content_hash.sql (`adjustment_imports.content_sha256` + partial unique index). apps/api/src/admin/adjustmentImport.ts: SHA-256 of the rows (merchantId, amount text, reason — not the filename); `INSERT … ON CONFLICT (content_sha256) DO NOTHING`; no row → `ConflictError("duplicate_import")` (409) before anything is posted. am's comment "blocked by the unique original_filename" kept, with a correction under it.
+- Decision (for Zainab to review): identical content is always refused, even on purpose — Why: a repeat of exactly the same rows is far more likely an accident than intent; to post the same correction again, change the reason text — Alternative: an explicit "force" flag (more surface, needs a UI).
+- Test: apps/api/src/admin/adjustmentImport.e22.test.ts. Before: `Missing expected rejection` (second upload under "march (1).csv" accepted). After: PASS (409; ledger posted once). Existing import tests: 23 pass.
+- Regression: full-db-test.sh = baseline (5 known failures).
+- Review: small, admin-only → no fix-reviewer.
+- Actual result: matches expected (second upload → 409).
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)

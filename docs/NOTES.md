@@ -1177,3 +1177,40 @@ The dashboard now asks the same question as the payment code.
 That is E50, still open: the discount is applied three different ways, and choosing the right one is a business decision.
 
 Commit: 5b2599c
+
+## N32 — The same correction file cannot be applied twice
+
+### The idea
+Finance uploads CSV files to correct balances. Each file should count once, like a cheque that can only be cashed once.
+
+### The problem
+Nothing stopped a second upload of the same file.
+- A comment said the filename was unique. It was not, and a renamed copy ("march (1).csv") would pass anyway.
+- Every row would be posted to the ledger again.
+
+### The fix
+- Migration 0076: a fingerprint column (SHA-256 of the rows) with a unique index.
+- adjustmentImport.ts: compute the fingerprint; if it already exists, answer 409 before posting anything.
+
+### The code
+Before (apps/api/src/admin/adjustmentImport.ts:56-58):
+```ts
+`INSERT INTO adjustment_imports (uploaded_by_admin_user_id, original_filename, row_count)
+ VALUES ($1, $2, $3) RETURNING id`
+```
+After:
+```ts
+`INSERT INTO adjustment_imports (..., content_sha256) VALUES ($1, $2, $3, $4)
+ ON CONFLICT (content_sha256) WHERE content_sha256 IS NOT NULL DO NOTHING RETURNING id`
+```
+The database itself refuses the second copy, even if two uploads happen at once.
+
+### The proof
+- Before: the second upload was accepted.
+- After: the second upload gets 409, and the ledger has one posting.
+
+### If the judges ask
+"What if finance really wants the same correction twice?"
+Change the reason text, and it is a different file. This is marked for Zainab to review.
+
+Commit: PENDING_N32
