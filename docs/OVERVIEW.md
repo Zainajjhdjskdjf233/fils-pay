@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 8:24 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 8:30 PM
 
 ## Contents
 1. Status now
@@ -14,10 +14,10 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:24 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 157 of 177 fixed.
+- Errors: 160 of 177 fixed.
   - High: 46 of 46 fixed
-  - Medium: 52 of 60 fixed
-  - Low: 59 of 71 fixed
+  - Medium: 53 of 60 fixed
+  - Low: 61 of 71 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
@@ -27,7 +27,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:24 PM
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 157 of 177 fixed.
+- 🔄 Fix: 160 of 177 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -74,6 +74,9 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:24 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- d02c699 fix(E86): dashboard dev proxy no longer forwards /v1/admin (E86 fully fixed)
+- aa5ea4d fix(E103): View as merchant works end to end (/me accepts the grant; no false popup-blocked)
+- 70fd999 fix(E177): admin login and invites match emails in any letter case
 - dba5b93 fix(E163): webhook timers and timeouts range-checked at boot (E163 fully fixed)
 - fb851fb fix(E163): security-relevant API settings range-checked at boot (partly fixed)
 - 8794b16 fix(E145): owner email checked and stored lower-case; login case-insensitive (E145 fully fixed); new entry E177
@@ -86,9 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:24 PM
 - fb71399 fix(E101): merchant can cancel a link with a stale reservation (E101 now fully fixed)
 - ff78296 fix(E48): admin run-batch enqueues payout notifications (partly fixed)
 - 797a8b2 fix(E67): refund summary counts captured once per transaction (migration 0085; partly fixed)
-- 5170b9c fix(E132): reconciliation figures come from one REPEATABLE READ snapshot
-- 782ce36 fix(E55): dev API listens on localhost only; seed prints masked keys
-- 8d4e7f7 fix(E47): full Content-Security-Policy on both nginx servers
 
 ## 7. All errors
 ## High (46 of 46 fixed)
@@ -142,7 +142,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:24 PM
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-### Medium (52 of 60 fixed)
+### Medium (53 of 60 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -182,7 +182,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:24 PM
 | E93 | [found later] sqlFilter builds DELETE with no WHERE for null/undefined filters | Fixed |
 | E100 | [found later] Checkout tells a charged buyer to try again (reservation_lost) | Fixed |
 | E101 | [found later] Expired link with stale reservation: Pay form forever, cannot cancel | Fixed |
-| E103 | [found later] View as merchant cannot work end to end | Open |
+| E103 | [found later] View as merchant cannot work end to end | Fixed |
 | E105 | [found later] Refund drawer keeps its key after a definite 4xx (my F01f bug) | Fixed |
 | E106 | [found later] Reconciliation and batch pages leave out refund parts | Fixed |
 | E125 | [second review] Filters without a time zone read in the server's local zone | Fixed |
@@ -207,7 +207,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:24 PM
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-### Low (59 of 71 fixed)
+### Low (61 of 71 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -236,7 +236,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:24 PM
 | E81 | [found later] Admin Run batch default date uses the UTC day | Fixed |
 | E84 | [found later] CSRF from same-site pages (Lax only, text/plain accepted) | Fixed |
 | E85 | [found later] Impersonation grant survives admin disable/logout | Fixed |
-| E86 | [found later] Dashboard dev proxy forwards /v1/admin; shared cookie jar | Partly fixed |
+| E86 | [found later] Dashboard dev proxy forwards /v1/admin; shared cookie jar | Fixed |
 | E87 | [found later] No anti-framing headers on dashboard and checkout | Fixed |
 | E88 | [found later] Read-only impersonation and API keys can write saved filters | Fixed |
 | E89 | [found later] Unsalted SHA-256 of card number and CVV stored | Fixed |
@@ -281,7 +281,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 8:24 PM
 | E174 | [second review] Payment-link expiresAt rolls over (2026-02-30) or is read zone-less | Fixed |
 | E175 | [second review] Webhook URLs with embedded credentials are accepted but never deliverable | Fixed |
 | E176 | [deep review] A redeploy stops settlement after 10 s, although it waits 30 s for a running batch | Fixed |
-| E177 | [deep review] Admin login and admin invites match emails case-sensitively | Open |
+| E177 | [deep review] Admin login and admin invites match emails case-sensitively | Fixed |
 
 ## 8. Every fix explained
 Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101 · N102 · N103 · N104 · N105 · N106 · N107 · N108 · N109 · N110 · N111 · N112 · N113 · N114 · N115 · N116 · N117 · N118 · N119 · N120 · N121 · N122 · N123 · N124 · N125 · N126 · N127 · N128 · N129 · N130 · N131 · N132 · N133 · N134 · N135 · N136 · N137 · N138 · N139 · N140 · N141 · N142 · N143 · N144 · N145 · N146 · N147 · N148 · N149 · N150 · N151 · N152 · N153 · N154 · N155 · N156 · N157 · N158 · N159 · N160 · N161 · N162 · N163 · N164 · N165 · N166 · N167 · N168

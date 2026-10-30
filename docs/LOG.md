@@ -2932,7 +2932,7 @@ ROLLBACK;
 
 ### E86 — 08:29 PM — (rest) the dashboard dev server no longer forwards /v1/admin
 - Changed: apps/web/vite.config.ts: the proxy key is the pattern ^/v1/(?!admin(/|$)), so /v1/admin/* stays on the dev server (like the hosted nginx, which answers 404 there since E86's first part).
-- Proof (dev server on :5199, command output 08:30 PM): /v1/admin/auth/me → 200 text/html (not forwarded); /v1/auth/me → 401 application/json (forwarded to the API as before); no proxy errors.
+- Proof (dev server on :5199, command output 08:29 PM): /v1/admin/auth/me → 200 text/html (not forwarded); /v1/auth/me → 401 application/json (forwarded to the API as before); no proxy errors.
 - The shared cookie jar on localhost is a property of browsers (cookies ignore ports); in hosting the admin runs on its own port with its own cookie name (fp_admin_sid), and the API never accepts one plane's cookie on the other (admin.test.ts 'a merchant session cookie grants nothing on the admin plane').
 - With the earlier part E86 is now fully fixed. check.sh not affected (dev config).
 
@@ -3055,6 +3055,12 @@ A fresh clone of the fork, built and started from nothing but the repo.
 ### Submission window moved — 08:15 PM (organizers' update, from Zainab)
 - Submission window: 10:00-11:00 PM. Code freeze: 10:00 PM (was 9:00 PM). Fixes continue until then, one per commit, tests green; SUBMISSION counts, the final regression, CONTRIBUTIONS and the redeploy move to the new freeze.
 - The 08:06 PM "final regression" entry above is therefore not the last one; another full regression runs at the 10:00 PM freeze.
+
+### Reverse proxy check on the live server — 08:30 PM (organizers asked for a proxy)
+- `docker ps --format "{{.Names}} {{.Ports}}"`: nginx publishes 0.0.0.0:80->8080 and 0.0.0.0:8081->8081; api 3000/tcp, reporting 3000/tcp, settlement 8091/tcp, postgres 5432/tcp are container ports only (not published).
+- Networks (`docker inspect`): nginx edge; api db+edge+internal; settlement db+internal; reporting db; postgres db.
+- Host listeners (`ss -ltn`): 0.0.0.0:22 sshd, 0.0.0.0:80 and 0.0.0.0:8081 docker-proxy; everything else on 127.0.0.x.
+- SUBMISSION section 2 states it in one sentence next to the diagram, with this evidence.
 
 ## 7. Judge notes
 

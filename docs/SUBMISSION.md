@@ -54,6 +54,8 @@ All parts run in Docker Compose (ops/docker-compose.yml) with hard limits that f
 
 ### Services and ports
 
+**nginx is the reverse proxy and the only service that faces the internet (ports 80 and 8081); api, postgres, settlement and reporting are on internal Docker networks only.**
+
 Only nginx publishes ports on the host. Everything else is on internal Docker networks (`edge`, `internal`, `db` in ops/docker-compose.yml) and cannot be reached from the internet.
 
 ```mermaid
@@ -86,6 +88,7 @@ flowchart LR
 - Port 80 on the host maps to nginx's port 8080 inside the container (`HTTP_PORT`, ops/docker-compose.yml:152); 8081 maps to 8081 (`ADMIN_PORT`).
 - nginx on port 80 answers 404 for `/v1/admin` (E86), so the admin API is reachable only through port 8081.
 - Postgres has no published port (E13); the panel firewall allows only 22, 80, 443 and 8081.
+- Checked on the live server (08:30 PM, `docker ps`): filspay-nginx-1 `0.0.0.0:80->8080/tcp, 0.0.0.0:8081->8081/tcp`; filspay-api-1 `3000/tcp`, filspay-reporting-1 `3000/tcp`, filspay-settlement-1 `8091/tcp`, filspay-postgres-1 `5432/tcp` (container ports only, nothing published). Networks: nginx only on `edge`; api on `db`, `edge`, `internal`; settlement on `db`, `internal`; reporting and postgres only on `db`. On the host only 22 (ssh), 80 and 8081 listen on all addresses (`ss -ltn`).
 
 ### Live server
 - Dilmune Cloud VM 139.59.57.26: Ubuntu, 1 vCPU, 2 GB RAM plus 2 GB swap, Docker 29.9.2, Compose v5.6.1. The panel firewall allows 22, 80, 443 and 8081.
