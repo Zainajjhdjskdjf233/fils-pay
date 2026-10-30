@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 11:43 AM (30 Oct 2026)
-Summary: Errors 41/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
+Updated: 11:47 AM (30 Oct 2026)
+Summary: Errors 39/60 fixed (+3 partly: E13, E19, E31; same count as docs/ERRORS.md) · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -485,7 +485,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Error: computes the number, prints it, does not save, but the comment says it does.
 - Proof: blame 37fcde8 (Yousif, 2025-10-13).
 - Severity: low
-- Status: open
+- Status: fixed by E18 (b15f944: RebuildMerchantBalance now writes the cache; test TestE18_SingleMerchantRebuildWritesTheCache)
 
 ### E50 — Fee at capture ignores the negotiated discount that settlement applies
 - Where: apps/api/src/payments/capture.ts:196 vs Go ComputeSettlementFee
@@ -1388,4 +1388,10 @@ ROLLBACK;
 - What happened: my first E34 fix passed its tests, but fix-reviewer showed that a double-click on the correct code (or a resend while a verify was in flight) would revoke the session the user had just opened, because "challenge already used" and "out of attempts" both returned 0 rows. I split the two cases (410 vs 429 + revoke) and added a double-click test.
 - Why it matters: a security fix that logs real users out gets reverted; the review checked usability, not only the attack.
 - Proof: section 5 E34; auth.e34.test.ts testE34_doubleClickCorrectCodeStaysLoggedIn.
+
+### J24 — 11:47 AM — new instructions from Zainab; counts made consistent
+- What happened: Zainab added docs/ERRORS.md (one row per error, kept current after every fix) and CASE-FILE.md Item 05 (judging: 170 points; capacity, hosting limits 1 vCPU/2 GB with the API at 0.5 vCPU/512 MB, turning away excess load, recovery without data loss). New plan: speed mode on high/medium entries until 1:30 PM, then stop and plan E02 (Dockerfiles + compose with limits, restart policies, health checks, volumes), load shedding (429/503), and a local checkout load test.
+- Counting fix: my LOG Summary had counted partly-fixed entries as fixed (41); docs/ERRORS.md counts only "Fixed" (39). LOG now uses the same rule and lists the 3 partly fixed. E49 marked fixed (done inside E18, b15f944).
+- Order change: E53 before E42 — an E42 test must use runConsumerPass, which E53's poison events break in the shared test DB.
+- Proof: docs/ERRORS.md Summary line (computed by script from the table rows).
 
