@@ -2036,3 +2036,39 @@ The wristband now lasts 12 hours, the same as the session.
 Most testing takes under 10 minutes. MK even guessed it in a comment ("related to the 10 min logouts?").
 
 Commit: 0d04c29
+
+## N56 — Bulk KYC approval approves only merchants under review
+
+### The idea
+KYC ("know your customer") is the identity check before a shop may take payments. Admins can approve many shops at once from a list.
+
+### The problem
+Two mistakes added up.
+- The list kept selected shops after the admin changed the filter, so hidden shops were sent too.
+- The server approved any shop id it got, even a rejected shop or one that never finished signing up.
+
+### The fix
+- bulkKyc.ts: approve only shops whose status is "under_review".
+- MerchantListPage.tsx: clear the selection when the filter or search changes.
+
+### The code
+Before (apps/api/src/admin/bulkKyc.ts:29):
+```sql
+WHERE id = ANY($1::uuid[])
+```
+After:
+```sql
+WHERE id = ANY($1::uuid[])
+  AND onboarding_status = 'under_review'
+```
+The server now refuses to approve a shop that is not waiting for review, whatever the screen sends.
+
+### The proof
+- Before: under_review, rejected and submitted shops were all approved.
+- After: only the under_review shop.
+
+### If the judges ask
+"Why fix it on the server if the screen bug caused it?"
+The server is the real gate: any client (or a crafted request) could send the wrong ids. The screen fix just avoids surprises.
+
+Commit: PENDING_N56

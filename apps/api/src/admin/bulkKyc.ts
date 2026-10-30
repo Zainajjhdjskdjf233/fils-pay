@@ -27,6 +27,7 @@ export async function bulkApproveMerchantsKyc(
       `UPDATE merchants
           SET onboarding_status = 'approved', kyc_passed = true
         WHERE id = ANY($1::uuid[])
+          AND onboarding_status = 'under_review' -- E104: the docblock promised this; rejected/submitted were approved too
       RETURNING id`,
       [input.merchantIds],
     );

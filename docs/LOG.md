@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 12:54 PM (30 Oct 2026)
-Summary: Errors 48/109 fixed (+2 partly: E13, E50; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: not started · CHECKPOINT reached
+Updated: 12:56 PM (30 Oct 2026)
+Summary: Errors 49/109 fixed (+2 partly: E13, E50; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -889,7 +889,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/admin/src/pages/merchants/MerchantListPage.tsx:29,90 (selectedIds survive filter changes; all sent); apps/api/src/admin/bulkKyc.ts:27-29 (`UPDATE … SET onboarding_status='approved', kyc_passed=true WHERE id = ANY($1)` — any status, even rejected)
 - Error: select under_review rows, switch the filter to rejected, select one, approve → hidden merchants approved too; the server would approve rejected or never-submitted merchants.
 - Proof: code read (web/admin bug-hunt agent (1:10 PM); checked by me).
-- Severity: high · Status: open
+- Severity: high · Status: fixed (see section 5)
 
 ### E105 — [found later] Refund drawer keeps its key after a definite 4xx answer (my F01f bug)
 - Where: apps/web/src/pages/transactions/RefundDrawer.tsx (key made in openForm, dropped only on success/cancel); processRefund.ts stores 402/409/422 under the key
@@ -1713,6 +1713,12 @@ ROLLBACK;
 - Test: auth.e34.test.ts testE102_verifyReissuesTheCookieForTheSessionTtl. Before: `verify must send a Set-Cookie for the session`. After: PASS (Max-Age=43200). web refund.f01f.test.ts testE102_401FiresSessionExpired: PASS.
 - Regression: full-db-test.sh = baseline v3.
 - Actual result: the cookie now lives as long as the session (12 h).
+
+### E104 — 12:56 PM — bulk "Approve KYC" approves only merchants under review
+- Changed: apps/api/src/admin/bulkKyc.ts: `AND onboarding_status = 'under_review'` (the function's own docblock promised "Already-approved or rejected ids are skipped"; the SQL approved any id). apps/admin/src/pages/merchants/MerchantListPage.tsx: the selection is cleared whenever the filter or search reloads the list, so hidden rows are never sent.
+- Test: apps/api/src/admin/bulkKyc.e104.test.ts (under_review, rejected, submitted). Before: all three ids approved. After: only the under_review one; the others keep their status and kyc_passed = false.
+- Regression: full-db-test.sh = baseline v3; admin typecheck passes.
+- Actual result: a rejected or never-submitted merchant can no longer be approved in bulk.
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)

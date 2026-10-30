@@ -13,9 +13,9 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 48 of 109 fixed.
+Summary: 49 of 109 fixed.
 
-## High (27 of 31 fixed)
+## High (28 of 31 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -49,7 +49,7 @@ Summary: 48 of 109 fixed.
 | E73 | [found later] CloseBatch never journals the scheme rounding residue (ADR-0002 not implemented) | Fixed |
 | E99 | [found later] Dashboard capture makes a new Idempotency-Key on every click (double capture on retry) | Open |
 | E102 | [found later] Merchant dashboard logs out after 10 minutes and does not notice | Fixed |
-| E104 | [found later] Bulk Approve KYC approves hidden merchants; server checks no status | Open |
+| E104 | [found later] Bulk Approve KYC approves hidden merchants; server checks no status | Fixed |
 
 ## Medium (20 of 39 fixed)
 

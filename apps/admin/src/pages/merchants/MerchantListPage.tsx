@@ -54,6 +54,9 @@ export function MerchantListPage() {
   );
 
   useEffect(() => {
+    // E104: a new filter or search starts a new selection — hidden rows from
+    // the old list must never be sent to bulk approve.
+    setSelectedIds(new Set());
     void load(null);
   }, [load]);
 
