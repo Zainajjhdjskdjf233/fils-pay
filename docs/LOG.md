@@ -1,6 +1,6 @@
 # LOG
 Mode: Competition
-Updated: 12:08 PM (30 Oct 2026)
+Updated: 12:36 PM (30 Oct 2026)
 Summary: Errors 46/61 fixed (+2 partly: E13, E50; same count as docs/ERRORS.md) · Hidden 35 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
@@ -55,6 +55,58 @@ Phase: understand (no source code changed). Scratch proof files: /private/tmp/cl
   - API with DB, no key (12:32 AM) → same 34-byte crash (E51). With a key → `Server listening at http://127.0.0.1:3000` and `http://192.168.100.103:3000`; `GET /health` → 404 (no route yet); `GET /v1/transactions` → 401 `unauthenticated` (scratchpad/api-run3.txt).
 
 ## 2. Errors
+
+### Case file coverage (built 12:36 PM; status from docs/ERRORS.md)
+
+Every line of CASE-FILE.md that names a problem or a requirement, and the entries that answer it.
+
+| Case file line | Entries | Status |
+|---|---|---|
+| Item 01 — money rule: whole fils only (ADR-0001) | E14, E15, E21, E24, E25 (+ ADR check, second bug hunt) | Fixed |
+| Item 01 — settlement closes at midnight Bahrain | E23 | Fixed |
+| Item 01 — `docker compose up` starts everything | E02 | Skipped (Docker; planned next) |
+| Item 01 — read every ADR, code should follow them | ADR check (second bug hunt, running) | In progress |
+| Item 02 — scheme statement always a few fils higher | E14 | Fixed |
+| Item 02 — March sweep ran twice, gap doubled | E16 | Fixed (whether production ran twice: read-only check for a human, LOG E16) |
+| Item 02 — split payouts don't add up to the parent | E17 (H27: "tens of fils" not reproduced) | Fixed |
+| Item 02 — "Recalculate cached balances" 135K → 7K | E18 | Fixed |
+| Item 02 — MDR recalculation changed paid batches | E19 | Fixed |
+| Item 02 — dashboard 245 bps, payments 225 bps | E20 (+ E50 discount) | Fixed (E50 partly) |
+| Item 02 — CSV import 4.755 → 4.750, 4.75 → 0.475 | E21 (+ E22 double import) | Fixed |
+| Item 02 chat — daily close at 3 am | E23 | Fixed (claim TRUE) |
+| Item 02 chat — lifetime payout estimate drifts | E24 | Fixed (claim TRUE) |
+| Item 02 chat — test merchants in the real settlement run | E26 | Fixed (claim TRUE, via the admin tool) |
+| Item 02 chat — login works without the OTP code | E03 | Fixed (claim TRUE) |
+| Item 02 chat — cancelled merchant B's link from A | E05 | Fixed (claim TRUE) |
+| Item 03 — FP-187 link paid after expiry | E06 | Fixed |
+| Item 03 — FP-201 duplicate callback notes | E27 | Fixed |
+| Item 03 — FP-203 balance cache after admin action | E18 | Fixed |
+| Item 03 — FP-209 concurrent refund | E28 | Fixed |
+| Item 03 — FP-240 webhook signatures (outgoing + incoming) | E32, E08 | Fixed |
+| Item 03 — incident 2026-05-14 payment link charged twice | E29 | Fixed |
+| Item 03 — incident 2026-08-21 duplicate payout notifications | E30 | Fixed |
+| Item 03 — refund more than charged? | E28 | Fixed |
+| Item 03 — settlement splits a few fils short | E17 | Fixed |
+| Item 03 — admin actions without the right role checks | E09, E10, E35 | Fixed |
+| Item 03 — key rotation doesn't do what you'd expect | E07 | Fixed |
+| Item 03 — daily close timing vs the docs | E23 | Fixed |
+| Item 03 — a reporting query is suspiciously slow | E31 | Fixed |
+| Item 03 — test merchants and admin tools | E26 | Fixed |
+| Item 03 — OTP changed: still safe? | E03, E33, E34, E37 | Fixed |
+| Item 03 — really large export | E39 | Fixed |
+| Item 04 — feature works end to end through the API | F01b | Done |
+| Item 04 — money right in the ledger, to the fils | F01a (E28, E52) | Done |
+| Item 04 — fees and payouts come out right | F01a, F01d | Done |
+| Item 04 — shop gets the right webhook | F01c (+ E32 signature) | Done |
+| Item 04 — timeline, reports and reconciliation | F01b (timeline), F01e (E43), E60, E44 | Done |
+| Item 04 — live on Dilmune Cloud | F02 | Open (after E02) |
+| Item 05 — correctness: load test, security review, hidden regression tests, findings report | all E entries; second bug hunt; /findings | In progress |
+| Item 05 — capacity: estimate, turn away excess, restart, no data loss | plan steps 2-3 (k6 installed) | Open |
+| Item 05 — hosting: 1 vCPU / 2 GB, API 0.5 vCPU / 512 MB | E02 plan | Open |
+| Item 05 — AI usage and setup files, 3 annotated excerpts | /present | Open |
+| Item 05 — UI/UX before/after (checkout, dashboard, admin) | F01f, E61 (no screenshots yet) | Partly |
+| Item 05 — technical defence | /present | Open |
+
 
 Order follows the fix order: app-stopping → high security → (features) → wrong results / money → other security → messy code. Blame lines come from `git blame -L` (scratchpad/blame.txt).
 
