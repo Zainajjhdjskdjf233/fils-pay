@@ -1505,3 +1505,38 @@ We check where the name really points, refuse inside addresses, and never follow
 Yes: [::ffff:127.0.0.1] is rewritten by the URL parser into hex, and my first check missed it. It is fixed and in the test.
 
 Commit: fb51fca
+
+## N41 — Login codes are no longer shown unless a developer asks
+
+### The idea
+For local testing, the app can show the OTP code in the login answer and the log, so developers do not need real SMS. This must never happen on a real server.
+
+### The problem
+It was on by default whenever NODE_ENV was not "production".
+- NODE_ENV defaults to "development", and the hosted setup never set it (E02).
+- So anyone with a password got the OTP code back in the response. The second factor did nothing.
+
+### The fix
+- config.ts: OTP exposure is off unless OTP_DEV_EXPOSE=true is set on purpose.
+- Both notifiers: log the code only in that case.
+
+### The code
+Before (apps/api/src/config.ts:210):
+```ts
+otpDevExpose: parseBoolEnv(env.OTP_DEV_EXPOSE, nodeEnv !== "production"),
+```
+After:
+```ts
+otpDevExpose: parseBoolEnv(env.OTP_DEV_EXPOSE, false),
+```
+Safe by default: a forgotten setting now hides the code instead of showing it.
+
+### The proof
+- Before: with no settings, exposure was on and codes were in the log.
+- After: off by default; on only with OTP_DEV_EXPOSE=true.
+
+### If the judges ask
+"Doesn't this break local development?"
+Developers set OTP_DEV_EXPOSE=true in their own environment; all tests already do.
+
+Commit: PENDING_N41

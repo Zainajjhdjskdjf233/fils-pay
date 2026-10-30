@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 11:39 AM (30 Oct 2026)
-Summary: Errors 38/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
+Updated: 11:40 AM (30 Oct 2026)
+Summary: Errors 39/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -410,7 +410,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Error: NODE_ENV defaults to "development", and compose never loads `.env.docker` (E02), so a hosted box returns `devOtpCode` to anyone who logs in.
 - Severity: medium
 - Proposed fix: make OTP exposure opt-in only.
-- Status: open
+- Status: fixed (see section 5)
 
 ### E38 — Public payment link page exposes the merchant's API key hash and prefix
 - Where: apps/api/src/paymentLinks/read.ts:43-52, :73-74
@@ -1243,6 +1243,14 @@ ROLLBACK;
 - Known limit: a gap between our DNS lookup and fetch's own lookup (TOCTOU) remains; closing it needs pinning the resolved IP in the HTTP client.
 - Regression: full-db-test.sh = baseline (5 known failures). A 3xx now counts as a failed delivery and is retried (dispatcher.ts:186 counts only 2xx).
 - Review: fix-reviewer → CHANGES (IPv4-mapped hex bypass, confirmed by running it; trailing dot); both fixed. Copilot CLI not installed.
+- Actual result: matches expected.
+
+### E37 — 11:40 AM — OTP codes are exposed only with OTP_DEV_EXPOSE=true
+- Changed: apps/api/src/config.ts:210-212 `otpDevExpose` default `false` (was `nodeEnv !== "production"`). apps/api/src/auth/notifier.ts and adminAuth/notifier.ts log the code only when `config.otpDevExpose` (was "not production"). YA's comment "staging gets NODE_ENV=production from ops/.env.docker. fine" is false: compose never loads that file (E02).
+- Test: apps/api/src/auth/otpExposure.e37.test.ts (no DB). Before: `otpDevExpose` `actual: true` with no settings; codes in the log. After: 2/2 PASS. Every existing test that reads `devOtpCode` sets OTP_DEV_EXPOSE explicitly (checked: 8 files), so none changed.
+- Regression: full-db-test.sh = baseline (5 known failures).
+- Review: default + condition only → no fix-reviewer.
+- Note for /deploy: the hosted box must not set OTP_DEV_EXPOSE.
 - Actual result: matches expected.
 
 ## 6. Deploy
