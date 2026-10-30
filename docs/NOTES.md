@@ -1176,4 +1176,4 @@ The dashboard now asks the same question as the payment code.
 "What about the discount?"
 That is E50, still open: the discount is applied three different ways, and choosing the right one is a business decision.
 
-Commit: PENDING_N31
+Commit: 5b2599c

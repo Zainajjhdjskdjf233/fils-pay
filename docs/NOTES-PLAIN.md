@@ -186,4 +186,4 @@ Where: apps/settlement/internal/settlement/payout_notify.go:40 · Commit: 8d56ba
 
 Finance saw a 2.45% fee on the dashboard while payments were charged 2.25%. The dashboard picked the fee row that was typed in last, even if it was a correction for an old period, while payments used the row that is currently in effect. Now both use the same rule, and the settlement program uses the same tie-break too. A test with the exact case-file numbers now shows 2.25% on both.
 
-Where: apps/api/src/fees/currentFeeScheduleDisplay.ts:38 · Commit: PENDING_N31
+Where: apps/api/src/fees/currentFeeScheduleDisplay.ts:38 · Commit: 5b2599c
