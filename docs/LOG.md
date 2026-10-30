@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 06:51 PM (30 Oct 2026)
-Summary: Errors 114/175 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 2/2 done (F01 done; F02 live, /healthz at the edge waits for the redeploy) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d27ddf0; later fixes need a redeploy, LOG §6) · CHECKPOINT reached
+Updated: 06:53 PM (30 Oct 2026)
+Summary: Errors 115/175 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 2/2 done (F01 done; F02 live, /healthz at the edge waits for the redeploy) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d27ddf0; later fixes need a redeploy, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -483,7 +483,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/db/withTransaction.ts:11-14, :34; apps/reporting/src/db/withTransaction.ts:31
 - Severity: low
 - Proposed fix: try/catch around ROLLBACK; `release(err)`.
-- Status: open
+- Status: fixed (see section 5, E40)
 
 ### E41 — Reporting consumer can crash and loop forever
 - Where: apps/reporting/src/consumer/applyEvent.ts:147-148
@@ -2603,6 +2603,12 @@ ROLLBACK;
 - Second review (Copilot): not run — copilot not found (LOG line 1567). fix-reviewer: APPROVE; impersonation grants have their own token_hash and no admin session id (admin/impersonation.ts:20-21, 121); revoke goes by id; the admin web app (apps/admin/src/api/auth.ts) never touches the httpOnly cookie; nit: rawToken at adminAuth.ts:124 now means only the pending token. Our answer: agree.
 - E47 stays partly fixed: the 'no CSP' half is open.
 - Needs a redeploy.
+
+### E40 — 06:53 PM — withTransaction keeps the real error when ROLLBACK fails, and destroys the broken client
+- Changed: apps/api/src/db/withTransaction.ts: the ROLLBACK is wrapped; its error is kept in 'broken' and passed to client.release(broken), so pg destroys that connection instead of returning it to the pool; the original error is rethrown. The repo's own comments (withTransaction.ts:10-13) show FH and am proposed exactly this; MK and YA said 'fine' / 'leave'.
+- Before: apps/api/src/db/withTransaction.e40.test.ts (fake pool whose ROLLBACK throws) → the caller got 'connection terminated', not the real cause. After: the real error reaches the caller; release() gets an Error. 1/1.
+- No fix-reviewer: the success path (BEGIN, fn, COMMIT, release()) is unchanged; only the ROLLBACK-failure path changed, and the test covers it.
+- check.sh: OK. Needs a redeploy.
 
 ## 6. Deploy
 

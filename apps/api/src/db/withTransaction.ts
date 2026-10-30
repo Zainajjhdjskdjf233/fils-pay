@@ -24,6 +24,9 @@ export async function withTransaction<T>(
    * fn; nothing here upgrades the level.
    */
   const client = await pool.connect();
+  // E40: FH and am were right. A failed ROLLBACK must not replace the real
+  // error, and that client is broken: release(err) makes pg destroy it.
+  let broken: Error | undefined;
   try {
     await client.query("BEGIN");
     try {
@@ -31,10 +34,14 @@ export async function withTransaction<T>(
       await client.query("COMMIT");
       return result;
     } catch (err) {
-      await client.query("ROLLBACK");
+      try {
+        await client.query("ROLLBACK");
+      } catch (rollbackErr) {
+        broken = rollbackErr instanceof Error ? rollbackErr : new Error(String(rollbackErr));
+      }
       throw err;
     }
   } finally {
-    client.release();
+    client.release(broken);
   }
 }
