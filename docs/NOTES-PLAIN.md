@@ -193,3 +193,9 @@ Where: apps/api/src/fees/currentFeeScheduleDisplay.ts:39 · Commit: 5b2599c
 Finance's balance-correction upload had no protection against uploading the same file twice, so every correction could be counted double. A code comment claimed the filename blocked it, but it did not. Now each upload is fingerprinted by its contents, and the database refuses a second upload with the same fingerprint. A test shows the second upload is rejected and the money is posted only once.
 
 Where: apps/api/src/admin/adjustmentImport.ts:65 · Commit: c32a3d4
+
+## N33 — Two money counters now use big whole numbers
+
+Two running totals were stored in number types that were too small. The shop's lifetime payout total drifted because it used rough decimals, and the platform's total volume would flip to a large negative number just after passing 2 million BD, which would also switch off a fee discount for every shop. We changed both to large whole numbers. Tests now give the exact totals and no negative value.
+
+Where: apps/settlement/internal/settlement/platform_volume.go:26 · Commit: PENDING_N33

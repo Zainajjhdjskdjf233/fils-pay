@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 11:21 AM (30 Oct 2026)
-Summary: Errors 29/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
+Updated: 11:23 AM (30 Oct 2026)
+Summary: Errors 31/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -296,7 +296,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: medium
 - Proposed fix: BIGINT column, integer add.
 - Expected result: exact total.
-- Status: open
+- Status: fixed (see section 5, E24/E25)
 
 ### E25 — Platform volume counter overflows int32
 - Where: apps/settlement/internal/settlement/platform_volume.go:13-26; db/migrations/0049_platform_stats.sql:7
@@ -305,7 +305,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: medium
 - Proposed fix: BIGINT + int64.
 - Expected result: no negative value.
-- Status: open
+- Status: fixed (see section 5, E24/E25)
 
 ### E26 — Admin "recompute statuses" turns test merchants live
 - Where: apps/api/src/admin/merchantFlags.ts:15-16; admin/transactionStatusRecompute.ts:29, :47
@@ -1176,6 +1176,13 @@ ROLLBACK;
 - Regression: full-db-test.sh = baseline (5 known failures).
 - Review: small, admin-only → no fix-reviewer.
 - Actual result: matches expected (second upload → 409).
+
+### E24 / E25 — 11:23 AM — payout estimate and platform volume counter in BIGINT
+- Changed: db/migrations/0077_bigint_counters.sql: `merchants.lifetime_net_payout_monitoring_estimate` REAL → BIGINT (`USING round(...)`), `platform_stats.total_processed_fils` INTEGER → BIGINT. Go: payout_estimate.go passes `int64` (was `float32`), EstimateMonthlyPayout returns int64; platform_volume.go uses int64 throughout (the "INTEGER is 64-bit" belief was false). apps/api/src/fees/platformVolumeTier.ts: `Number(...)` because pg returns BIGINT as a string; FH's comment "is BIGINT" gets a note that it was INTEGER until 0077.
+- Test: settlement/counters_e24_e25_test.go (both in a rolled-back transaction, so the shared counter is untouched). Before: compile error `2_199_000_000 … as int32 value … (overflows)`; runtime (without that line): `estimate = 1.23456136e+08 after 1000 × 123457, want 123457000`; `total_processed_fils = -2095967296, want 2199000000`. After: PASS.
+- Regression: full-db-test.sh = baseline (5 known failures); Go 73 pass.
+- Review: types only → no fix-reviewer.
+- Actual result: matches expected (exact total; no negative value).
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)

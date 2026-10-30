@@ -1214,3 +1214,39 @@ The database itself refuses the second copy, even if two uploads happen at once.
 Change the reason text, and it is a different file. This is marked for Zainab to review.
 
 Commit: c32a3d4
+
+## N33 — Two money counters now use big whole numbers
+
+### The idea
+Some totals keep growing forever: a shop's lifetime payout, and the platform's total volume. A counter needs to be big enough, like a car odometer that must not roll back to zero.
+
+### The problem
+Both counters used number types that are too small.
+- The lifetime payout used float32 (about 7 exact digits): 1000 payouts of 123.457 BD gave 123,456.136 BD.
+- The platform volume used a 32-bit integer. Just past the 2,000,000 BD discount threshold it rolled over to a negative number, which would switch the volume discount off.
+
+### The fix
+- Migration 0077: both columns become BIGINT (64-bit whole numbers).
+- payout_estimate.go and platform_volume.go: use int64.
+- platformVolumeTier.ts: turn the BIGINT text into a number.
+
+### The code
+Before (apps/settlement/internal/settlement/platform_volume.go:26):
+```go
+updated := current + int32(batchGrossFils)
+```
+After:
+```go
+updated := current + batchGrossFils
+```
+64-bit whole numbers go up to about 9 quintillion fils, so no roll-over.
+
+### The proof
+- Before: 1,999,000,000 + 200,000,000 = -2,095,967,296; lifetime estimate 123,456,136.
+- After: 2,199,000,000 and exactly 123,457,000.
+
+### If the judges ask
+"These are only monitoring numbers. Why fix them?"
+The volume counter is not only monitoring: it decides the 0.15% fee discount for every shop. A negative value would silently remove it.
+
+Commit: PENDING_N33
