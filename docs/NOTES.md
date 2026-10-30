@@ -1430,4 +1430,4 @@ The database hands out at most 5 "try tickets", even to 50 requests at once.
 "Why does the right code also use a try?"
 The try is taken before we know if the guess is right; that is what makes it safe. A user who gets it right on try 5 still logs in.
 
-Commit: PENDING_N38
+Commit: 31b2741
