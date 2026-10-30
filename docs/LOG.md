@@ -1,6 +1,6 @@
 # LOG
 Mode: Competition
-Updated: 11:47 AM (30 Oct 2026)
+Updated: 11:44 AM (30 Oct 2026)
 Summary: Errors 39/60 fixed (+3 partly: E13, E19, E31; same count as docs/ERRORS.md) · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
@@ -1389,9 +1389,9 @@ ROLLBACK;
 - Why it matters: a security fix that logs real users out gets reverted; the review checked usability, not only the attack.
 - Proof: section 5 E34; auth.e34.test.ts testE34_doubleClickCorrectCodeStaysLoggedIn.
 
-### J24 — 11:47 AM — new instructions from Zainab; counts made consistent
+### J24 — 11:44 AM — new instructions from Zainab; counts made consistent
 - What happened: Zainab added docs/ERRORS.md (one row per error, kept current after every fix) and CASE-FILE.md Item 05 (judging: 170 points; capacity, hosting limits 1 vCPU/2 GB with the API at 0.5 vCPU/512 MB, turning away excess load, recovery without data loss). New plan: speed mode on high/medium entries until 1:30 PM, then stop and plan E02 (Dockerfiles + compose with limits, restart policies, health checks, volumes), load shedding (429/503), and a local checkout load test.
 - Counting fix: my LOG Summary had counted partly-fixed entries as fixed (41); docs/ERRORS.md counts only "Fixed" (39). LOG now uses the same rule and lists the 3 partly fixed. E49 marked fixed (done inside E18, b15f944).
 - Order change: E53 before E42 — an E42 test must use runConsumerPass, which E53's poison events break in the shared test DB.
-- Proof: docs/ERRORS.md Summary line (computed by script from the table rows).
+- Proof: docs/ERRORS.md Summary line (computed by script from the table rows). Time first typed as 11:47 before reading `date` (11:44) — same slip as J21, corrected.
 
