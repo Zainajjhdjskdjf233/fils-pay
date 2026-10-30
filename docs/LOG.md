@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 03:13 PM (30 Oct 2026)
-Summary: Errors 63/133 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 03:15 PM (30 Oct 2026)
+Summary: Errors 64/133 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1059,7 +1059,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 ### E133 — [second review] Report filter JSON is used without a shape check
 - Where: apps/api/src/routes/reporting.ts:31 `parsed = JSON.parse(request.query.filter)` goes straight to resolveReportMerchantId (reporting/scope.ts:3) and runTransactionsReport (reporting/transactionsReportQuery.ts:42-53).
 - Error: `filter=null` → TypeError on `parsed.merchantId` (500); a non-UUID merchantId, a number, or a bad `from`/`to` reaches Postgres (500); an unknown status is accepted. Bad input must give 400 (lens rule 4). Queries are parameterized, so no injection.
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5)
 
 ## 3. Hidden things
 
@@ -1953,6 +1953,13 @@ ROLLBACK;
 - Regression: same as baseline v3 (api 445/446, the known E54 test; Go 80 pass).
 - Second review: found the root cause (item 29); we had recorded only the 500. Our answer: agree, proof reporting.ts:79.
 - Actual result: the route answers only a logged-in merchant, for its own data.
+
+### E133 — 03:15 PM — report filters are checked before use (400, not 500)
+- Changed: apps/api/src/routes/reporting.ts:35: new `checkReportFilter` after the JSON parse: must be an object; merchantId a UUID; status one of the six transaction statuses (0004_transactions.sql:11-12); from/to a real date (YYYY-MM-DD, or a time with an explicit zone; 2026-02-30 and `\r\n` rejected). Otherwise 400 `invalid_filter`.
+- Test: apps/api/src/routes/reporting.e133.test.ts (12 bad filters, 4 good ones). Before: `filter null: 500 {"error":"internal_error"}`. After: PASS.
+- Note: no UI calls this route (grep apps/web, apps/admin), so no screen is affected.
+- Regression: same as baseline v3 (api 446/447, the known E54 test; Go 80 pass).
+- Actual result: bad report filters never reach the database.
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04) — not yet. Local Docker stack done (01:48 PM, see section 5 E02).

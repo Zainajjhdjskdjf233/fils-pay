@@ -409,3 +409,9 @@ Where: apps/settlement/internal/settlement/batch.go:238 · Commit: d97de16
 One report address forgot to check who was calling, so anyone could reach it without logging in. It only failed with an error because it looked for a user who was not there, and a quick fix of that error would have shown shop data to strangers. We added the same login check the other reports use. A test shows a stranger now gets "not logged in" (401) and a real shop gets its own numbers.
 
 Where: apps/api/src/routes/reporting.ts:80 · Commit: 26856d3
+
+## N69 — Report filters are checked before they reach the database
+
+The transactions report takes a filter (shop, status, dates) as text. The server used it without checking, so strange values like "null" or an impossible date crashed it. Now it checks the filter first and answers "bad filter" (400). A test sends twelve bad filters and four good ones.
+
+Where: apps/api/src/routes/reporting.ts:35 · Commit: PENDING_N69

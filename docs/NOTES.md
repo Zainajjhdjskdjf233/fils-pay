@@ -2528,3 +2528,38 @@ The login check runs first; no login means 401.
 The real bug is the missing login check. It leaked nothing only by luck; the second review found this root cause.
 
 Commit: 26856d3
+
+## N69 — Report filters are checked before they reach the database
+
+### The idea
+A report filter is like an order form: which shop, which status, which dates.
+
+### The problem
+The form was sent to the database without reading it first.
+- "null", a number, or a date like 2026-02-30 made the server crash (500).
+
+### The fix
+- reporting.ts: a small check right after reading the filter. A wrong shape, an unknown status or a bad date gets a clear 400.
+
+### The code
+Before (apps/api/src/routes/reporting.ts:31):
+```ts
+parsed = JSON.parse(request.query.filter);
+```
+After:
+```ts
+parsed = JSON.parse(request.query.filter);
+// ...
+checkReportFilter(parsed); // E133
+```
+checkReportFilter refuses anything that is not a proper filter before any query runs.
+
+### The proof
+- Before: filter=null gave 500.
+- After: 12 bad filters give 400; 4 good ones give 200.
+
+### If the judges ask
+"Was this an injection risk?"
+No. The queries use parameters. It was a crash on bad input, which our rule says must be a 400.
+
+Commit: PENDING_N69

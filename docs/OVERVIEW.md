@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 3:13 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 3:15 PM
 
 ## Contents
 1. Status now
@@ -14,10 +14,10 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:13 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 63 of 133 fixed.
+- Errors: 64 of 133 fixed.
   - High: 39 of 40 fixed
   - Medium: 22 of 44 fixed
-  - Low: 2 of 49 fixed
+  - Low: 3 of 49 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
@@ -27,7 +27,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:13 PM
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 63 of 133 fixed.
+- 🔄 Fix: 64 of 133 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ⬜ UI and UX, before/after screenshots
@@ -185,7 +185,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:13 PM
 | E130 | [deep review] Failed link capture leaves the card authorization open | Open |
 | E131 | [deep review] Discount error after a paid link gives the buyer a 500 | Open |
 
-### Low (2 of 49 fixed)
+### Low (3 of 49 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -237,10 +237,10 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 3:13 PM
 | E126 | [second review] Pagination limits parsed with parseInt; NaN reaches SQL | Open |
 | E127 | [second review] Settlement date filters accept impossible dates | Open |
 | E132 | [deep review] Reconciliation reads its figures from different snapshots | Open |
-| E133 | [second review] Report filter JSON used without a shape check | Open |
+| E133 | [second review] Report filter JSON used without a shape check | Fixed |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69
 
 ### N01 — Database setup stopped halfway
 
@@ -2768,4 +2768,39 @@ The login check runs first; no login means 401.
 The real bug is the missing login check. It leaked nothing only by luck; the second review found this root cause.
 
 Commit: 26856d3
+
+### N69 — Report filters are checked before they reach the database
+
+#### The idea
+A report filter is like an order form: which shop, which status, which dates.
+
+#### The problem
+The form was sent to the database without reading it first.
+- "null", a number, or a date like 2026-02-30 made the server crash (500).
+
+#### The fix
+- reporting.ts: a small check right after reading the filter. A wrong shape, an unknown status or a bad date gets a clear 400.
+
+#### The code
+Before (apps/api/src/routes/reporting.ts:31):
+```ts
+parsed = JSON.parse(request.query.filter);
+```
+After:
+```ts
+parsed = JSON.parse(request.query.filter);
+// ...
+checkReportFilter(parsed); // E133
+```
+checkReportFilter refuses anything that is not a proper filter before any query runs.
+
+#### The proof
+- Before: filter=null gave 500.
+- After: 12 bad filters give 400; 4 good ones give 200.
+
+#### If the judges ask
+"Was this an injection risk?"
+No. The queries use parameters. It was a crash on bad input, which our rule says must be a 400.
+
+Commit: PENDING_N69
 

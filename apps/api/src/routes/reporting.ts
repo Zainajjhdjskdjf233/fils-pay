@@ -32,6 +32,7 @@ export async function reportingRoutes(app: FastifyInstance): Promise<void> {
         } catch {
           throw new BadRequestError("invalid_filter", "filter must be valid JSON");
         }
+        checkReportFilter(parsed); // E133
       }
 
       const merchantId = await resolveReportMerchantId(
@@ -85,4 +86,42 @@ export async function reportingRoutes(app: FastifyInstance): Promise<void> {
     );
     return { totalDays: Number(result.rows[0]?.total ?? 0), grossFils: Number(result.rows[0]?.gross ?? 0) };
   });
+}
+
+const REPORT_STATUSES = ["authorized", "captured", "partially_captured", "voided", "refunded", "chargeback"];
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// YYYY-MM-DD, optionally with a time and an explicit zone (Z or ±hh:mm).
+const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})(T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2}))?$/;
+
+function isRealDate(v: unknown): boolean {
+  if (typeof v !== "string") return false;
+  const m = DATE_RE.exec(v);
+  if (!m) return false;
+  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const day = new Date(Date.UTC(y, mo - 1, d));
+  // 2026-02-30 rolls over to March in JS: reject it.
+  return day.getUTCFullYear() === y && day.getUTCMonth() === mo - 1 && day.getUTCDate() === d && !Number.isNaN(Date.parse(v));
+}
+
+/**
+ * E133 (second review, item 30): the parsed filter went straight into the
+ * report query. Wrong shape, types, status or dates gave 500 from Postgres or
+ * a TypeError. Now they are 400 before any query runs.
+ */
+function checkReportFilter(parsed: unknown): asserts parsed is Partial<TransactionReportFilter> {
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new BadRequestError("invalid_filter", "filter must be a JSON object");
+  }
+  const f = parsed as Record<string, unknown>;
+  if (f.merchantId !== undefined && (typeof f.merchantId !== "string" || !UUID_RE.test(f.merchantId))) {
+    throw new BadRequestError("invalid_filter", "merchantId must be a UUID");
+  }
+  if (f.status !== undefined && (typeof f.status !== "string" || !REPORT_STATUSES.includes(f.status))) {
+    throw new BadRequestError("invalid_filter", `status must be one of ${REPORT_STATUSES.join(", ")}`);
+  }
+  for (const key of ["from", "to"] as const) {
+    if (f[key] !== undefined && !isRealDate(f[key])) {
+      throw new BadRequestError("invalid_filter", `${key} must be a real date (YYYY-MM-DD, or a time with a zone)`);
+    }
+  }
 }

@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 63 of 133 fixed.
+Summary: 64 of 133 fixed.
 
 ## High (39 of 40 fixed)
 
@@ -109,7 +109,7 @@ Summary: 63 of 133 fixed.
 | E130 | [deep review] Failed link capture leaves the card authorization open | Open |
 | E131 | [deep review] Discount error after a paid link gives the buyer a 500 | Open |
 
-## Low (2 of 49 fixed)
+## Low (3 of 49 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -161,4 +161,4 @@ Summary: 63 of 133 fixed.
 | E126 | [second review] Pagination limits parsed with parseInt; NaN reaches SQL | Open |
 | E127 | [second review] Settlement date filters accept impossible dates | Open |
 | E132 | [deep review] Reconciliation reads its figures from different snapshots | Open |
-| E133 | [second review] Report filter JSON used without a shape check | Open |
+| E133 | [second review] Report filter JSON used without a shape check | Fixed |
