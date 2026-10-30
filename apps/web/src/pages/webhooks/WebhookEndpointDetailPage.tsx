@@ -27,6 +27,7 @@ export function WebhookEndpointDetailPage() {
   const [deliveries, setDeliveries] = useState<WebhookDeliveryDto[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -98,8 +99,10 @@ export function WebhookEndpointDetailPage() {
     if (!merchantId || !id) return;
     setBusyId(delivery.id);
     setError(null);
+    setNotice(null);
     try {
       await replayDelivery(merchantId, id, delivery.id);
+      setNotice(`Replay queued for the ${delivery.eventType} event. It appears at the top of the list as Pending.`);
       // The replay is a brand-new `pending` row, newest-first, so refetch from
       // the top rather than appending to what's on screen.
       await loadDeliveries(null);
@@ -126,7 +129,9 @@ export function WebhookEndpointDetailPage() {
 
   return (
     <section>
+      <p><Link to="/dashboard/webhooks">← Webhook endpoints</Link></p>
       <h1>Webhook endpoint</h1>
+      {notice ? <p className="dash-notice" role="status">{notice}</p> : null}
 
       {endpoint ? (
         <dl className="dash-dl">
@@ -158,12 +163,12 @@ export function WebhookEndpointDetailPage() {
               checked={statuses.includes(status)}
               onChange={() => toggleStatus(status)}
             />
-            {status}
+            {statusLabel(status)}
           </label>
         ))}
       </fieldset>
 
-      {error ? <p className="dash-error">{error}</p> : null}
+      {error ? <p className="dash-error" role="alert">{error}</p> : null}
 
       <table className="dash-table">
         <thead>
@@ -238,13 +243,13 @@ export function WebhookEndpointDetailPage() {
           })}
           {deliveries.length === 0 && !loading && !error ? (
             <tr>
-              <td colSpan={9}>No deliveries match these filters.</td>
+              <td colSpan={9} className="dash-empty">No deliveries match these filters.</td>
             </tr>
           ) : null}
         </tbody>
       </table>
 
-      {loading ? <p>Loading...</p> : null}
+      {loading ? <p className="dash-loading">Loading…</p> : null}
 
       <Pagination
         nextCursor={nextCursor}

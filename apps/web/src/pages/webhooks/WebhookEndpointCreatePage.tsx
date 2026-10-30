@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { createWebhookEndpoint } from "../../api/webhooks.js";
 import { describeError } from "../../api/client.js";
 import { useDashboardAuth } from "../../auth/DashboardAuthContext.js";
-import { dateTime } from "../../format.js";
+import { dateTime, statusLabel } from "../../format.js";
 import type { WebhookEndpointCreateResponse } from "../../types.js";
 
 /**
@@ -83,7 +83,7 @@ export function WebhookEndpointCreatePage() {
             <code>{created.secretPrefix}</code>
           </dd>
           <dt>Status</dt>
-          <dd>{created.status}</dd>
+          <dd>{statusLabel(created.status)}</dd>
           <dt>Created at</dt>
           <dd>{dateTime(created.createdAt)}</dd>
         </dl>
@@ -103,7 +103,7 @@ export function WebhookEndpointCreatePage() {
     <section>
       <h1>New webhook endpoint</h1>
 
-      {error ? <p className="dash-error">{error}</p> : null}
+      {error ? <p className="dash-error" role="alert">{error}</p> : null}
 
       <form className="dash-form" onSubmit={(e) => void handleSubmit(e)}>
         <label>

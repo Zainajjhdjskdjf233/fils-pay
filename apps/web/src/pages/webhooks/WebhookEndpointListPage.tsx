@@ -24,6 +24,7 @@ export function WebhookEndpointListPage() {
 
   const [endpoints, setEndpoints] = useState<WebhookEndpointDto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -46,13 +47,18 @@ export function WebhookEndpointListPage() {
 
   async function handleToggle(endpoint: WebhookEndpointDto): Promise<void> {
     if (!merchantId) return;
+    const disabling = endpoint.status === "active";
+    // UX: disabling stops event delivery, so it asks first.
+    if (disabling && !window.confirm(`Disable ${endpoint.url}? FilsPay stops sending events to it until you enable it again.`)) return;
     setBusyId(endpoint.id);
     setError(null);
+    setNotice(null);
     try {
       await updateWebhookEndpoint(merchantId, endpoint.id, {
-        status: endpoint.status === "active" ? "disabled" : "active",
+        status: disabling ? "disabled" : "active",
       });
       await load();
+      setNotice(disabling ? `Disabled ${endpoint.url}. No events are sent to it now.` : `Enabled ${endpoint.url}. New events will be sent to it.`);
     } catch (err) {
       setError(describeError(err));
     } finally {
@@ -75,9 +81,11 @@ export function WebhookEndpointListPage() {
     }
     setBusyId(endpoint.id);
     setError(null);
+    setNotice(null);
     try {
       await deleteWebhookEndpoint(merchantId, endpoint.id);
       await load();
+      setNotice(`Deleted ${endpoint.url}.`);
     } catch (err) {
       setError(describeError(err));
     } finally {
@@ -88,6 +96,8 @@ export function WebhookEndpointListPage() {
   return (
     <section>
       <h1>Webhook endpoints</h1>
+      <p className="dash-muted">FilsPay sends a signed message to these addresses when a payment, refund or payout changes.</p>
+      {notice ? <p className="dash-notice" role="status">{notice}</p> : null}
 
       <p>
         <Link className="dash-button-link" to="/dashboard/webhooks/new">
@@ -95,7 +105,7 @@ export function WebhookEndpointListPage() {
         </Link>
       </p>
 
-      {error ? <p className="dash-error">{error}</p> : null}
+      {error ? <p className="dash-error" role="alert">{error}</p> : null}
 
       <table className="dash-table">
         <thead>
@@ -131,7 +141,7 @@ export function WebhookEndpointListPage() {
                 </button>{" "}
                 <button
                   type="button"
-                  className="dash-button"
+                  className="dash-button dash-button-danger"
                   disabled={busyId === endpoint.id}
                   onClick={() => void handleDelete(endpoint)}
                 >
@@ -142,13 +152,13 @@ export function WebhookEndpointListPage() {
           ))}
           {endpoints.length === 0 && !loading && !error ? (
             <tr>
-              <td colSpan={5}>No webhook endpoints registered.</td>
+              <td colSpan={5} className="dash-empty">No webhook endpoints yet. Add one with "New endpoint" to receive payment events on your server.</td>
             </tr>
           ) : null}
         </tbody>
       </table>
 
-      {loading ? <p>Loading...</p> : null}
+      {loading ? <p className="dash-loading">Loading…</p> : null}
     </section>
   );
 }
