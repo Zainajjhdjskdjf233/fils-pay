@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 04:30 PM (30 Oct 2026)
-Summary: Errors 69/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 04:35 PM (30 Oct 2026)
+Summary: Errors 70/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1085,7 +1085,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/onboarding/kycThumbnail.ts:32 `sharp(buffer)` with no `limitInputPixels` (sharp default 268 MP; FH's comment at :31 warned).
 - Error: A 16383x16383 flat PNG (1.06 MB) peaks at 293 MB RSS when decoded (agent measurement in the scratchpad); 2 at once 548 MB → OOM kill of the API. Native memory, so --max-old-space-size does not stop it.
 - Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
-- Severity: high · Status: open
+- Severity: high · Status: fixed (see section 5)
 
 ### E138 — [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap
 - Where: apps/api/src/transactions/exportCsv.ts:7 (MAX_EXPORT_ROWS 50,000), :49-65 builds the whole CSV in memory; compose runs node with --max-old-space-size=384.
@@ -2218,6 +2218,13 @@ ROLLBACK;
 - fix-reviewer: APPROVE (race closed; a failed replay rolls back so the archive is not used up; nullable ADD COLUMN is metadata-only). Gap noted: archives replayed before 0084 can be replayed one more time (optional backfill from admin_audit_log action 'webhook_delivery_archive_replay').
 - Regression: same as baseline v3 (api 448/449, the known E54 test; Go 80 pass).
 - Actual result: only finance can resend old events, and an archive cannot be resent twice.
+
+### E137 — 04:35 PM — the KYC thumbnail never decodes a decompression bomb
+- Changed: apps/api/src/onboarding/kycThumbnail.ts:45: `sharp(buffer, { limitInputPixels: 25_000_000 })` (5000 x 5000) and a one-slot promise queue so thumbnails decode one at a time; an image over the limit gets no thumbnail (`null`), the document is still stored and reviewers open the original (kyc.ts already handles a missing thumbnail, :136, :220).
+- Test: apps/api/src/onboarding/kycThumbnail.e137.test.ts (a 36 MP flat PNG under 1 MB; a 12 MP photo still gets a thumbnail). Before (old file via `git show HEAD:…`): the bomb was decoded and a thumbnail returned. After: PASS; thumbnail + upload tests 22/22 (incl. app.test.ts uploads).
+- fix-reviewer: CHANGES NEEDED on my first version, which answered 422 `image_too_large`: it would refuse real 48 MP phone photos (8000x6000) and leave the saved original as an orphan (E147). Our answer: agree; changed to "no thumbnail" (`null`). Queue cannot jam (`run.catch(() => undefined)`); the error match works on sharp 0.33.5.
+- Regression: full suite same as baseline v3 on the first version (api 448/449, the known E54 test; Go 80); after the change, the thumbnail, onboarding and upload tests 22/22 and check.sh OK.
+- Actual result: an upload can no longer push the API past its memory limit through image decoding.
 
 ## 6. Deploy
 
