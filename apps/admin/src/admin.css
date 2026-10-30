@@ -304,3 +304,5 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 /* UX: form buttons keep their natural width; long ids hide on a phone (the name links to the detail). */
 .admin-form > button, .admin-form > div > button { align-self: flex-start; }
 @media (max-width: 700px) { .admin-table td .admin-muted code { display: none; } }
+.admin-jump { display: flex; flex-wrap: wrap; gap: 0.25rem 0.9rem; margin: 0 0 1rem; font-size: 0.9em; }
+.admin-main h2[id] { scroll-margin-top: 4rem; }

@@ -266,13 +266,24 @@ export function MerchantDetailPage() {
         <code>{merchant.id}</code>
       </p>
 
+      {/* UX: a long page, so a jump bar to each section. */}
+      <nav className="admin-jump" aria-label="Sections">
+        <a href="#balance">Balance</a>
+        <a href="#adjust">Adjust balance</a>
+        <a href="#credit">Issue credit</a>
+        <a href="#kyc">KYC review</a>
+        <a href="#keys">API keys</a>
+        <a href="#webhooks">Webhook endpoints</a>
+        <a href="#batches">Recent settlement batches</a>
+        <a href="#view-as">View as merchant</a>
+      </nav>
       {/* UX: the message stays in view while you scroll to the form below. */}
       <div className="admin-sticky-msg">
         {actionError ? <p className="admin-error" role="alert">{actionError}</p> : null}
         {notice ? <p className="admin-notice" role="status">{notice}</p> : null}
       </div>
 
-      <h2>Profile</h2>
+      <h2 id="profile">Profile</h2>
       <dl className="admin-dl">
         <dt>Status</dt>
         <dd>{label(merchant.status)}</dd>
@@ -317,7 +328,7 @@ export function MerchantDetailPage() {
       </dl>
       {!profile ? <p className="admin-muted">No business profile submitted yet.</p> : null}
 
-      <h2>Balance</h2>
+      <h2 id="balance">Balance</h2>
       {detail.balance ? (
         <p>
           {/* E74: the ledger figure is authoritative; the cache can drift. */}
@@ -336,7 +347,7 @@ export function MerchantDetailPage() {
         <p className="admin-muted">No cached balance row yet.</p>
       )}
 
-      <h2>Adjust balance</h2>
+      <h2 id="adjust">Adjust balance</h2>
       <p className="admin-muted">
         A direct correction to this merchant&apos;s cached payable balance, for when support has
         confirmed the figure on screen is wrong and it needs to be right now rather than after the
@@ -391,7 +402,7 @@ export function MerchantDetailPage() {
         </div>
       </RequireRole>
 
-      <h2>Issue credit</h2>
+      <h2 id="credit">Issue credit</h2>
       <p className="admin-muted">
         Journals a manual credit to this merchant&apos;s payable balance. Above the approval limit
         it waits in <Link to="/credits">Merchant credits</Link> for a second finance operator; at or below
@@ -455,7 +466,7 @@ export function MerchantDetailPage() {
         </form>
       </RequireRole>
 
-      <h2>KYC review</h2>
+      <h2 id="kyc">KYC review</h2>
       <p className="admin-muted">
         Approving or rejecting requires the <code>finance</code> or <code>super_admin</code> role;
         the API enforces it and answers <code>403</code> otherwise.
@@ -510,7 +521,7 @@ export function MerchantDetailPage() {
         </table>
       )}
 
-      <h2>API keys</h2>
+      <h2 id="keys">API keys</h2>
       {apiKeys.length === 0 ? (
         <p className="admin-muted">No API keys.</p>
       ) : (
@@ -571,7 +582,7 @@ export function MerchantDetailPage() {
         </div>
       ) : null}
 
-      <h2>Webhook endpoints</h2>
+      <h2 id="webhooks">Webhook endpoints</h2>
       {webhookEndpoints.length === 0 ? (
         <p className="admin-muted">No endpoints registered.</p>
       ) : (
@@ -602,7 +613,7 @@ export function MerchantDetailPage() {
         <Link to={`/webhooks/${merchant.id}`}>Replay a batch of deliveries for this merchant</Link>
       </p>
 
-      <h2>Recent settlement batches</h2>
+      <h2 id="batches">Recent settlement batches</h2>
       {batches.length === 0 ? (
         <p className="admin-muted">No batches yet.</p>
       ) : (
@@ -630,7 +641,7 @@ export function MerchantDetailPage() {
         </table>
       )}
 
-      <h2>Recompute transaction statuses</h2>
+      <h2 id="recompute">Recompute transaction statuses</h2>
       <p className="admin-muted">
         Re-derives this merchant&apos;s transaction statuses from their own captured/refunded
         amounts. Rows written before the refunds release can carry a status that predates the
@@ -649,7 +660,7 @@ export function MerchantDetailPage() {
         </button>
       </RequireRole>
 
-      <h2>View as merchant</h2>
+      <h2 id="view-as">View as merchant</h2>
       <p className="admin-muted">
         Starts a short-lived, audited impersonation grant. It always acts with this merchant&apos;s
         least-privileged <code>support</code> role — never with your admin role — and it expires on
