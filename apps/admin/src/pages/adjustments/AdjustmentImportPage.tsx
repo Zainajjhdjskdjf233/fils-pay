@@ -59,6 +59,9 @@ export function AdjustmentImportPage() {
   /** Amounts are BD with three decimals and are parsed server-side with parseBhdToFils. */
   async function handleApply(event: React.FormEvent): Promise<void> {
     event.preventDefault();
+    const rows = csvContent.trim().split(/\r?\n/).length - 1;
+    // UX: an import moves money on every row, so it asks first.
+    if (!window.confirm(`Apply ${rows} adjustment row(s) from this CSV? Each row moves money on a merchant's balance and is audited.`)) return;
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -132,19 +135,19 @@ export function AdjustmentImportPage() {
               required
             />
           </label>
-          <button type="submit" disabled={busy || !csvContent.trim()}>
+          <button type="submit" className="admin-button-primary" disabled={busy || !csvContent.trim()}>
             {busy ? "Applying…" : "Apply"}
           </button>
         </form>
       </RequireRole>
 
-      {error ? <p className="admin-error">{error}</p> : null}
+      {error ? <p className="admin-error" role="alert">{error}</p> : null}
       {notice ? <p>{notice}</p> : null}
 
       <h2>Past imports</h2>
-      {listError ? <p className="admin-error">{listError}</p> : null}
+      {listError ? <p className="admin-error" role="alert">{listError}</p> : null}
       {imports.length === 0 ? (
-        <p className="admin-muted">No imports yet.</p>
+        <p className="admin-empty">No imports yet. Paste a CSV above to apply the first one.</p>
       ) : (
         <table className="admin-table">
           <thead>
@@ -172,7 +175,7 @@ export function AdjustmentImportPage() {
         </table>
       )}
 
-      {rowsError ? <p className="admin-error">{rowsError}</p> : null}
+      {rowsError ? <p className="admin-error" role="alert">{rowsError}</p> : null}
 
       {openImportId ? (
         <div>
