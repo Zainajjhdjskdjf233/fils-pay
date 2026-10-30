@@ -72,10 +72,12 @@ export function LoginPage() {
 
   return (
     <main className="admin-centered">
-      <h1>FilsPay Admin</h1>
-      <p className="admin-muted">Internal operations console.</p>
+      <h1>Sign in to FilsPay Admin</h1>
+      <p className="admin-muted">
+        {step.kind === "credentials" ? "Internal operations console. Step 1 of 2: email and password." : "Step 2 of 2: enter the one-time code."}
+      </p>
 
-      {error ? <p className="admin-error">{error}</p> : null}
+      {error ? <p className="admin-error" role="alert">{error}</p> : null}
 
       {step.kind === "credentials" ? (
         <form onSubmit={(e) => void handleCredentials(e)} className="admin-form">
@@ -84,6 +86,7 @@ export function LoginPage() {
             <input
               type="email"
               autoComplete="username"
+              autoFocus
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -99,7 +102,7 @@ export function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
             />
           </label>
-          <button type="submit" disabled={submitting}>
+          <button type="submit" className="admin-button-primary" disabled={submitting}>
             {submitting ? "Signing in..." : "Continue"}
           </button>
         </form>
@@ -120,16 +123,18 @@ export function LoginPage() {
               type="text"
               inputMode="numeric"
               autoComplete="one-time-code"
+              autoFocus
               required
               value={code}
               onChange={(e) => setCode(e.target.value)}
             />
           </label>
-          <button type="submit" disabled={submitting}>
+          <button type="submit" className="admin-button-primary" disabled={submitting}>
             {submitting ? "Verifying..." : "Verify"}
           </button>
           <button
             type="button"
+            disabled={submitting}
             onClick={() => {
               setStep({ kind: "credentials" });
               setCode("");
