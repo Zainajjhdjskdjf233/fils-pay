@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 7:38 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 7:45 PM
 
 ## Contents
 1. Status now
@@ -14,20 +14,20 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:38 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 137 of 176 fixed.
+- Errors: 141 of 176 fixed.
   - High: 46 of 46 fixed
-  - Medium: 44 of 60 fixed
-  - Low: 47 of 70 fixed
+  - Medium: 47 of 60 fixed
+  - Low: 48 of 70 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
 - Dilmune Cloud: live
-- Decisions waiting for Zainab: 36 (search "for Zainab to review" in LOG.md)
+- Decisions waiting for Zainab: 37 (search "for Zainab to review" in LOG.md)
 - Fork: needs a push (VS Code: Git: Push to... → mine)
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 137 of 176 fixed.
+- 🔄 Fix: 141 of 176 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -74,6 +74,10 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:38 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- 65dd9b1 fix(E84): refuse cookie-carrying state-changing requests from another origin
+- b7e67cf fix(E76): dashboard date filter uses midnight Bahrain, not UTC
+- 88ed92d fix(E146): login and signup rate limited per client IP (429 + Retry-After)
+- ac8951e fix(E143): ADMIN.md corrected — a webhook replay gets a new delivery id (kept by decision)
 - 9d753ab fix(E110): streaming CSV export pages on (occurred_at, id); no row skipped
 - c0350b1 fix(E151): refund validation caps refundable at captured and refuses fractional fils; E63 marked for review
 - 319790f fix(E65): the seed refuses to wipe tables without FILSPAY_ALLOW_SEED_RESET=1, never in production
@@ -85,10 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:38 PM
 - a056bec fix(E80): scheme export fallback prints exactly two truncated decimals
 - 9f6cb49 fix(E77): batch detail progress bar uses integer math, no float on fils
 - db9c444 fix(E81): admin Run batch date defaults to yesterday in Bahrain
-- 5cd0d37 fix(E107): dashboard shows expired payment links as expired, without Cancel
-- 2a8a534 fix(E98): parked reporting events store error codes and names, not raw Postgres messages
-- bf1cbb7 fix(E97): reporting settings must be whole numbers in a range
-- 287b2c0 fix(E95): settlement errors no longer show internal paths, hosts or upstream bodies to admins
 
 ## 7. All errors
 ## High (46 of 46 fixed)
@@ -142,7 +142,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:38 PM
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-### Medium (44 of 60 fixed)
+### Medium (47 of 60 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -174,7 +174,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:38 PM
 | E65 | [found later] The seed wipes real tables (incl. admin audit log) with no environment check | Fixed |
 | E74 | [found later] Balance cache and ledger rebuild measure different things (drift after rebuild) | Open |
 | E75 | [found later] March sweep posts the opposite legs from ADR-0002, charging merchants | Fixed |
-| E76 | [found later] Dashboard date filter uses UTC days, not Bahrain days | Open |
+| E76 | [found later] Dashboard date filter uses UTC days, not Bahrain days | Fixed |
 | E82 | [found later] Admin "rotate API key" hands staff a full-power merchant key | Open |
 | E83 | [found later] Legal name and CR number editable after KYC approval, no re-review | Open |
 | E91 | [found later] Every service connects as one Postgres superuser | Fixed |
@@ -194,10 +194,10 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:38 PM
 | E140 | [coverage] Balance adjustment: a huge deltaFils gives 500, and there is no upper limit | Fixed |
 | E141 | [coverage] Credit: a huge baseAmountFils with reverseFee gives 500 | Fixed |
 | E142 | [coverage] Control characters in credit memos and adjustment reasons are accepted; a NUL byte likely gives 500 | Fixed |
-| E143 | [coverage] A webhook replay gets a new delivery id; comments and docs/ADMIN.md say it keeps the original | Open |
+| E143 | [coverage] A webhook replay gets a new delivery id; comments and docs/ADMIN.md say it keeps the original | Fixed |
 | E144 | [coverage] Webhook archive create loads an endpoint's whole history into memory; "pages of 500" is false | Fixed |
 | E145 | [coverage] Signup: no password rule and no type checks; bad input gives 500 | Partly fixed |
-| E146 | [coverage] Public signup and login have no rate limit; each call runs argon2 | Open |
+| E146 | [coverage] Public signup and login have no rate limit; each call runs argon2 | Fixed |
 | E147 | [coverage] A broken image upload gives 500 and leaves an orphan file on disk | Fixed |
 | E148 | [coverage] No limit on KYC uploads per merchant: the shared disk can be filled | Fixed |
 | E163 | [second review] API config never refuses bad settings (prefixes, booleans, NODE_ENV typo turns off security defaults, no ranges) | Partly fixed |
@@ -207,7 +207,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:38 PM
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-### Low (47 of 70 fixed)
+### Low (48 of 70 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -234,7 +234,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:38 PM
 | E79 | [found later] Dead helpers with float or wrong-scale money math | Open |
 | E80 | [found later] Scheme export fallback can print more than 2 decimals | Fixed |
 | E81 | [found later] Admin Run batch default date uses the UTC day | Fixed |
-| E84 | [found later] CSRF from same-site pages (Lax only, text/plain accepted) | Open |
+| E84 | [found later] CSRF from same-site pages (Lax only, text/plain accepted) | Fixed |
 | E85 | [found later] Impersonation grant survives admin disable/logout | Open |
 | E86 | [found later] Dashboard dev proxy forwards /v1/admin; shared cookie jar | Partly fixed |
 | E87 | [found later] No anti-framing headers on dashboard and checkout | Fixed |

@@ -27,7 +27,7 @@
 We inherited FilsPay: a Fastify/TypeScript payments API, a Go settlement service, a reporting worker, two React apps (merchant dashboard and checkout, admin console) and a Postgres database. On arrival it could not be installed: migrations stopped at 0054 (E01) and `docker compose up` failed (E02).
 
 What we did, with sources:
-- **Errors:** 176 entries recorded with file:line proof (docs/ERRORS.md, docs/LOG.md section 2). 131 fixed, 8 partly fixed, 2 skipped with a recorded reason, 35 open (12 Medium, 23 Low). All 46 High entries are fixed (docs/ERRORS.md, "High (46 of 46 fixed)").
+- **Errors:** 176 entries recorded with file:line proof (docs/ERRORS.md, docs/LOG.md section 2). 141 fixed, 9 partly fixed, 2 skipped with a recorded reason, 24 open (7 Medium, 17 Low). All 46 High entries are fixed (docs/ERRORS.md, "High (46 of 46 fixed)").
 - **Hidden things:** 40 entries in docs/LOG.md section 3 (false comments, planted AI instruction files, a staged git history, missing commits).
 - **Features from the case file:** both done. F01 (refund flow end to end) and F02 (live on Dilmune Cloud) (docs/LOG.md section 4).
 - **Tests:** every fix started with a test that failed for the right reason. Last full regression on a fresh database (commit ceacc85): API 498/498, money 44/44, events 4/4, reporting 18/18, web 13/13, scripts 10/10, Go 80 pass, 0 failures (docs/LOG.md section 5, E88).
@@ -187,9 +187,9 @@ Each finding below follows the same pattern: symptom, how it was found and repro
 
 ### Decisions and open risks
 - **OTP on the live demo server.** There is no SMS or email sender. To let judges log in, the live server sets `OTP_DEV_EXPOSE=true`, so the login response shows the code. The code default is off (E37). This is set only in the server's ops/.env.docker. Safeguard: in a real deployment OTP goes by SMS or email and this flag stays off.
-- **Limits chosen by us (for review):** balance adjustment and credit caps (E140, E141), CSV import 1,000 rows (E158), webhook archive 10,000 deliveries (E144), 50 saved filters (E171), 20 KYC documents per merchant (E148, a lifetime limit because no code deletes documents), password minimum (E145), credits back-dated at most 90 days (E134).
-- **Left as designed (for review):** E150 (a balance adjustment for a merchant with no balance row returns 404; recorded by MK as a choice, three tests assert it); admin impersonation still works for a suspended merchant (E128); API keys can save report filters (E88).
-- **Open risks (35 open entries, 12 Medium and 23 Low, docs/ERRORS.md):** among them E139 (capture and status recompute disagree on one rare refund order; no money moves), E146 (no rate limit on signup and login), E89 (unsalted hash of card data in the simulator), E84 (CSRF from same-site pages), E47 (no Content-Security-Policy yet).
+- **Limits chosen by us (for review):** balance adjustment and credit caps (E140, E141), CSV import 1,000 rows (E158), webhook archive 10,000 deliveries (E144), 50 saved filters (E171), 20 KYC documents per merchant (E148, a lifetime limit because no code deletes documents), password minimum (E145), credits back-dated at most 90 days (E134), login and signup 120 calls per IP per minute (E146), reporting settings ranges (E97).
+- **Left as designed (for review):** E150 (a balance adjustment for a merchant with no balance row returns 404; recorded by MK as a choice, three tests assert it); admin impersonation still works for a suspended merchant (E128); API keys can save report filters (E88); a webhook replay gets a new delivery id, as the code intends (E143, docs/ADMIN.md corrected); the seed needs FILSPAY_ALLOW_SEED_RESET=1 (E65).
+- **Open risks (24 open entries, 7 Medium and 17 Low, docs/ERRORS.md):** among them E63 (the admin reporting rebuild can double-count events the worker has not reached; analysis and options in LOG, for review), E82 (admin "rotate API key" shows staff a full-power merchant key), E83 (legal name and CR number editable after KYC approval), E100/E101 (checkout messages after a lost reservation), E89 (unsalted hash of card data in the simulator), E47 (no Content-Security-Policy yet). The Origin check (E84) does not cover very old browsers that send no Origin header.
 - **Existing data:** fixes change future behaviour. Rows written wrongly before a fix are not rewritten; finance would correct them from the ledger history.
 - **Live version:** the server runs d3e4fd1 (redeploy 2, 07:12 PM); one more redeploy at the code freeze.
 
@@ -283,7 +283,7 @@ Not changed (recorded): money columns are still left-aligned (29 cells in 10 fil
 ### Every error entry
 
 <!-- errors:start (generated from docs/ERRORS.md) -->
-All 176 entries from docs/ERRORS.md (137 of 176 fixed.). Each ID has its error (section 2) and, when fixed, its fix (section 5) in docs/LOG.md.
+All 176 entries from docs/ERRORS.md (141 of 176 fixed.). Each ID has its error (section 2) and, when fixed, its fix (section 5) in docs/LOG.md.
 
 | ID | Title | Level | Status |
 |---|---|---|---|
@@ -362,7 +362,7 @@ All 176 entries from docs/ERRORS.md (137 of 176 fixed.). Each ID has its error (
 | E73 | [found later] CloseBatch never journals the scheme rounding residue (ADR-0002 not implemented) | High | Fixed |
 | E74 | [found later] Balance cache and ledger rebuild measure different things (drift after rebuild) | Medium | Open |
 | E75 | [found later] March sweep posts the opposite legs from ADR-0002, charging merchants | Medium | Fixed |
-| E76 | [found later] Dashboard date filter uses UTC days, not Bahrain days | Medium | Open |
+| E76 | [found later] Dashboard date filter uses UTC days, not Bahrain days | Medium | Fixed |
 | E77 | [found later] Float and toFixed on money in the batch detail page | Low | Fixed |
 | E78 | [found later] Balance rebuild may hit the 30 s timeout; no row lock (suspected) | Low | Open |
 | E79 | [found later] Dead helpers with float or wrong-scale money math | Low | Open |
@@ -370,7 +370,7 @@ All 176 entries from docs/ERRORS.md (137 of 176 fixed.). Each ID has its error (
 | E81 | [found later] Admin Run batch default date uses the UTC day | Low | Fixed |
 | E82 | [found later] Admin "rotate API key" hands staff a full-power merchant key | Medium | Open |
 | E83 | [found later] Legal name and CR number editable after KYC approval, no re-review | Medium | Open |
-| E84 | [found later] CSRF from same-site pages (Lax only, text/plain accepted) | Low | Open |
+| E84 | [found later] CSRF from same-site pages (Lax only, text/plain accepted) | Low | Fixed |
 | E85 | [found later] Impersonation grant survives admin disable/logout | Low | Open |
 | E86 | [found later] Dashboard dev proxy forwards /v1/admin; shared cookie jar | Low | Partly fixed |
 | E87 | [found later] No anti-framing headers on dashboard and checkout | Low | Fixed |
@@ -429,10 +429,10 @@ All 176 entries from docs/ERRORS.md (137 of 176 fixed.). Each ID has its error (
 | E140 | [coverage] Balance adjustment: a huge deltaFils gives 500, and there is no upper limit | Medium | Fixed |
 | E141 | [coverage] Credit: a huge baseAmountFils with reverseFee gives 500 | Medium | Fixed |
 | E142 | [coverage] Control characters in credit memos and adjustment reasons are accepted; a NUL byte likely gives 500 | Medium | Fixed |
-| E143 | [coverage] A webhook replay gets a new delivery id; comments and docs/ADMIN.md say it keeps the original | Medium | Open |
+| E143 | [coverage] A webhook replay gets a new delivery id; comments and docs/ADMIN.md say it keeps the original | Medium | Fixed |
 | E144 | [coverage] Webhook archive create loads an endpoint's whole history into memory; "pages of 500" is false | Medium | Fixed |
 | E145 | [coverage] Signup: no password rule and no type checks; bad input gives 500 | Medium | Partly fixed |
-| E146 | [coverage] Public signup and login have no rate limit; each call runs argon2 | Medium | Open |
+| E146 | [coverage] Public signup and login have no rate limit; each call runs argon2 | Medium | Fixed |
 | E147 | [coverage] A broken image upload gives 500 and leaves an orphan file on disk | Medium | Fixed |
 | E148 | [coverage] No limit on KYC uploads per merchant: the shared disk can be filled | Medium | Fixed |
 | E149 | [coverage] Credit effectiveDate "0000-01-01" passes validation; Postgres likely refuses it (500) | Low | Fixed |
