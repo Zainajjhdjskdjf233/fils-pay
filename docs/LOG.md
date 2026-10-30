@@ -1,6 +1,6 @@
 # LOG
 Mode: Competition
-Updated: 04:02 PM (30 Oct 2026)
+Updated: 04:06 PM (30 Oct 2026)
 Summary: Errors 66/133 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
@@ -2048,6 +2048,18 @@ How we got it:
 - Correctness after ~11,000 checkouts incl. the overload: 10,518 paid links = 10,518 captured transactions; 0 links paid twice; 0 captures without a paid link; 0 unbalanced ledger groups; 0 links stuck reserved; merchant_payable = captures − fees exactly (48,708,858 = 48,708,858 fils).
 - What limits it: each checkout makes two simulated acquirer calls (100-400 ms each) and holds DB connections around them (capture lock, payment-link row lock, E29); Postgres CPU is the cap. Next lever if more is needed: fewer DB round-trips per checkout, not more API CPU.
 
+
+### Reproducibility check — 04:06 PM (30 Oct 2026)
+A fresh clone of the fork, built and started from nothing but the repo.
+- Clone: `git clone https://github.com/Zainajjhdjskdjf233/fils-pay.git` into a new mktemp folder; HEAD 9c06e39 (the fork's main at that moment; local main was 2 commits ahead, E64).
+- Secrets: `sh ops/gen-env.sh` → `ops/.env.docker: 8 keys (values not shown)`. Nothing typed by hand.
+- Start: `docker compose -p filspayrepro --env-file ops/.env.docker -f ops/docker-compose.yml up -d --build` → exit 0 in 21 s (Docker reused cached layers; a layer is rebuilt whenever its files differ). The local stack was stopped first (ports 8080/8081) and a separate project name kept the clone off its volumes.
+- Health: api, postgres, settlement, nginx `(healthy)`; reporting `Up` (no health check in compose — gap, see below); migrate `Exited (0)` with `migrate: 77 migration(s) applied, 0 already up to date` (through 0083); `/readyz` → `200 {"status":"ready"}`.
+- HTTP through nginx: `GET :8080/` 200, `/nginx-health` 200, `GET :8081/` (admin) 200, `GET :8080/v1/admin/auth/me` 404 (admin API blocked on the public port, as designed).
+- Checkout: test shop and links created as in ops/loadtest/README.md step 2. `GET /pay/repro-1` 200; `GET /v1/payment-links/repro-1` 200 active; `POST .../pay` → `200 {"status":"paid", "amountFils":4750}`. DB after: link `paid`, transaction `captured 4750`, every ledger group balanced, merchant_payable 4631 (4750 − fee 119 at 2.5 %). Card numbers typed with spaces paid (repro-2, repro-3: 200). The first try got `402 card_declined / card_expired`: the simulator's random 2 % decline (config.ts:237 default 0.02; reasons simulator.ts:15), not a fault.
+- Clean-up: `docker compose -p filspayrepro ... down -v` → 0 containers and 0 volumes named filspayrepro left. The local stack was restarted with `up -d --build` from local main (all services healthy). The cloned folder stays in the session scratchpad: deleting it needs `rm`, which is not allowed without Zainab; it holds only random secrets for a stack that no longer exists.
+- Result: reproducible. A clone plus two commands gives a working, healthy stack and a working checkout.
+- Gaps found: (1) the reporting service has no health check in ops/docker-compose.yml, so a stuck worker would still show as `Up`; (2) the clone and the local stack share image tags (`filspay-node:local`), so building one replaces the other's images. Both are small; record only.
 
 ## 7. Judge notes
 
