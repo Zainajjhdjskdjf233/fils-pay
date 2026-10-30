@@ -1103,4 +1103,4 @@ Only the request that holds the token can finish, and the row stays locked until
 "Did the reviewer find anything?"
 Yes, twice. My first fix only noticed a double charge during a slow capture, and my second could use up the database connections. Both were fixed and tested.
 
-Commit: PENDING_N29
+Commit: ad472fc

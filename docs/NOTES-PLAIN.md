@@ -174,4 +174,4 @@ Where: apps/api/src/routes/adminMerchantsRecompute.ts:31 · Commit: 41c17e8
 
 In May, two customers were charged for the same payment link. When a payment was slow, the link's "reserved" mark expired and a second buyer could pay as well, and both were told "paid". Now each reservation has its own secret token, and the link is locked in the database until the payment is finished, so a second buyer is told to wait. Our tests make two buyers pay at the same moment, and with a slow payment, and now only one is ever charged.
 
-Where: apps/api/src/paymentLinks/pay.ts:144 · Commit: PENDING_N29
+Where: apps/api/src/paymentLinks/pay.ts:144 · Commit: ad472fc
