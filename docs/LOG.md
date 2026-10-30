@@ -2532,6 +2532,14 @@ A fresh clone of the fork, built and started from nothing but the repo.
 - My mistakes, caught and fixed: (1) the first demo-setup run fed a `psql` heredoc from the same stdin as the remote script, so psql swallowed the rest of it (the KYC SQL ran, the admin step did not); rerun as a file with stdin closed and idempotent checks — one review row, one admin. (2) a SQL check used double quotes (identifiers) and failed; no data effect.
 - Live-server rule kept: only migrations ran (the migrate container); no scripts/, no reset, rebuild or sweep.
 
+### Live end-to-end check — 06:17 PM (30 Oct 2026), the way automated tests would run
+- Public, from the Mac (scratchpad/live-e2e-public.txt): 45 checks — 13 pages (dashboard and admin routes, checkout for a real and an unknown token), the public link API (good token 200, unknown 404), pay with bad input (empty card 400, month 13 400, no Idempotency-Key 400, broken JSON 400, XML 415, unknown link 404, an already paid link 409), 10 logged-in routes without a session (all 401, incl. malformed ids and dates — never 500), login and OTP bad input (400/401), signup bad input (400), admin API on port 80 (404) and on 8081 without login (401), an unsigned acquirer callback (400). Only "failure": `/v1/payment-links/%00` → nginx 400 instead of my expected 404 — nginx refuses the NUL itself; correct behaviour, my expectation was wrong.
+- Logged in, on the server (~/live-e2e.sh, passwords never leave the server): 29 checks, 0 failures — login + OTP; two checkouts paid; FULL refund 200 (refunded 10000/10000); PARTIAL refund 4.000 BD 200 (partially_refunded 10000/4000); refund above what is left 422; refund of a fully refunded payment 409; refund with a bad id 400; dashboard transaction details show the refunded amounts; reconciliation for today: ledger 10,481, pending 10,481, gap 0 (by hand: 4,631 + 9,750 + 9,750 − 9,750 − 3,900 = 10,481); settlement summary and batch list 200; every dashboard, analytics, export, payment-link and webhook route 200; 7 bad inputs 400.
+- Settlement batch for today: closes after midnight (E118: a business day can only be closed after it ends); the settlement daemon on the server does it.
+- Found: E164 — public /healthz and /readyz returned the web app's page (fixed in 3e31313, verified on the local stack).
+- Needs a redeploy after Zainab pushes (`ssh dilmune@139.59.57.26 'bash ~/fils-pay/ops/deploy.sh'`): the server runs d27ddf0, so every later code commit (E164 first) reaches the live site only after the push and the redeploy.
+- Note: the acquirer-callback answer for a fully filled unsigned body says required fields are missing — 400, not 500; to check the field names later (low).
+
 ### J01 — 12:01 AM — a decision made by the human
 - What happened: Zainab chose Competition mode: one OK per entry in /fix.
 - Why it matters: the human sets how much control the AI has.
