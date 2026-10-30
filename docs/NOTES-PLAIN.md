@@ -264,4 +264,4 @@ Where: apps/reporting/src/consumer/applyEvent.ts:149 · Commit: 44adee8
 
 The report worker processed events in order, and one broken event made it fail and retry the same event forever, so all reports stopped. Now each event is handled on its own: a broken one is set aside in a "dead letters" table with its error, and the worker moves on. Real database problems still stop it, so nothing good is set aside by mistake. Four tests that always failed before now pass.
 
-Where: apps/reporting/src/consumer/runConsumerPass.ts:63 · Commit: PENDING_N44
+Where: apps/reporting/src/consumer/runConsumerPass.ts:63 · Commit: 41c9754

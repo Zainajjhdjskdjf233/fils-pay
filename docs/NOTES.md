@@ -1652,4 +1652,4 @@ A savepoint undoes only that one event, not the whole batch.
 "Where do bad events go?"
 To reporting_dead_letters with the error message, so a person can inspect and replay them.
 
-Commit: PENDING_N44
+Commit: 41c9754
