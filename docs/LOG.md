@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 11:33 AM (30 Oct 2026)
-Summary: Errors 36/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
+Updated: 11:35 AM (30 Oct 2026)
+Summary: Errors 37/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -395,7 +395,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: medium
 - Proposed fix: `requireMerchantRole("owner","finance")`; also reject `admin_impersonation` in requireMerchantWriterActor (requireMerchantAuth.ts:129-134), which relabels impersonation writes as `merchant_session`. Minor: POST /v1/reporting/saved-filters (reporting.ts:52) has no role gate.
 - Expected result: support → 403; any impersonation grant → 403 on capture/void.
-- Status: open
+- Status: fixed for capture/void (see section 5); saved-filters role gate open
 
 ### E36 — Webhook URLs allow SSRF
 - Where: apps/api/src/webhooks/create.ts:13-22; webhooks/transport.ts:38-48; dispatcher.ts:186
@@ -1222,6 +1222,15 @@ ROLLBACK;
 - Regression: full-db-test.sh = baseline (5 known failures); api 419 tests.
 - Review: fix-reviewer → CHANGES: (1) 0 rows from the reservation also happens when the challenge was already consumed (double-click, resend in flight) and my first version then revoked the session the user had just logged into; now it re-reads the row and answers 410 without revoking; only real exhaustion revokes. (2) reservation also requires `expires_at > now()`. (3) resend reads the count while consuming the old challenge (`UPDATE … RETURNING attempt_count` inside the transaction), so guesses landing in between are carried over. (4) the resend test now moves only its own challenge's created_at. All applied (Judge note J23). Copilot CLI not installed.
 - Actual result: matches expected (50 parallel guesses → at most 5 checked).
+
+### E35 — 11:35 AM — capture and void need owner or finance
+- Changed: apps/api/src/routes/transactions.ts: `/:id/capture` and `/:id/void` use `[requireMerchantAuth, requireMerchantRole("owner", "finance")]`. Since E10 every impersonation grant maps to role "support", so impersonation is blocked by the same rule (no change to requireMerchantWriterActor needed). API keys keep full authority (requireMerchantAuth.ts:155, unchanged).
+- Decision (for Zainab to review): finance may void (FH's TODO at :121 asked whether finance should) — Why: same role set as refunds (F01b) and capture; voiding returns an authorization hold, it moves no money out — Alternative: owner only for void.
+- Test: apps/api/src/routes/transactions.e35.test.ts. Before: `support capture: … "status":"captured"` (200). After: support capture 403, support void 403, finance capture 200.
+- Not done: POST /v1/reporting/saved-filters role gate (minor, LOG E35 note).
+- Regression: full-db-test.sh = baseline (5 known failures).
+- Review: role middleware already used elsewhere → no fix-reviewer.
+- Actual result: matches expected.
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)

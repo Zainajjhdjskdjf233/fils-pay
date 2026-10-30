@@ -229,3 +229,9 @@ Where: apps/api/src/lib/random.ts:10 · Commit: 971474c
 The login code allowed only 5 wrong tries, but sending many guesses at the same moment got around it: 48 out of 50 were checked. Asking for a new code also reset the count. Now the database hands out each try before the guess is checked, and never more than 5, and a new code keeps the old count. The reviewer also made sure a double-click on the right code does not log the user out again.
 
 Where: apps/api/src/routes/auth.ts: · Commit: 31b2741
+
+## N39 — Only owners and finance can capture or void payments
+
+Any shop user, even a support assistant, could take the money for a payment or cancel it, because those two actions had no role check. We now allow them only for the owner and finance roles. A test shows a support user is refused and a finance user still works.
+
+Where: apps/api/src/routes/transactions.ts:98 · Commit: PENDING_N39

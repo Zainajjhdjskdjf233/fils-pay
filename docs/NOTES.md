@@ -1431,3 +1431,37 @@ The database hands out at most 5 "try tickets", even to 50 requests at once.
 The try is taken before we know if the guess is right; that is what makes it safe. A user who gets it right on try 5 still logs in.
 
 Commit: 31b2741
+
+## N39 — Only owners and finance can capture or void payments
+
+### The idea
+Shop staff have roles: owner, finance and support. Support staff help customers; they should not move money. Like a shop where only the manager can open the till.
+
+### The problem
+Capture (take the money) and void (cancel the hold) had no role check.
+- Any shop user, including support, could do both.
+- Comments said admin impersonation was read-only there; it was not.
+
+### The fix
+- transactions.ts: both routes now require the owner or finance role.
+
+### The code
+Before (apps/api/src/routes/transactions.ts:95):
+```ts
+{ preHandler: requireMerchantAuth },
+```
+After:
+```ts
+{ preHandler: [requireMerchantAuth, requireMerchantRole("owner", "finance")] },
+```
+The request must be logged in and have one of the two roles.
+
+### The proof
+- Before: a support user captured 5.000 BD.
+- After: support gets 403 on capture and void; finance can still capture.
+
+### If the judges ask
+"What about admins impersonating a shop?"
+Since E10 every impersonation counts as the support role, so they get 403 too.
+
+Commit: PENDING_N39
