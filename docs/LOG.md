@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 12:57 PM (30 Oct 2026)
-Summary: Errors 51/109 fixed (+2 partly: E13, E50; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: not started · CHECKPOINT reached
+Updated: 01:48 PM (30 Oct 2026)
+Summary: Errors 54/109 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done; Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -129,7 +129,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: high (CASE-FILE.md says to start with `docker compose up`)
 - Proposed fix: add the two Dockerfiles, add `env_file`, set the token from env. (Part of /deploy.)
 - Expected result: the stack builds and the API answers on its port.
-- Status: skipped — cannot be proven without Docker (see section 5)
+- Status: fixed (see section 5, E02 at 01:48 PM)
 
 ### E03 — Merchant login works without the OTP code
 - Where: apps/api/src/auth/sessions.ts:89-92; db/migrations/0058_live_sessions.sql:3-12
@@ -240,7 +240,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: high
 - Proposed fix: untrack `.env.docker`, ship `.env.example` with names only, stop publishing 5432, remove the fallback key. Rotating the real secret is a human task.
 - Expected result: `git ls-files ops` shows no env file with values; API refuses to start in production without the key.
-- Status: partly fixed (E51 da3ab76; ops/.env.docker untracked 9:50 AM, see section 5); rest waits for /deploy (Docker) or a human (rotation)
+- Status: partly fixed (E51; 3145f24 untracked .env.docker; E02: 5432 no longer published, all passwords/tokens from the gitignored env file, compose has no secrets). Left: a human must rotate the acquirer signing secret that is in git history (ops/gen-env.sh keeps the existing value).
 
 ### E14 — Scheme statement always a few fils higher than ours
 - Where: apps/settlement/internal/settlement/scheme_export.go:29-31, :71; batch.go:255; db/migrations/0050:12
@@ -781,13 +781,13 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/web/vite.config.ts:12 (`/v1` incl. /v1/admin, E61); cookies ignore ports on localhost
 - Error: any future XSS in the web app (incl. public checkout) reaches the admin API with the admin cookie; hosting must not repeat this (E02 plan: admin on its own host).
 - Proof: code read (security-review agent (12:59 PM); checked by me).
-- Severity: low · Status: open
+- Severity: low · Status: partly fixed (hosting: admin on its own nginx server :8081, /v1/admin → 404 on :8080; vite dev proxy unchanged)
 
 ### E87 — [found later] No anti-framing headers on dashboard and checkout
 - Where: apps/web/index.html; apps/api/src/app.ts (no X-Frame-Options / frame-ancestors / nosniff); E47 covers the admin console only
 - Error: public /pay/:token can be framed (UI redress).
 - Proof: code read (security-review agent (12:59 PM); checked by me).
-- Severity: low · Status: open
+- Severity: low · Status: fixed (nginx sends X-Frame-Options DENY, CSP frame-ancestors 'none', nosniff on both origins)
 
 ### E88 — [found later] Read-only impersonation and API keys can write saved filters
 - Where: apps/api/src/routes/reporting.ts:52-71 (`preHandler: requireMerchantAuth` only)
@@ -811,13 +811,13 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: ops/docker-compose.yml:21 (POSTGRES_USER filspay = superuser in the postgres image), :49/:64/:84/:100/:117 same URL for migrate, seed, api, settlement, reporting; :85 "TODO(YA, Jan): give the api its own role before anything is hosted"
 - Error: any injection or code execution in any service gets superuser (COPY … TO PROGRAM runs OS commands). High if hosted as-is → part of the E02 plan (one role per service).
 - Proof: code read (backend security-review agent (1:03 PM); checked by me).
-- Severity: medium · Status: open
+- Severity: medium · Status: fixed (E02: per-service roles, none superuser)
 
 ### E92 — [found later] Ledger "immutability" claim is false; admin_audit_log has no protection
 - Where: db/migrations/0007_ledger_double_entry.sql:72-74 (comment) vs :43-70 (trigger only checks each group sums to 0); 0034_admin_audit_log.sql has no trigger (grep: 0)
 - Error: deleting a whole group, moving it to another merchant, rescaling both legs or back-dating all commit without error; audit rows can be erased.
 - Proof: code read (backend security-review agent (1:03 PM); checked by me).
-- Severity: medium · Status: open
+- Severity: medium · Status: partly fixed (0082 revokes UPDATE/DELETE/TRUNCATE on ledger_entries and admin_audit_log for the app roles; no reject trigger yet)
 
 ### E93 — [found later] sqlFilter builds a DELETE with no WHERE for null/undefined filters and pastes identifiers
 - Where: scripts/lib/sqlFilter.ts:8,13,17,21,30 (`continue` on null/undefined; `DELETE FROM ${table} ${clause}`)
@@ -829,7 +829,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/settlement/internal/internalapi/server.go:135 (binds "":8091); apps/api/src/config.ts:185-187 (only empty token rejected); docs say the token is "dev-token" (ARCHITECTURE.md:90, ops/README.md:61)
 - Error: any container on the network with the shared token can run money operations; no admin identity or audit on the Go side. Token compare itself is constant-time (fine).
 - Proof: code read (backend security-review agent (1:03 PM); checked by me).
-- Severity: low · Status: open
+- Severity: low · Status: partly fixed (settlement only on the private `internal` network with the API; 32-byte random token from ops/gen-env.sh; still plain HTTP inside the network)
 
 ### E95 — [found later] Internal settlement errors are returned to admin browsers
 - Where: apps/api/src/admin/settlementClient.ts:124-154 (path, fetch error, 500 bytes of body in AppError.message); plugins/errorHandler.ts:17
@@ -1727,9 +1727,28 @@ ROLLBACK;
 - Regression: full-db-test.sh = baseline v3.
 - Actual result: a capture retried after a lost response replays the first answer instead of capturing again (server idempotency, capture.ts).
 
+### E02 — 01:48 PM — the stack builds and runs in Docker within 1 vCPU / 2 GB
+- Zainab, 1:20 PM: "Docker Desktop is running. Start the plan". Docker 29.9.2 (CLI at ~/.docker/bin, not on the default PATH), Compose v5.6.1.
+- Files: ops/Dockerfile.node (one image for api, reporting, migrate: the apps import workspace packages as TS source, so each entry point is bundled with esbuild into one .mjs; only argon2/sharp stay in node_modules; plain `node`, non-root `node` user), ops/Dockerfile.go (static settlement binary on alpine, non-root), ops/Dockerfile.web + ops/nginx/nginx.conf (built web and admin apps; reverse proxy for /v1 → same origin, E61), ops/postgres/01-roles.sh (owner + one role per service, none superuser, E91), db/migrations/0082_harden_app_roles.sql (E92 part), ops/gen-env.sh (random secrets into the gitignored ops/.env.docker; never prints them), .dockerignore (no .env files, .git, docs or node_modules in any build), ops/docker-compose.yml rewritten (plan approved 12:10 PM).
+- Compose: limits api 0.50 vCPU / 512 MB, postgres 0.25 / 768 MB, settlement 0.08 / 128 MB, reporting 0.08 / 192 MB, nginx 0.09 / 64 MB (total 1.00 vCPU / 1664 MB); `restart: unless-stopped` everywhere; health checks for postgres (pg_isready), api (/healthz), settlement (port 8091), nginx; volumes pgdata and kyc; three networks (db, internal = api+settlement, edge = api+nginx); only nginx publishes ports (8080 dashboard/checkout, 8081 admin); seed only under the `dev` profile (E65); Postgres `idle_in_transaction_session_timeout=60s` (E42 note).
+- Mistakes on the way: (1) the web image missed tsconfig.base.json (vite: failed to resolve "extends") — added; (2) `docker kill` was the wrong crash test — Docker treats it as a manual stop and does not apply restart policies; re-tested with crashes from inside the containers.
+- Proof (live, 1:25-1:30 PM):
+  - `docker compose up -d` from an empty volume: migrate exited 0 (76/76 migrations, as filspay_owner); postgres, api, settlement, nginx healthy; reporting running.
+  - `docker inspect`: cpus 0.50/0.25/0.08/0.08/0.09, memory 512/768/128/192/64 MB, restart unless-stopped.
+  - Ports: only nginx 0.0.0.0:8080-8081; postgres 5432 and settlement 8091 are internal only.
+  - Roles: filspay_owner/api/settlement/reporting all `rolsuper = f`; app roles have only INSERT, SELECT on ledger_entries.
+  - nginx: X-Frame-Options DENY, CSP frame-ancestors 'none', nosniff; /v1/admin on :8080 → 404, on :8081 → 401; /dashboard/login, /pay/x, admin / → 200; signup through :8080 → merchant created.
+  - Crash recovery: Postgres `pg_ctl stop -m immediate` → restarted by Docker (restarts=1), log "not properly shut down; automatic recovery in progress", merchant count unchanged (1), API still answering. API process SIGTERM from inside → restarted (restarts=1), healthy, answering via nginx.
+- Regression: full-db-test.sh = baseline v3 (migration 0082 is a no-op where the roles do not exist).
+- Not done here: reporting has no health check (no HTTP port; it relies on the restart policy); Dilmune Cloud hosting (F02) is the next deploy step.
+
 ## 6. Deploy
-- Platform: Dilmune Cloud (CASE-FILE.md Item 04)
-- Status: not started
+- Platform: Dilmune Cloud (CASE-FILE.md Item 04) — not yet. Local Docker stack done (01:48 PM, see section 5 E02).
+- How to run: `./ops/gen-env.sh` once, then `docker compose --env-file ops/.env.docker -f ops/docker-compose.yml up -d --build`. Dashboard + checkout http://localhost:8080, admin console http://localhost:8081.
+- Limits (CASE-FILE Item 05): whole stack 1.00 vCPU / 1664 MB of 2 GB; API 0.50 vCPU / 512 MB (`docker inspect` proof in section 5 E02).
+- Restart and data: `restart: unless-stopped` on every long-running service; data in named volumes pgdata and kyc; crash tests passed (section 5 E02).
+- Secrets: only in the gitignored ops/.env.docker (generated, never printed). Rotate the acquirer signing secret (E13) before going live.
+- Capacity: see "Capacity estimate" below (k6, after load shedding).
 
 ## 7. Judge notes
 

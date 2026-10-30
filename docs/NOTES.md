@@ -2108,3 +2108,46 @@ The same attempt keeps the same ticket until it succeeds, is cancelled, or gets 
 After a clear "no" the server has saved that "no" under the key; reusing it would just replay the "no" forever.
 
 Commit: 0cf9a60
+
+## N58 — The whole app now runs in Docker, inside the hosting limits
+
+### The idea
+Docker packs each part of the app (API, database, settlement, reports, web pages) into its own box (container) with fixed CPU and memory, like rooms with a set size in one small house.
+
+### The problem
+`docker compose up` could not start anything.
+- The Dockerfiles it pointed to did not exist.
+- The database password was written in the compose file, its port was open to the world, and every service logged in as the database superuser.
+
+### The fix
+- Three Dockerfiles: Node (API, reports, migrations), Go (settlement), nginx (web pages + proxy).
+- Compose with limits: API 0.5 CPU / 512 MB; everything together 1 CPU / about 1.6 GB.
+- Restart rules, health checks, data in volumes, only the web proxy reachable from outside.
+- One database role per service, none a superuser; the ledger and audit log cannot be edited by the apps.
+- Secrets generated into a file that git ignores.
+
+### The code
+Before (ops/docker-compose.yml):
+```yaml
+POSTGRES_PASSWORD: filspay_dev_password
+ports:
+  - "5432:5432"
+```
+After:
+```yaml
+POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run ops/gen-env.sh}
+deploy:
+  resources:
+    limits: { cpus: "0.50", memory: 512M }   # api
+```
+No password in the file, no open database port, and fixed limits per service.
+
+### The proof
+- Started from empty: all 76 migrations ran, every service healthy.
+- Crash tests: Postgres stopped without warning and came back by itself with no data lost; the API was stopped and restarted by itself.
+
+### If the judges ask
+"How do you know the limits are real?"
+docker inspect shows them on each running container (0.50 CPU and 512 MB for the API), and the load test runs against exactly this stack.
+
+Commit: PENDING_N58

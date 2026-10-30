@@ -13,14 +13,14 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 51 of 109 fixed.
+Summary: 54 of 109 fixed.
 
-## High (29 of 31 fixed)
+## High (30 of 31 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
 | E01 | Migration 0054 builds a view on a table that does not exist | Fixed |
-| E02 | docker compose up cannot start the stack | Skipped |
+| E02 | docker compose up cannot start the stack | Fixed |
 | E03 | Merchant login works without the OTP code | Fixed |
 | E04 | OTP and session go to another merchant's user with the same email | Fixed |
 | E05 | Merchant A can cancel merchant B's payment link (IDOR) | Fixed |
@@ -51,7 +51,7 @@ Summary: 51 of 109 fixed.
 | E102 | [found later] Merchant dashboard logs out after 10 minutes and does not notice | Fixed |
 | E104 | [found later] Bulk Approve KYC approves hidden merchants; server checks no status | Fixed |
 
-## Medium (21 of 39 fixed)
+## Medium (22 of 39 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -86,8 +86,8 @@ Summary: 51 of 109 fixed.
 | E76 | [found later] Dashboard date filter uses UTC days, not Bahrain days | Open |
 | E82 | [found later] Admin "rotate API key" hands staff a full-power merchant key | Open |
 | E83 | [found later] Legal name and CR number editable after KYC approval, no re-review | Open |
-| E91 | [found later] Every service connects as one Postgres superuser | Open |
-| E92 | [found later] Ledger immutability claim false; audit log unprotected | Open |
+| E91 | [found later] Every service connects as one Postgres superuser | Fixed |
+| E92 | [found later] Ledger immutability claim false; audit log unprotected | Partly fixed |
 | E93 | [found later] sqlFilter builds DELETE with no WHERE for null/undefined filters | Open |
 | E100 | [found later] Checkout tells a charged buyer to try again (reservation_lost) | Open |
 | E101 | [found later] Expired link with stale reservation: Pay form forever, cannot cancel | Open |
@@ -95,7 +95,7 @@ Summary: 51 of 109 fixed.
 | E105 | [found later] Refund drawer keeps its key after a definite 4xx (my F01f bug) | Fixed |
 | E106 | [found later] Reconciliation and batch pages leave out refund parts | Open |
 
-## Low (1 of 39 fixed)
+## Low (2 of 39 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -125,12 +125,12 @@ Summary: 51 of 109 fixed.
 | E81 | [found later] Admin Run batch default date uses the UTC day | Open |
 | E84 | [found later] CSRF from same-site pages (Lax only, text/plain accepted) | Open |
 | E85 | [found later] Impersonation grant survives admin disable/logout | Open |
-| E86 | [found later] Dashboard dev proxy forwards /v1/admin; shared cookie jar | Open |
-| E87 | [found later] No anti-framing headers on dashboard and checkout | Open |
+| E86 | [found later] Dashboard dev proxy forwards /v1/admin; shared cookie jar | Partly fixed |
+| E87 | [found later] No anti-framing headers on dashboard and checkout | Fixed |
 | E88 | [found later] Read-only impersonation and API keys can write saved filters | Open |
 | E89 | [found later] Unsalted SHA-256 of card number and CVV stored | Open |
 | E90 | [found later] KYC download puts the raw filename into a header | Open |
-| E94 | [found later] Settlement internal API: plain HTTP on all interfaces; weak token accepted | Open |
+| E94 | [found later] Settlement internal API: plain HTTP on all interfaces; weak token accepted | Partly fixed |
 | E95 | [found later] Internal settlement errors returned to admin browsers | Open |
 | E96 | [found later] Reporting trusts payload merchant/amounts; negative amounts pass (my E53 check) | Open |
 | E97 | [found later] Reporting config accepts bad numbers ("15s" → 15 ms) | Open |

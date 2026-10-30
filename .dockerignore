@@ -1,0 +1,12 @@
+# E02: keep secrets, VCS and local build output out of every image.
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.*.example
+ops/.env.docker
+.git
+**/node_modules
+**/dist
+docs
+.claude
+**/*.log

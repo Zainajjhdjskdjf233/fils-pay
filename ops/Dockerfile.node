@@ -1,0 +1,49 @@
+# syntax=docker/dockerfile:1
+# E02: one image for api, reporting and migrate (different commands).
+# The apps import workspace packages as TypeScript source, so each entry point
+# is bundled with esbuild into one .mjs file; only native modules (argon2,
+# sharp) stay in node_modules. Runtime is plain `node` as a non-root user.
+
+FROM node:22-bookworm-slim AS deps
+WORKDIR /app
+COPY package.json package-lock.json ./
+COPY apps/api/package.json apps/api/
+COPY apps/reporting/package.json apps/reporting/
+COPY apps/web/package.json apps/web/
+COPY apps/admin/package.json apps/admin/
+COPY packages/money/package.json packages/money/
+COPY packages/events/package.json packages/events/
+RUN npm ci --no-audit --no-fund
+
+FROM deps AS build
+COPY . .
+RUN set -e; for e in apps/api/src/index.ts:api.mjs apps/reporting/src/index.ts:reporting.mjs db/migrate.ts:migrate.mjs; do \
+      node_modules/.bin/esbuild "${e%%:*}" --bundle --platform=node --target=node22 --format=esm \
+        --external:argon2 --external:sharp --external:pg-native \
+        --banner:js="import { createRequire } from 'module'; const require = createRequire(import.meta.url);" \
+        --outfile="/out/${e##*:}" --log-level=warning; \
+    done
+
+FROM node:22-bookworm-slim AS prod-deps
+WORKDIR /app
+COPY --from=deps /app/package.json /app/package-lock.json ./
+COPY --from=deps /app/apps/api/package.json apps/api/
+COPY --from=deps /app/apps/reporting/package.json apps/reporting/
+COPY --from=deps /app/apps/web/package.json apps/web/
+COPY --from=deps /app/apps/admin/package.json apps/admin/
+COPY --from=deps /app/packages/money/package.json packages/money/
+COPY --from=deps /app/packages/events/package.json packages/events/
+RUN npm ci --omit=dev --no-audit --no-fund --workspace apps/api --include-workspace-root=false \
+ && npm cache clean --force
+
+FROM node:22-bookworm-slim AS runtime
+ENV NODE_ENV=production
+WORKDIR /app
+COPY --from=prod-deps /app/node_modules ./node_modules
+COPY --from=build /out/api.mjs /out/reporting.mjs ./
+COPY --from=build /out/migrate.mjs ./db/migrate.mjs
+COPY db/migrations ./db/migrations
+RUN mkdir -p /data/kyc && chown -R node:node /data
+USER node
+EXPOSE 3000
+CMD ["node", "--max-old-space-size=384", "/app/api.mjs"]

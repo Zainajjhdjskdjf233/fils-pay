@@ -343,3 +343,9 @@ Where: apps/api/src/admin/bulkKyc.ts:30 · Commit: 850275f
 Each money action carries a ticket number so the server can spot a repeat. The capture button made a new ticket on every click, so retrying after a lost answer could take the money twice, and my refund screen kept an old ticket even after a clear refusal. Now both keep the ticket only when no clear answer came back, and use a new one after a clear refusal. A test checks the rule for each kind of error.
 
 Where: apps/web/src/api/idempotencyKey.ts:11 · Commit: 0cf9a60
+
+## N58 — The whole app now runs in Docker, inside the hosting limits
+
+The instructions said to start the app with Docker, but the files it needed were missing, the database password was in plain sight, and the database was open to the internet. We wrote the missing files and set each part's CPU and memory so the whole app fits the competition's small server. Parts restart by themselves after a crash, data is kept on disk, and only the website is reachable from outside. We crashed the database and the API on purpose and both came back with no data lost.
+
+Where: ops/docker-compose.yml · Commit: PENDING_N58
