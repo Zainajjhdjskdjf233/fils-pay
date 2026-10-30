@@ -13,9 +13,9 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 93 of 163 fixed.
+Summary: 94 of 163 fixed.
 
-## High (45 of 46 fixed)
+## High (46 of 46 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -31,7 +31,7 @@ Summary: 93 of 163 fixed.
 | E10 | Impersonation gives write power (super_admin → owner, finance → finance) | Fixed |
 | E11 | Reporting scope lets any merchant read a split child's transactions | Fixed |
 | E12 | expire_holds deletes every hold when there is nothing to expire | Fixed |
-| E13 | Secrets committed to git and the database open to the internet | Partly fixed |
+| E13 | Secrets committed to git and the database open to the internet | Fixed |
 | E14 | Scheme statement always a few fils higher than ours | Fixed |
 | E15 | Batch net payout computed with float32 | Fixed |
 | E16 | March sweep script is not idempotent and uses UTC months | Fixed |

@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 05:27 PM (30 Oct 2026)
-Summary: Errors 93/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 05:29 PM (30 Oct 2026)
+Summary: Errors 94/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -240,7 +240,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: high
 - Proposed fix: untrack `.env.docker`, ship `.env.example` with names only, stop publishing 5432, remove the fallback key. Rotating the real secret is a human task.
 - Expected result: `git ls-files ops` shows no env file with values; API refuses to start in production without the key.
-- Status: partly fixed (E51; 3145f24 untracked .env.docker; E02: 5432 no longer published, all passwords/tokens from the gitignored env file, compose has no secrets). Left: a human must rotate the acquirer signing secret that is in git history (ops/gen-env.sh keeps the existing value).
+- Status: fixed (see section 5, E13)
 
 ### E14 — Scheme statement always a few fils higher than ours
 - Where: apps/settlement/internal/settlement/scheme_export.go:29-31, :71; batch.go:255; db/migrations/0050:12
@@ -2381,6 +2381,16 @@ ROLLBACK;
 ### E158 — 05:27 PM — the adjustment CSV refuses more than 1000 rows
 - Changed: apps/api/src/admin/adjustmentCsvParsing.ts: MAX_ADJUSTMENT_ROWS = 1000 (value for Zainab to review); more data rows → 400 too_many_rows, before any row is parsed or written.
 - Test: apps/api/src/admin/adjustmentCsvParsing.e158.test.ts (1001 refused, 1000 accepted). Before: `Missing expected exception`. After: PASS; import tests pass.
+- check.sh: OK.
+
+### E13 — 05:29 PM — the leaked acquirer callback secret is rotated and refused (last High)
+- Context: the acquirer is the in-stack simulator, so we rotate the secret ourselves (Zainab, 5:40 PM). The simulator neither signs nor sends callbacks; only the verifier reads the secret: config.ts:208 → routes/acquirerCallbacks.ts:60 (env ACQUIRER_CALLBACK_SIGNING_SECRET, compose ops/docker-compose.yml:84).
+- Found: the local, untracked ops/.env.docker still held the leaked value (same SHA-256 as 669af52's), because gen-env.sh never changes an existing key — the local stack had been running with the leaked secret.
+- Changed: apps/api/src/config.ts: LEAKED_SECRET_SHA256 (the hash only, never the value); loadConfig refuses a matching ACQUIRER_CALLBACK_SIGNING_SECRET. ops/gen-env.sh: if the file holds the leaked value, it is removed and a new random 32-byte hex secret is generated (values never printed; a second run changes nothing).
+- Test: apps/api/src/config.e13.test.ts reads the leaked value from git history at test time (so the repo has no plain copy) and asserts loadConfig refuses it. Before: no exception. After: PASS; callback, inbound-signature and config tests 21/21.
+- Done locally: gen-env.sh replaced the value (new length 64); the local api container recreated and healthy.
+- Not done, on purpose: git history is NOT rewritten. The leaked value stays in history but is dead: the API refuses to start with it, and gen-env.sh replaces it. The live Dilmune server will be set up only with a secret from gen-env.sh.
+- Honest note: while checking, one grep printed the leaked value into this session's output (it is already public in git history).
 - check.sh: OK.
 
 ## 6. Deploy

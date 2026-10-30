@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 /**
  * App-wide configuration, loaded once from environment variables at boot.
  * `loadConfig` throws synchronously — crashing boot rather than serving
@@ -129,6 +130,9 @@ export interface Config {
   acquirerCallbackRequireSignature: boolean;
 }
 
+/** E13: SHA-256 of secrets that leaked in git history (never the values). */
+const LEAKED_SECRET_SHA256 = new Set(["63889b3971febcfcdfe8d4bc9a17e67b719c00e47b2c1fc74eb7aa8a50ec6306"]);
+
 function parseNodeEnv(value: string | undefined): Config["nodeEnv"] {
   if (value === "production" || value === "test" || value === "development") {
     return value;
@@ -206,6 +210,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   }
 
   const acquirerCallbackSigningSecret = env.ACQUIRER_CALLBACK_SIGNING_SECRET ?? "";
+  // E13: this secret leaked in git history (669af52, ops/.env.docker). The
+  // value stays in history but must never authenticate a callback again.
+  // Only its SHA-256 is kept here, never the value.
+  if (acquirerCallbackSigningSecret !== "" && LEAKED_SECRET_SHA256.has(createHash("sha256").update(acquirerCallbackSigningSecret).digest("hex"))) {
+    throw new Error("loadConfig: ACQUIRER_CALLBACK_SIGNING_SECRET is the value leaked in git history; run ops/gen-env.sh for a new one");
+  }
   if (nodeEnv === "production" && acquirerCallbackSigningSecret === "") {
     throw new Error("loadConfig: ACQUIRER_CALLBACK_SIGNING_SECRET is required when NODE_ENV=production");
   }
