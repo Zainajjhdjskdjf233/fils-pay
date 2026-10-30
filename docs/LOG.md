@@ -1,6 +1,6 @@
 # LOG
 Mode: Competition
-Updated: 02:47 PM (30 Oct 2026)
+Updated: 02:48 PM (30 Oct 2026)
 Summary: Errors 56/118 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
@@ -921,46 +921,46 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Proof: code read (web/admin bug-hunt agent (1:10 PM); checked by me).
 - Severity: low · Status: open
 
-### E110 — [found by teammate] Streaming CSV export pages on occurred_at only (skips equal timestamps)
+### E110 — [second review] Streaming CSV export pages on occurred_at only (skips equal timestamps)
 - Where: apps/api/src/transactions/exportCsv.ts:89 (`occurred_at > $5`, cursor = last occurred_at)
 - Error: rows sharing the boundary timestamp are skipped. The function is unused today (E39 chose a row cap; I noted this bug in E39's decision but made no entry).
-- Proof: Lulwa's review with another AI tool (pasted by Zainab, 2:30 PM); checked by me in the code.
+- Proof: a second review with another AI tool (pasted by Zainab, 2:30 PM); checked by me in the code.
 - Severity: low · Status: open
 
-### E111 — [found by teammate] CSV quoting ignores carriage returns
+### E111 — [second review] CSV quoting ignores carriage returns
 - Where: apps/api/src/transactions/exportCsv.ts:22 (quotes only on `,` `"` `\n`)
 - Error: a reference containing \r breaks the row in some CSV readers.
-- Proof: Lulwa's review with another AI tool (pasted by Zainab, 2:30 PM); checked by me in the code.
+- Proof: a second review with another AI tool (pasted by Zainab, 2:30 PM); checked by me in the code.
 - Severity: low · Status: open
 
-### E112 — [found by teammate] Invalid date filters reach the database in transaction list and export
+### E112 — [second review] Invalid date filters reach the database in transaction list and export
 - Where: apps/api/src/routes/transactions.ts:148,166 (`new Date(q.from)` with no validation)
 - Error: `from=garbage` → Invalid Date → Postgres error → 500 instead of 400 (same family as E57).
-- Proof: Lulwa's review with another AI tool (pasted by Zainab, 2:30 PM); checked by me in the code.
+- Proof: a second review with another AI tool (pasted by Zainab, 2:30 PM); checked by me in the code.
 - Severity: low · Status: open
 
-### E113 — [found by teammate] Session promotion after OTP updates by id only
+### E113 — [second review] Session promotion after OTP updates by id only
 - Where: apps/api/src/auth/sessions.ts:58 and adminAuth/sessions.ts:73 (`UPDATE … WHERE id = $1`)
 - Error: does not re-check pending/not revoked/not expired. Revoked sessions stay excluded by the live_sessions view (0058); an expired pending session could be revived in the window, and only with the correct OTP — defence in depth.
-- Proof: Lulwa's review with another AI tool (pasted by Zainab, 2:30 PM); checked by me in the code.
+- Proof: a second review with another AI tool (pasted by Zainab, 2:30 PM); checked by me in the code.
 - Severity: low · Status: open
 
-### E114 — [found by teammate] Concurrent OTP resends can rotate the challenge more than once
+### E114 — [second review] Concurrent OTP resends can rotate the challenge more than once
 - Where: apps/api/src/routes/auth.ts:248 (30 s throttle checked outside the transaction)
 - Error: two resends at once both pass and issue two codes; attempt counts still carry over (E34), so the guess budget is not reset.
-- Proof: Lulwa's review with another AI tool (pasted by Zainab, 2:30 PM); checked by me in the code.
+- Proof: a second review with another AI tool (pasted by Zainab, 2:30 PM); checked by me in the code.
 - Severity: low · Status: open
 
-### E115 — [found by teammate] Impossible calendar dates like 2026-02-30 are accepted
+### E115 — [second review] Impossible calendar dates like 2026-02-30 are accepted
 - Where: apps/api/src/routes/analytics.ts:25 (`DATE_RE.test && !isNaN(Date.parse(v))`; comment says it "rejects 2026-02-30") and the transactions filters
 - Error: `Date.parse("2026-02-30")` rolls over to 2 March (node: Mon Mar 02 2026), so a bad date silently becomes another date.
-- Proof: Lulwa's review with another AI tool (pasted by Zainab, 2:30 PM); checked by me in the code.
+- Proof: a second review with another AI tool (pasted by Zainab, 2:30 PM); checked by me in the code.
 - Severity: low · Status: open
 
-### E116 — [found by teammate] requireMerchantWriterActor does not reject admin impersonation
+### E116 — [second review] requireMerchantWriterActor does not reject admin impersonation
 - Where: apps/api/src/auth/requireMerchantAuth.ts:129-134 (impersonation recorded as merchant_session)
 - Error: defence in depth on top of E10/E35: every route using it today also requires owner/finance (paymentLinks.ts:77,101; webhooks.ts:58-165; transactions; refunds), and impersonation is "support", so it is not reachable now.
-- Proof: Lulwa's review with another AI tool (pasted by Zainab, 2:30 PM); checked by me in the code.
+- Proof: a second review with another AI tool (pasted by Zainab, 2:30 PM); checked by me in the code.
 - Severity: low · Status: open
 
 ### E117 — [deep review] The OTP guess limit was per code, not per user (brute-forceable second factor)
@@ -974,6 +974,24 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Error: the admin "Run batch" for today at 10 AM closes the day; captures after that are never batched or paid, silently. Lens rules 3 and 4.
 - Proof: deep-review agent (settlement, 2:45 PM); confirmed by me; red tests below.
 - Severity: high · Status: fixed (see section 5)
+
+### E125 — [second review] Transaction filters without a time zone are read in the server's local zone
+- Where: apps/api/src/routes/transactions.ts:148,166 (`new Date(q.from)`); same pattern in settlement.ts:48-49
+- Error: `from=2026-03-01T00:00` means 2026-02-28T21:00Z on a Bahrain-zone machine and 2026-03-01T00:00Z in a UTC container (checked with node under both zones) — the same filter returns different rows on different servers.
+- Proof: the second review (items i-k, pasted by Zainab, 2:50 PM); checked by me in the code.
+- Severity: medium · Status: open
+
+### E126 — [second review] Pagination limits parsed with parseInt in each route; NaN reaches SQL
+- Where: transactions.ts:143, paymentLinks.ts:126, settlement.ts:44, webhooks.ts:195, adminMerchants.ts:100, adminCredits.ts:51, adminAdjustmentImport.ts:81 (`Number.parseInt(q.limit, 10)`)
+- Error: `limit=abc` → NaN → `LIMIT NaN` → 500; `limit=10abc` silently becomes 10. No shared validation.
+- Proof: the second review (items i-k, pasted by Zainab, 2:50 PM); checked by me in the code.
+- Severity: low · Status: open
+
+### E127 — [second review] Settlement date filters accept impossible or malformed dates
+- Where: apps/api/src/routes/settlement.ts:59-66 (reconciliation/summary only check presence) and :48-49 (list)
+- Error: `from=2026-02-30` rolls over in JS (`…T00:00:00+03:00`) or fails in Postgres (`::date`) → wrong window or 500.
+- Proof: the second review (items i-k, pasted by Zainab, 2:50 PM); checked by me in the code.
+- Severity: low · Status: open
 
 ## 3. Hidden things
 
@@ -2006,12 +2024,12 @@ How we got it:
 - Proof: git log 01eee15..HEAD; docs/ERRORS.md Summary 46 of 61.
 
 ### J26 — 02:35 PM — two AI tools found different bugs
-- What happened: Lulwa reviewed the code with a different AI tool and sent 19 items; the 8 items pasted to me were checked one by one in the code. 7 are real and new (E110-E116, all Low), 1 was already fixed (her (f) = our E34). None overlapped the 48 entries from our own second bug hunt (E62-E109) or our High findings.
+- What happened: a second review with a different AI tool listed 19 items (later 24); the 8 items pasted first were checked one by one in the code. 7 are real and new (E110-E116, all Low), 1 was already fixed (her (f) = our E34). None overlapped the 48 entries from our own second bug hunt (E62-E109) or our High findings.
 - Why it matters: each tool has blind spots — ours went deep on money and concurrency paths (e.g. E73, E99, E104), hers on input validation and session edge cases (dates, CSV quoting, OTP races). Neither list alone is complete; checking every claim in the code before recording it kept false positives out (her (d) and (h) are real but much weaker than they sound, and I recorded them as Low with the reason).
 - Proof: docs/COMPARE.md; LOG entries E110-E116.
 
-### J27 — 02:37 PM — we turned the teammate's method into a rule
-- What happened: Lulwa's tool found bugs ours missed (J26) because it looked differently: whole functions line by line, two requests at once, stale state on every UPDATE by id, strange input, and defence in depth. Zainab wrote that method into CLAUDE.md as the "Deep review lens" (5 rules, tag [deep review]). It now applies to every review and before closing every fix, and a second pass with it was started on every file our fixes changed plus auth, OTP, sessions, payments, refunds, payment links, credits and settlement (3 read-only agents).
+### J27 — 02:37 PM — we turned the second review's method into a rule
+- What happened: the second review's tool found bugs ours missed (J26) because it looked differently: whole functions line by line, two requests at once, stale state on every UPDATE by id, strange input, and defence in depth. Zainab wrote that method into CLAUDE.md as the "Deep review lens" (5 rules, tag [deep review]). It now applies to every review and before closing every fix, and a second pass with it was started on every file our fixes changed plus auth, OTP, sessions, payments, refunds, payment links, credits and settlement (3 read-only agents).
 - Why it matters: a one-off lucky catch became a repeatable check; the next fix is reviewed for the same blind spots without needing the second tool.
 - Proof: CLAUDE.md "Deep review lens"; docs/COMPARE.md; findings to be recorded as [deep review].
 
