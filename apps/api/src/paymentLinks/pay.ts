@@ -136,7 +136,17 @@ export async function payPaymentLink(
   // can still get the second connection captureTransaction needs (fix-reviewer:
   // with pgPoolMax 5, five locked pays would starve each other).
   const releaseSlot = await acquireLockSlot(config.maxConcurrentLockedPays ?? 2);
-  const linkClient = await pool.connect();
+  let linkClient: PoolClient;
+  try {
+    linkClient = await pool.connect();
+  } catch (err) {
+    // E122: no connection (pool timeout) → give the slot back, free the link
+    // and void the authorization, or the slot leaks and every later pay waits.
+    releaseSlot();
+    await releaseReservation(pool, link.id, link.reservationToken).catch(() => undefined);
+    await voidTransaction(pool, { transactionId: txnId, merchantId: link.merchantId, actor: { type: "system", id: link.id } }).catch(() => undefined);
+    throw err;
+  }
   let clientReleased = false;
   let finalized: { id: string; paid_at: Date } | undefined;
   try {

@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 02:49 PM (30 Oct 2026)
-Summary: Errors 57/119 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 02:54 PM (30 Oct 2026)
+Summary: Errors 58/127 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -999,6 +999,36 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Proof: deep-review agent (settlement, 2:45 PM); confirmed by me; red test below.
 - Severity: high · Status: fixed (see section 5)
 
+### E120 — [deep review] MDR recalculation can make a batch's net payout negative
+- Where: apps/settlement/internal/settlement/recalculate_mdr.go:114 `newNetPayout := b.netPayoutFils - diff` (no floor), written at :121.
+- Error: a fee raise larger than the batch's net (e.g. after refunds) stores a negative net_payout_fils; the payout step then pays a negative amount. Lens rule 4.
+- Proof: deep-review agent (settlement, 2:45 PM); confirmed by reading :106-121.
+- Severity: high · Status: open
+
+### E121 — [deep review] Manual credits and CSV adjustments are never paid out
+- Where: apps/api/src/admin/credits.ts:158,171 and admin/adjustmentImport.ts post merchant_payable credits; apps/settlement/internal/settlement/batch.go:227-239 builds net_payout_fils only from captures and refunds.
+- Error: the merchant's payable balance grows but no batch ever includes the credit, so the money is owed forever and reconciliation shows a gap.
+- Proof: deep-review agent (settlement, 2:45 PM); confirmed by reading batch.go:227-252.
+- Severity: high · Status: open
+
+### E122 — [deep review] A failed DB connect in link pay leaks the lock slot forever
+- Where: apps/api/src/paymentLinks/pay.ts:138-139 (before the fix): the slot was taken, then `await pool.connect()` ran before the `try`, so the `finally` that gives the slot back never ran.
+- Error: two pool timeouts (the normal 503 under load) use up both slots; every later link payment waits forever. The claimed link also stayed "reserved" for 60 s and its authorization was never voided. Lens rules 1 and 2.
+- Proof: deep-review agent (payments, 2:45 PM); red test below.
+- Severity: high · Status: fixed (see section 5)
+
+### E123 — [deep review] A malformed card gives 500 after the link is claimed
+- Where: apps/api/src/routes/paymentLinks.ts:158 and routes/transactions.ts:73 check only `!card`; apps/api/src/acquirer/simulator.ts:127 calls `req.card.pan.endsWith` → TypeError after the claim UPDATE.
+- Error: `{"card":{}}` → 500, and the link answers "payment_link_processing" for 60 s, so the real buyer cannot pay. Lens rule 4 (bad input must be 400 and never reach the database).
+- Proof: red test `routes/pay.e123.test.ts`: `link pay with card {}: {"error":"internal_error"}`.
+- Severity: high · Status: open
+
+### E124 — [deep review] A replayed capture can credit the negotiated discount twice
+- Where: apps/api/src/payments/discountAdjustment.ts:53-58 compares the count of capture events with the count of discount adjustments for the transaction, and always reads the latest capture's fee.
+- Error: after two partial captures where only one adjustment was written (e.g. a crash between capture and adjustment), a replay of either capture writes an adjustment sized from the latest fee; the counts never tie a credit to its capture. Merchant fee revenue is wrong.
+- Proof: deep-review agent (payments, 2:45 PM); confirmed by reading :34-90.
+- Severity: high · Status: open
+
 ## 3. Hidden things
 
 ### H01 — "The Order of the Prompt" and its Five Rules
@@ -1843,6 +1873,12 @@ ROLLBACK;
 - Decision (for Zainab to review): cap the import at the credit threshold instead of building a staged maker-checker import — Why: smallest safe change; larger corrections already have the two-person credit flow — Alternative: stage the import and require a second admin to approve it (new table + UI).
 - Test: apps/api/src/admin/adjustmentImport.e119.test.ts (1,000,000; −75; two rows of 30). Before: `Missing expected rejection` (1,000,000 BD accepted). After: PASS; 50.000 still posts; all import tests (24) pass.
 - Actual result: one admin can no longer move more than 50 BD through the import.
+
+### E122 — 02:54 PM — link pay gives back its lock slot when no connection is free
+- Changed: apps/api/src/paymentLinks/pay.ts:141: `pool.connect()` now sits in its own try/catch. On failure it releases the slot, frees the claimed link (status back to active, guarded by our reservation token) and voids the authorization (both best effort), then rethrows (errorHandler turns a pool timeout into 503).
+- Test: apps/api/src/paymentLinks/pay.e122.test.ts (one slot; the 2nd connect fails). Before: `the failed pay must release its claim at once` (link stuck "reserved"; the slot also leaked). After: PASS, the link is active, the authorization is voided, and the next pay finishes with 200 instead of waiting forever.
+- Regression: full suite same as baseline v3 (api 440/441, the known E54 test; Go 77 pass).
+- Actual result: a pool timeout under load costs one 503, not every later link payment.
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04) — not yet. Local Docker stack done (01:48 PM, see section 5 E02).

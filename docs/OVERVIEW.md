@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 2:49 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 2:54 PM
 
 ## Contents
 1. Status now
@@ -14,8 +14,8 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:49 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 57 of 122 fixed.
-  - High: 33 of 34 fixed
+- Errors: 58 of 127 fixed.
+  - High: 34 of 39 fixed
   - Medium: 22 of 40 fixed
   - Low: 2 of 48 fixed
 - Missing feature (refunds, F01): done
@@ -23,11 +23,11 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:49 PM
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
 - Dilmune Cloud: not yet
 - Decisions waiting for Zainab: 21 (search "for Zainab to review" in LOG.md)
-- Fork: needs a push (VS Code: Git: Push to... → mine)
+- Fork: up to date
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 57 of 122 fixed.
+- 🔄 Fix: 58 of 127 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ⬜ UI and UX, before/after screenshots
@@ -91,7 +91,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:49 PM
 - eebf7d4 fix(E42): reporting cursor on (txid, id) below the snapshot horizon — late commits were skipped
 
 ## 7. All errors
-## High (33 of 34 fixed)
+## High (34 of 39 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -129,6 +129,11 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:49 PM
 | E117 | [deep review] OTP guess limit was per code, not per user (brute-forceable) | Fixed |
 | E118 | [deep review] Running a batch for today strands that day's later captures | Fixed |
 | E119 | [deep review] CSV adjustment import bypasses the two-person credit rule | Fixed |
+| E120 | [deep review] MDR recalculation can make a batch's net payout negative | Open |
+| E121 | [deep review] Manual credits and CSV adjustments are never paid out | Open |
+| E122 | [deep review] Failed DB connect in link pay leaks the lock slot forever | Fixed |
+| E123 | [deep review] Malformed card gives 500 after the link is claimed (link blocked 60 s) | Open |
+| E124 | [deep review] Replayed capture can credit the negotiated discount twice | Open |
 
 ### Medium (22 of 40 fixed)
 
@@ -229,7 +234,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:49 PM
 | E127 | [second review] Settlement date filters accept impossible dates | Open |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63
 
 ### N01 — Database setup stopped halfway
 
@@ -2522,4 +2527,47 @@ The total is checked too, so splitting into many small rows does not help.
 It needs a new table and screens. The limit closes the hole today; staged approval is marked for Zainab.
 
 Commit: c973988
+
+### N63 — A busy database no longer freezes all payment-link payments
+
+#### The idea
+Only two link payments may hold a link lock at once. Each takes a ticket, like the keys for a small changing room.
+
+#### The problem
+If the database had no free connection, the payment failed but kept its ticket.
+- After two such failures, no tickets were left.
+- Every later link payment waited forever.
+- The link also stayed blocked for 60 seconds.
+
+#### The fix
+- pay.ts: if getting a connection fails, give the ticket back, free the link and cancel (void) the card hold, then report the error.
+
+#### The code
+Before (apps/api/src/paymentLinks/pay.ts:138):
+```ts
+const releaseSlot = await acquireLockSlot(config.maxConcurrentLockedPays ?? 2);
+const linkClient = await pool.connect();
+```
+After:
+```ts
+try {
+  linkClient = await pool.connect();
+} catch (err) {
+  releaseSlot();
+  await releaseReservation(pool, link.id, link.reservationToken).catch(() => undefined);
+  await voidTransaction(pool, { ... }).catch(() => undefined);
+  throw err;
+}
+```
+The ticket is returned even when the connection fails. The buyer gets a 503 and can try again.
+
+#### The proof
+- Before: the link stayed "reserved"; the next payment waited forever (test with one ticket).
+- After: the link is active, the hold is voided, the next payment succeeds (200).
+
+#### If the judges ask
+"Why not just use finally?"
+The connect line was before the try, so finally never ran. Moving the whole thing inside would also release a client we never got; a small try/catch around connect is clearer.
+
+Commit: PENDING_N63
 

@@ -373,3 +373,9 @@ Where: apps/settlement/internal/settlement/batch.go:67 · Commit: fb945fa
 Credits over 50 BD normally need a second person to approve them, but the balance-correction file upload let one admin post any amount, even a million BD. Now an upload is refused if any line, or all lines together, go over 50 BD; bigger corrections must use the two-person credit process. A test shows the million-BD file is refused and nothing is posted.
 
 Where: apps/api/src/admin/adjustmentImport.ts:65 · Commit: c973988
+
+## N63 — A busy database no longer freezes all payment-link payments
+
+Only two link payments may hold a link lock at once, each with a "ticket". When the database was too busy to give a connection, the payment failed but never gave its ticket back. After two such failures, every later link payment waited forever. Now a failed connection returns the ticket, frees the link and cancels the card hold. A test with one ticket shows the next payment goes through instead of hanging.
+
+Where: apps/api/src/paymentLinks/pay.ts:141 · Commit: PENDING_N63
