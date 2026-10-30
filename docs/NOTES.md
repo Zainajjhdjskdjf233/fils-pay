@@ -2188,4 +2188,4 @@ Excess requests are turned away in microseconds, so the ones being served stay f
 "Why not just give the API more CPU?"
 The API used only 15 % of one CPU. The database was at its limit, so we moved CPU to the database inside the same 1-CPU budget.
 
-Commit: PENDING_N59
+Commit: a8fdcb1
