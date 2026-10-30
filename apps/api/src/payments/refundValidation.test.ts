@@ -108,3 +108,10 @@ test("a transaction that captured nothing is not refundable even in a refundable
   );
   assert.deepEqual(result, { ok: false, code: "transaction_not_refundable", status: "captured" });
 });
+
+// E153 [coverage]: nothing left to refund and no amount given is
+// "not refundable" (409), not "amount invalid" (422).
+test("testE153_nothingLeftAndNoAmountIsNotRefundable", () => {
+  const spent = txn({ status: "partially_refunded", amountFils: 10_000, capturedFils: 6_000, refundedFils: 10_000 });
+  assert.deepEqual(validateRefundRequest(spent), { ok: false, code: "transaction_not_refundable", status: "partially_refunded" });
+});

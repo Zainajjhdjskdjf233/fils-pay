@@ -36,6 +36,10 @@ export function validateRefundRequest(
   }
 
   const refundable = refundableAmount(txn);
+  // E153: nothing left and no amount given → not refundable (409), not 422.
+  if (requestedAmountFils === undefined && compareFils(refundable, ZERO_FILS) <= 0) {
+    return { ok: false, code: "transaction_not_refundable", status: txn.status };
+  }
   const requested = requestedAmountFils ?? refundable;
 
   if (compareFils(requested, ZERO_FILS) <= 0) {

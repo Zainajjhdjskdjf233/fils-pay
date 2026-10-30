@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 85 of 163 fixed.
+Summary: 86 of 163 fixed.
 
 ## High (45 of 46 fixed)
 
@@ -126,7 +126,7 @@ Summary: 85 of 163 fixed.
 | E148 | [coverage] No limit on KYC uploads per merchant: the shared disk can be filled | Open |
 | E163 | [second review] API config never refuses bad settings (prefixes, booleans, NODE_ENV typo turns off security defaults, no ranges) | Partly fixed |
 
-## Low (13 of 62 fixed)
+## Low (14 of 62 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -183,7 +183,7 @@ Summary: 85 of 163 fixed.
 | E150 | [coverage] Balance adjustment returns 404 for a merchant with no balance row yet | Open |
 | E151 | [coverage] Defence in depth: validateRefundRequest trusts its caller's numbers | Open |
 | E152 | [coverage] Go ApplyRateFils: int64 overflow wraps silently (TS throws) | Open |
-| E153 | [coverage] A fully refunded, partly captured row refunded again with no amount gives 422 instead of 409 | Open |
+| E153 | [coverage] A fully refunded, partly captured row refunded again with no amount gives 422 instead of 409 | Fixed |
 | E154 | [coverage] adjustMerchantBalanceJournaled is dead code | Open |
 | E155 | [coverage] Webhook PATCH with a bad status gives 500 | Fixed |
 | E156 | [coverage] timingSafeEqualHex accepts extra characters after a valid digest | Fixed |

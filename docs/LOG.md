@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 05:11 PM (30 Oct 2026)
-Summary: Errors 85/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 05:12 PM (30 Oct 2026)
+Summary: Errors 86/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1181,7 +1181,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/payments/refundValidation.ts:39-42.
 - Error: refundable 0, no amount → 422 refund_amount_invalid.
 - Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E153)
 
 ### E154 — [coverage] adjustMerchantBalanceJournaled is dead code
 - Where: apps/api/src/admin/balanceAdjustments.ts:67-114 (no caller, grep).
@@ -2317,6 +2317,11 @@ ROLLBACK;
 - Not done (smaller impact, recorded): range checks for OTP TTL/attempts/length, argon2 costs, webhook timers, settlement and payment-link timeouts (second review items 53-57).
 - Test: apps/api/src/config.e51.test.ts testE163_invalidSettingsAreRefusedAtBoot (9 bad settings). Before: `Missing expected exception: integer prefix`. After: PASS.
 - Regression: api at baseline v3 (the known E54 test), reporting 18/18, web 13/13, scripts 10/10, Go 80.
+
+### E153 — 05:12 PM — nothing left to refund and no amount is 409, not 422
+- Changed: apps/api/src/payments/refundValidation.ts:39-42: with no amount and nothing refundable → transaction_not_refundable (processRefund.ts maps it to 409). Limited to "no amount" so refundValidation.test.ts:82-95 (amount 1 → 422 refund_exceeds_refundable) is unchanged.
+- Test: payments/refundValidation.test.ts testE153_nothingLeftAndNoAmountIsNotRefundable. Before: code 'refund_amount_invalid'. After: PASS; refund tests 39/39.
+- check.sh: OK.
 
 ## 6. Deploy
 
