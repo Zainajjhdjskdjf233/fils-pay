@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 102 of 175 fixed.
+Summary: 103 of 175 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -131,11 +131,11 @@ Summary: 102 of 175 fixed.
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Open |
 
-## Low (21 of 69 fixed)
+## Low (22 of 69 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
-| E38 | Public payment link page exposes the merchant's API key hash and prefix | Open |
+| E38 | Public payment link page exposes the merchant's API key hash and prefix | Fixed |
 | E40 | withTransaction: a failing ROLLBACK hides the real error | Open |
 | E46 | KYC "PDF only" rule checks the filename, not the content | Open |
 | E47 | Admin console: session not rotated after OTP; no CSP | Open |

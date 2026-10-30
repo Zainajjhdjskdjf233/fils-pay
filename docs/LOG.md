@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 06:23 PM (30 Oct 2026)
-Summary: Errors 102/175 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 06:24 PM (30 Oct 2026)
+Summary: Errors 103/175 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -469,7 +469,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/paymentLinks/read.ts:43-52, :73-74
 - Severity: low
 - Proposed fix: remove both fields.
-- Status: open
+- Status: fixed (see section 5, E38)
 
 ### E39 — CSV export loads everything into memory (DoS) and allows formula injection
 - Where: apps/api/src/transactions/exportCsv.ts:12-17, :36-48; routes/transactions.ts:154-172
@@ -2500,6 +2500,15 @@ ROLLBACK;
 - Changed: apps/api/src/webhooks/dispatcher.ts Step B: `AND we.status = 'active'` (Step A already had it). A delivery queued before the endpoint was disabled now waits until it is re-enabled.
 - Test: webhooks/dispatcher.test.ts testE168_noAttemptToADisabledEndpoint. Before: `nothing may be sent to a disabled endpoint` failed. After: PASS; webhook tests 64/65 (the known E54 test).
 - Found by: the second review (item 66).
+- check.sh: OK.
+
+### E38 — 06:24 PM — the public payment-link answer exposes no API key data
+- Changed: apps/api/src/paymentLinks/read.ts: the public (unauthenticated) GET /v1/payment-links/:token no longer selects the merchant's latest API key; merchantPublicKey (key prefix) and merchantIntegrationId (key hash) are gone from the DTO. No UI used them (grep apps/web, apps/admin).
+- Live before: `GET http://139.59.57.26/v1/payment-links/<token>` returned both fields.
+- Old test that locked the leak: routes/paymentLinks.test.ts:126 asserted the prefix starts with fp_; now asserts both fields are absent.
+- Test: that corrected assertion. Before: fail. After: PASS; payment-link tests pass; web tsc clean.
+- Also found by: the second review (item 82).
+- Live: needs the redeploy after the push.
 - check.sh: OK.
 
 ## 6. Deploy

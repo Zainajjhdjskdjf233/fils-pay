@@ -123,7 +123,10 @@ test("create -> public read (active) -> pay (approved) -> public read (paid) -> 
   assert.equal(readActive.statusCode, 200, readActive.body);
   assert.equal(readActive.json().status, "active");
   assert.equal(readActive.json().amountFils, 4_750);
-  assert.ok(readActive.json().merchantPublicKey?.startsWith("fp_"));
+  // E38: the public link answer must not expose any API key data (this line
+  // used to assert the key prefix was there, locking the leak in).
+  assert.equal(readActive.json().merchantPublicKey, undefined);
+  assert.equal(readActive.json().merchantIntegrationId, undefined);
 
   const payRes = await pay(link.token, APPROVED_CARD);
   assert.equal(payRes.statusCode, 200, payRes.body);

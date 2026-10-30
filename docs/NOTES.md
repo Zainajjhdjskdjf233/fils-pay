@@ -3849,4 +3849,4 @@ Nothing goes to a switched-off address.
 "Are those messages lost?"
 No, they stay pending and go out if the shop switches the address back on.
 
-Commit: PENDING_N108
+Commit: 4553c70
