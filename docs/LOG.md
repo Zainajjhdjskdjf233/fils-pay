@@ -31,6 +31,7 @@ Phase: understand (no source code changed). Scratch proof files: /private/tmp/cl
 - Installed at 12:13-12:16 AM with Zainab's OK for each (no admin password, home folder only):
   - Go 1.27.3 → `~/.local/go` (official go.dev tarball; SHA256 checked: `go.tgz: OK`). Not added to the shell profile; `.claude/check.sh` adds it to PATH.
   - Postgres 16.15 → `~/Applications/Postgres.app` (official Postgres.app 2.9.6 single-version dmg; SHA256 checked `pg16.dmg: OK`; `codesign --verify` → `SIGNATURE_OK`, TeamIdentifier ZF84SJ5A3G). Only the CLI tools are used.
+  - k6 v2.3.0 → `~/.local/bin/k6` (12:35 PM; Zainab: "download the official binary into ~/.local/bin, like you did with Go"). Official grafana/k6 GitHub release zip `k6-v2.3.0-macos-arm64.zip`; SHA256 checked against `k6-v2.3.0-checksums.txt` → `OK`; unzipped in a fresh scratch dir. Not Apple-signed (`codesign -dv` → `Identifier=a.out`, no team) — normal for that zip; the checksum is the integrity proof. For the checkout load test (Item 05 capacity).
   - Data folder `~/.local/pgdata16`, listens on localhost:5432 only, local trust auth (no password; local test use only).
   - Start: `~/Applications/Postgres.app/Contents/Versions/16/bin/pg_ctl -D ~/.local/pgdata16 -l ~/.local/pgdata16/server.log -o "-c listen_addresses=localhost -p 5432" start` · Stop: same with `stop`.
 - Test databases (all on localhost):
