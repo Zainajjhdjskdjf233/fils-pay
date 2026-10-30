@@ -22,17 +22,27 @@ export async function refreshAnalyticsRollups(client: PoolClient): Promise<Rebui
 
   const volumeResult = await client.query(
     `INSERT INTO merchant_daily_volume
-        (merchant_id, volume_date, captured_count, captured_gross_fils, voided_count, last_updated_at)
-     SELECT t.merchant_id,
-            (te.occurred_at AT TIME ZONE 'Asia/Bahrain')::date,
-            COUNT(*) FILTER (WHERE te.event_type IN ('captured', 'partially_captured')),
-            COALESCE(SUM(te.amount_fils) FILTER (WHERE te.event_type IN ('captured', 'partially_captured')), 0),
-            COUNT(*) FILTER (WHERE te.event_type = 'voided'),
+        (merchant_id, volume_date, captured_count, captured_gross_fils, voided_count, refund_count, refund_gross_fils, last_updated_at)
+     SELECT merchant_id, day,
+            COUNT(*) FILTER (WHERE kind = 'capture'),
+            COALESCE(SUM(amount_fils) FILTER (WHERE kind = 'capture'), 0),
+            COUNT(*) FILTER (WHERE kind = 'void'),
+            COUNT(*) FILTER (WHERE kind = 'refund'),
+            COALESCE(SUM(amount_fils) FILTER (WHERE kind = 'refund'), 0),
             now()
-       FROM transaction_events te
-       JOIN transactions t ON t.id = te.transaction_id
-      WHERE te.event_type IN ('captured', 'partially_captured', 'voided')
-      GROUP BY t.merchant_id, (te.occurred_at AT TIME ZONE 'Asia/Bahrain')::date`,
+       FROM (
+             SELECT t.merchant_id, (te.occurred_at AT TIME ZONE 'Asia/Bahrain')::date AS day,
+                    CASE WHEN te.event_type = 'voided' THEN 'void' ELSE 'capture' END AS kind, te.amount_fils
+               FROM transaction_events te
+               JOIN transactions t ON t.id = te.transaction_id
+              WHERE te.event_type IN ('captured', 'partially_captured', 'voided')
+             UNION ALL
+             -- F01e: refunds, same source the worker's refund.succeeded rollup counts
+             SELECT r.merchant_id, (r.occurred_at AT TIME ZONE 'Asia/Bahrain')::date, 'refund', r.amount_fils
+               FROM refunds r
+              WHERE r.status = 'succeeded'
+            ) activity
+      GROUP BY merchant_id, day`,
   );
 
   return { volumeRows: volumeResult.rowCount ?? 0, trendRows: trendResult.rowCount ?? 0 };

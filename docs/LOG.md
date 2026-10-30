@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 9:59 AM (30 Oct 2026)
-Summary: Errors 15/59 fixed · Hidden 34 found · Features 0/2 done (F01 API + settlement done) · Deploy: not started · CHECKPOINT reached
+Updated: 10:32 AM (30 Oct 2026)
+Summary: Errors 16/60 fixed · Hidden 34 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -450,7 +450,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Error: `ON t.id = r.id` (refund id) instead of `r.transaction_id`. The refund rollup writes columns that do not exist in merchant_daily_volume (0027) and uses the UTC date.
 - Proof: blame 67f8949 (Yousif).
 - Severity: medium (part of F01 reports)
-- Status: open
+- Status: fixed in F01e (migration 0074, applyEvent.ts; see section 5)
 
 ### E44 — Reconciliation "pending" estimate uses float and the wrong rate
 - Where: apps/api/src/settlement/query.ts:321-327; fees/estimate.ts:7-10
@@ -569,6 +569,16 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Proof: fix-reviewer on E08 (1:10 AM).
 - Severity: low (needs a valid signature since E08)
 - Proposed fix: check outcome against the allowed list; 400 otherwise.
+- Status: open
+
+### E60 — [found later] Reconciliation counts payouts of earlier days as an unexplained gap
+- Where: apps/api/src/settlement/query.ts:304-307 (ledger figure: all merchant_payable lines in the window); apps/settlement/internal/settlement/batch.go:360-363 (payout lines get `settlement_batch_id` and `occurred_at = now()`).
+- Error: the daemon pays a batch out on the next business day, so its payout debit lands in the NEXT day's window. A one-day report for day 2 then shows gap = -net(day 1), with or without refunds. The existing test hides it by checking only the batch's own day (settlement.test.ts:160-172 puts the payout at end + 12h).
+- Root cause: the ledger figure does not separate payout lines from capture/refund lines.
+- Proof: fix-reviewer (F01e review) traced it; I confirmed batch.go:360-363 and that capture.ts/processRefund.ts never set settlement_batch_id (grep: no match).
+- Severity: medium
+- Proposed fix: add `AND settlement_batch_id IS NULL` to the ledger query (payout lines are the only merchant_payable lines with a batch id).
+- Expected result: a report for day 2 after day 1's payout shows gapFils 0.
 - Status: open
 
 ## 3. Hidden things
@@ -747,7 +757,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
   - Reconciliation: settlement/query.ts:250-253 claims refund legs are included (unverified).
   - UI: RefundDrawer.tsx:1-8 parked; web router.tsx:21 removed `/refunds`.
 - Plan (draft, for /fix): 1) fix E52 (NULL reason) and E28 inside processRefund; 2) mount `POST /v1/merchants/:merchantId/refunds` with a client Idempotency-Key and role check; 3) add `refund.succeeded` envelope + eligibility; 4) settlement side: `/internal/refund-adjustment` or batch close reads unbatched refunds; 5) reporting subscribe + fix 0072 join; 6) timeline + web drawer; 7) update the 501 test.
-- Progress: core logic F01a (68fd1bf), route F01b (f84083a, 8f05f9e), webhook F01c (079aeea) done and tested through the API; timeline shows refunds. Settlement payouts F01d done (see section 5; Go batch reads refunds, `/internal/refund-adjustment` not built by design). OPEN: reports (E43: 0072 join, consumer subscription, rollup columns), reconciliation, web refund page (RefundDrawer parked, router.tsx:21). These need Zainab's design OK (many files, Go side).
+- Progress: core logic F01a (68fd1bf), route F01b (f84083a, 8f05f9e), webhook F01c (079aeea) done and tested through the API; timeline shows refunds. Settlement payouts F01d done (see section 5; Go batch reads refunds, `/internal/refund-adjustment` not built by design). Reports and reconciliation F01e done (see section 5). OPEN: web refund page (RefundDrawer parked, router.tsx:21). These need Zainab's design OK (many files, Go side).
 - Expected result: partial refund of 1.250 BD on a 10.000 BD capture → ledger merchant_payable −1250 fils plus MDR reversal from `calculateRefundFee`; one `refund.succeeded` webhook; timeline row −1.250; next batch net reduced by the same fils; second parallel request rejected.
 - Status: in progress (API part done: F01a-F01c; settlement, reports, UI open)
 
@@ -977,6 +987,23 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Not changed on purpose: NetPayableFils float32 (E15, its own entry); RecalculateMDR touching paid batches (E19).
 - Actual result: matches expected ("next batch net reduced by the same fils").
 
+### F01e / E43 — 10:32 AM — refunds in the reports and in reconciliation
+- Plan OK: Zainab, 10:20 AM ("yes go ahead with the plan").
+- Changed:
+  - db/migrations/0074_refund_reporting.sql (new): `merchant_daily_volume.refund_count`, `refund_gross_fils`; `refund_merchant_summary` rebuilt with `JOIN transactions t ON t.id = r.transaction_id` (0072:13 used `r.id`, E43) and a Bahrain `date`. New migration, not an edit of 0072, because 0072 runs fine and may be applied.
+  - apps/reporting/src/consumer/runConsumerPass.ts: `refund.succeeded` added to REPORTING_EVENT_TYPES.
+  - apps/reporting/src/consumer/applyEvent.ts: `applyRefundSucceeded` (Bahrain date of outbox created_at, like captures) and its `case`; it replaces the never-called `applyDailySummaryRollup` (UTC date, columns that did not exist).
+  - apps/api/src/admin/reportingRebuild.ts: the rebuild also counts succeeded refunds (UNION ALL), so a rebuild matches the worker.
+  - apps/api/src/analytics/query.ts: volumes return `refundCount`, `refundGrossFils`.
+  - apps/api/src/settlement/query.ts: batch DTO returns `refundFils`, `feeReversedFils`; reconciliation: pending also subtracts (amount - fee reversed) of the period's refunds that no closed/paid batch of the period took; new `refundsFromOtherPeriodsFils` offsets refunds from outside the period taken by the period's batches (F01d carry-over). False comments fixed (query.ts:250-252 "refund legs are included in pending"; :55 net = gross - fee; H34).
+  - apps/web/src/types.ts: the same new fields; comment at :218 fixed (H34).
+- Test: apps/api/src/routes/refundReports.f01e.test.ts (5), apps/reporting/src/consumer/refund.f01e.test.ts (2). Before: reconciliation `gapFils: -1219` (pending 9750, ledger 8531); carried-over day 1 `gapFils -1219`; view `actual: 0, expected: 1` rows; `column "refund_count" does not exist`; worker not subscribed. After: 7/7 PASS (fresh DB filspay_f01e_103030_12903).
+- Live: fresh DB, API capture 10000 + refund 1250, then `npx tsx src/index.ts catch-up` (apps/reporting) → `processed 2 event(s)`; merchant_daily_volume `2026-10-30|1|10000|1|1250`.
+- Regression: full-db-test.sh = baseline (5 known failures); api 403 tests, reporting 13, Go 57.
+- Review: fix-reviewer → APPROVE (checked every refund/batch/period case, no double count; params; rebuild date = worker date). Nit taken: comment wording at query.ts:262. Out of scope, recorded: E60 (payouts of earlier days in the ledger figure). Copilot CLI not installed.
+- Decision: test the refund rollup through applyEvent, not runConsumerPass — Why: other suites leave poison events in the shared test DB (E53) that block any runConsumerPass test — Alternative: fix E53 first (its own entry).
+- Actual result: matches expected (refund shows in the daily report on the right day; gapFils 0 before and after the batch takes it).
+
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)
 - Status: not started
@@ -1076,4 +1103,3 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - What happened: all F01d tests and the e2e passed, but fix-reviewer found that RecalculateMDR (recalculate_mdr.go:103) rebuilt net as gross - fee, so after any fee recalculation a batch with refunds would pay the refund back to the shop. I proved it with a red test (9700 vs 8481), fixed it with one line, and kept the test.
 - Why it matters: a change in one place (batch close) broke an assumption in another (recalculation). Review across files is worth it for money code.
 - Proof: refund_batch_f01d_test.go TestF01d_RecalculateMDRKeepsRefundAdjustment; section 5 F01d.
-

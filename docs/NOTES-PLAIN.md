@@ -109,3 +109,9 @@ Where: .gitignore:11 · Commit: 3145f24
 Each day the system pays a shop its sales minus the fee, but it forgot about refunds. So a shop that gave money back to a customer still got paid for that sale, and FilsPay lost the money. Now the daily count takes away the refunds, marks each one so it is only counted once, and moves any refund that is too big to the next day. A second reviewer also found that a fee recalculation would undo this, and we fixed that too. A real test from refund to payout leaves the shop's balance at exactly zero.
 
 Where: apps/settlement/internal/settlement/batch.go:227 · Commit: 6ff2ffb
+
+## N19 — Refunds now show in the reports and in reconciliation
+
+Refunds did not appear in the daily reports, because the report worker was never told to listen for them and its half-written refund code pointed at columns that did not exist. A summary view was always empty because it matched refunds against the wrong id. The money check (reconciliation) also showed a gap whenever a refund was still waiting to be paid out. We added the missing columns, fixed the view, taught the worker and the rebuild tool about refunds, and taught reconciliation that a refund can wait a day. Tests and a live run now show the refund on the right day and a gap of zero.
+
+Where: apps/api/src/settlement/query.ts:363 · Commit: PENDING_N19

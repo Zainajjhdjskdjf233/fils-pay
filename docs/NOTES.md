@@ -697,3 +697,43 @@ The payout now drops by the refund, minus the fee we gave back. All in whole fil
 We never pay a negative amount. The refund that does not fit waits, and the next day's batch takes it. No fils are lost.
 
 Commit: 6ff2ffb
+
+## N19 — Refunds now show in the reports and in reconciliation
+
+### The idea
+Reports count what happened each day. Reconciliation checks that two records agree, like matching your bank statement against your receipts.
+
+### The problem
+Refunds were invisible in reports, and they broke reconciliation.
+- The report worker did not listen for refunds, and its refund code wrote columns that did not exist.
+- The refund summary view joined on the wrong id, so it was always empty.
+- A refund not yet paid out showed as a 1.219 BD gap nobody could explain.
+
+### The fix
+- Migration 0074: refund columns in the daily report, and the view rebuilt with the right join.
+- Report worker: listens for refund.succeeded and counts it on the Bahrain date. The admin rebuild counts refunds too.
+- Reconciliation: a refund waiting for a later batch counts as pending; a refund from an earlier day inside this period's batch is matched too.
+- The batch API now shows refundFils and feeReversedFils.
+
+### The code
+Before (apps/api/src/settlement/query.ts:333):
+```ts
+const gapFils = ledgerMerchantPayableNetFils - settlementNetPayoutFils - pendingUnbatchedFils;
+```
+After:
+```ts
+pendingUnbatchedFils -= Number(pendingRefundResult.rows[0]?.total ?? 0);
+const gapFils =
+  ledgerMerchantPayableNetFils - settlementNetPayoutFils - pendingUnbatchedFils - refundsFromOtherPeriodsFils;
+```
+Waiting refunds now lower "pending". Refunds that a batch took from another day are matched separately.
+
+### The proof
+- Before: reconciliation gapFils -1219; the view had 0 rows; "column refund_count does not exist".
+- After: 7 new tests pass. A live run of the real report worker shows 1 sale of 10000 fils and 1 refund of 1250 fils on 30 Oct.
+
+### If the judges ask
+"Why does reconciliation need two refund numbers?"
+A refund can wait a day before a batch takes it. So one day has the refund in the ledger but not in a batch, and the next day has it in a batch but not in the ledger. One number covers each side.
+
+Commit: PENDING_N19

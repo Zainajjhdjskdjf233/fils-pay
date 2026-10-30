@@ -215,13 +215,15 @@ export interface ReplayResponse {
 // --- settlement / reconciliation ---
 export type SettlementBatchStatus = "open" | "closed" | "paid";
 
-/** @property netPayoutFils Always exactly grossFils - feeFils. */
+/** @property netPayoutFils Exactly grossFils - feeFils - refundFils + feeReversedFils (F01d). */
 export interface SettlementBatchDto {
   id: string;
   batchDate: string;
   status: SettlementBatchStatus;
   grossFils: number;
   feeFils: number;
+  refundFils: number;
+  feeReversedFils: number;
   netPayoutFils: number;
   closedAt: string | null;
   paidAt: string | null;
@@ -262,6 +264,7 @@ export interface ReconciliationReport {
   ledgerMerchantPayableNetFils: number;
   settlementNetPayoutFils: number;
   pendingUnbatchedFils: number;
+  refundsFromOtherPeriodsFils: number;
   gapFils: number;
   explained: boolean;
 }
@@ -272,6 +275,8 @@ export interface VolumePointDto {
   capturedCount: number;
   capturedGrossFils: number;
   voidedCount: number;
+  refundCount: number;
+  refundGrossFils: number;
 }
 
 /** `readModelAsOf` is nullable on the two lagged widgets: it reads
