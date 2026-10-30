@@ -1,6 +1,6 @@
 # LOG
 Mode: Competition
-Updated: 05:33 PM (30 Oct 2026)
+Updated: 05:57 PM (30 Oct 2026)
 Summary: Errors 96/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
@@ -2493,6 +2493,15 @@ A fresh clone of the fork, built and started from nothing but the repo.
 - Clean-up: `docker compose -p filspayrepro ... down -v` → 0 containers and 0 volumes named filspayrepro left. The local stack was restarted with `up -d --build` from local main (all services healthy). The cloned folder stays in the session scratchpad: deleting it needs `rm`, which is not allowed without Zainab; it holds only random secrets for a stack that no longer exists.
 - Result: reproducible. A clone plus two commands gives a working, healthy stack and a working checkout.
 - Gaps found: (1) the reporting service has no health check in ops/docker-compose.yml, so a stuck worker would still show as `Up`; (2) the clone and the local stack share image tags (`filspay-node:local`), so building one replaces the other's images. Both are small; record only.
+
+### Live server (Dilmune) — 05:57 PM (30 Oct 2026)
+- Server: dilmune@139.59.57.26 — Ubuntu (Linux 6.8.0-142, x86_64), 1 vCPU, 1,967 MB RAM + 2,047 MB swap, 48 GB disk (9 % used); passwordless sudo (`sudo -n true` → SUDO_OK). SSH key: ed25519 "case-closed-filspay" (fingerprint SHA256:s21sxmnA6+HWm07NIRpYxzfRv/Igl7lGP2cckF+/QG8), created on Zainab's Mac; first login refused until the key was deployed to the server in the Dilmune panel.
+- Installed: Docker Engine 29.9.2 and Docker Compose v5.6.1 from Docker's official apt repo; `dilmune` added to the docker group.
+- Firewall (ufw): active, default deny incoming; allows 22/tcp, 80/tcp, 443. Docker-published ports bypass ufw, so the Dilmune panel firewall decides: open 22 (SSH), 80 (checkout, dashboard, public API), 8081 (admin console); 443 not needed until HTTPS.
+- Deploy command (one command, idempotent): `ssh dilmune@139.59.57.26 'bash ~/fils-pay/ops/deploy.sh'` (commit 338c98f): installs Docker if missing, clones or fast-forwards the fork, runs ops/gen-env.sh on the server (secrets never printed; a new acquirer secret, E13), sets HTTP_PORT=80, ADMIN_PORT=8081, CHECKOUT_BASE_URL, then `docker compose up -d --build` and waits for health.
+- Decision (Zainab, 05:57 PM): OTP_DEV_EXPOSE=true on this live demo server ONLY, so judges can finish the OTP step (no SMS/email sender exists). The code default stays off and the E37 fix stays. Deliberate demo trade-off — safeguard: in a real deployment OTP goes by SMS or email and this flag stays off. Goes into SUBMISSION.md "Decisions and open risks".
+- Rule (Zainab): on the live server never run scripts/ or any reset, rebuild or sweep command; only migrations (the migrate container).
+- Demo accounts: a fresh production database has none (the seed is dev-only, E65). Proposal: one demo merchant owner and one admin, random passwords generated on the server into a mode-600 file, never printed; Zainab decides whether to share them.
 
 ## 7. Judge notes
 
