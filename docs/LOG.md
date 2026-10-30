@@ -1,6 +1,6 @@
 # LOG
 Mode: Competition
-Updated: 04:07 PM (30 Oct 2026)
+Updated: 04:17 PM (30 Oct 2026)
 Summary: Errors 67/133 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
@@ -1088,6 +1088,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: commit 098c2de. Fatima's 382122d asks about it; Mahmood's 7805693 says "If anyone finds a commit by Yousif, tell me first"; Ali's 3d9b223 says "Do not look at who committed what in September."
 - Meaning: clue. Someone else used his name, or history was rewritten. Date = key `2026-09-28`.
 
+- Correction (/investigate, 04:17 PM): weaker: 098c2de is an ancestor of the revoke commit 800e1e6 (`git merge-base --is-ancestor 098c2de 800e1e6`), and its file is already imported in f33e02b (Feb). "After the revoke" holds only by its date label; it is a split-off piece of the rewrite, not proof that someone used his account.
 ### H06 — Transmission 3 (OpenSSL AES-256, key 2026-09-28) and the FLAG
 - What: `openssl enc -d -aes-256-cbc -pbkdf2 -a -A -pass pass:2026-09-28` decodes to: "YOUSIF WAS NOT TAKEN. HE WAS ERASED. The Order of the Prompt is not four people. Every 'Claude says' comment is a member and every locked test is a vow. When Yousif read the diff he became the first of them to leave. His fixes still exist: ya/sign-raw, the abandoned migrations, the warnings in the handover. Fix what he started and he returns to the record. FLAG{order_of_the_prompt_never_read_the_diff}"
 - Where: commit 0af74f0 "dead man's switch" (Yousif).
@@ -1098,6 +1099,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: `git log --graph --oneline` shows 0af74f0 on top of 800e1e6.
 - Meaning: clue (dates in this history are not trustworthy).
 
+- Correction (/investigate, 04:17 PM): stronger: the first story commit f7a7a3a (labelled 14 Feb 2026) has 098c2de (labelled 28 Sep 2026) as an ancestor, so the whole story layer was written after the code layer.
 ### H08 — History was rewritten: 41 commits have committer "placeholder <p@x>"
 - What: every commit from 669af52 to 098c2de has a real author but committer `placeholder <p@x>`.
 - Where: scratchpad/gitlog.txt.
@@ -1108,6 +1110,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: `git show --stat d4ecdc7`.
 - Meaning: clue (backdated commit).
 
+- Correction (/investigate, 04:17 PM): not the only one: 669af52 (Aug 2025) contains `.cursorrules` "Last updated: 2026-09-12"; 4a3ecbc, 47e70a2 and 08749ab also hold documents dated after their commits.
 ### H10 — "Fix" commits that change nothing
 - What: bf66bf2 "fix: callbacks are deduplicated now" (no files; body "They are not. But the incident is closed, and closed is closed."). 6f462e1 "fix: mark import amounts as intentional" (no files; "Per Rule 3. YA keeps reading things. Watch him. Ali, start the Ledger."). a5bffea "fix flaky test in discount adjustment" (only adds CHANGELOG.md). b9f80ee "docs: tidy the handover" (no files; "He is on leave. (He is not on leave. Do not say that.)").
 - Where: `git show --stat` of each.
@@ -1118,6 +1121,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: commits fe24d26, 800e1e6; HANDOVER.md:46-47.
 - Meaning: clue. The lost fix is E32.
 
+- Correction (/investigate, 04:17 PM): weaker: fe24d26 "wip(ya/sign-raw)" is an empty commit on main; the branch itself never appears in this clone. Its existence rests on 800e1e6 and HANDOVER.md:47.
 ### H12 — 14 "Claude says" comments, each a real bug, each dismissed
 - What: a team member asks the AI, the AI flags a bug, another member says "leave it" or "intentional". Fatima's 1a50712: "why does every bug have three 'Claude says' comments and no fix?"
 - Where: settlement/window.go:43 (= E23), webhooks/sign.ts:81, fees/feeSchedule.ts:16 (E20), admin/adjustmentImport.ts:63 (E22), db/withTransaction.ts:11 (E40), routes/analytics.ts:39 (checked: this one is NOT a bug), routes/adminAuth.ts:179, onboarding/fileSignature.ts:22, routes/apiKeys.ts:18, v1/fees/calculateFee.ts:16 (dead code), payments/processRefund.test.ts:466 (E28 IDOR), routes/transactions.test.ts:218, settlement/internalapi/server.go:182 (checked: sound), admin AdjustmentImportPage.tsx:15.
@@ -1128,11 +1132,13 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: packages/money/src/rounding_legacy.test.ts, parse_cents_compat.test.ts:9; apps/api tests (code-mapper report).
 - Meaning: trap. These tests must change when the bug is fixed; we will say so in each fix.
 
+- Correction (/investigate, 04:17 PM): partly wrong: parse_cents_compat.test.ts:9 asserts the CORRECT value (4.75 → 4750). The 10x bug was apps/api/src/lib/decimal.ts:4 (`decimals = 2`), fixed in E21.
 ### H14 — AGENTS.md (repo AI rules): false claims
 - What: "Do not modify packages/money ... tests are regression-locked" (AGENTS.md:24-31) = Order rule 3. "Settlement date windows are UTC-based" (:38) — false, window.go:25,45 uses Asia/Bahrain and case file says Bahrain midnight. "v1/ is the live partner API ... 501 stubs" (:50-52) — false, nothing imports v1 and it has no 501. "Math.random fine for OTP" (:59) — false (E33). "displayName comparison intentional" (:62) — false (E09). "Monetary columns INTEGER, BHD in cents" (:67-68) — false: 23 columns are BIGINT and the unit is fils. "date-range filter keeps exports small" (:76-77) — false, dates are optional (E39).
 - Where: AGENTS.md (added in 4a3ecbc, Mahmood).
 - Meaning: misleading doc / trap for AI tools. We did not follow it.
 
+- Correction (/investigate, 04:17 PM): wrong commit: AGENTS.md was added in 669af52 (Yousif label), not 4a3ecbc (`git log --diff-filter=A -- AGENTS.md`). 4a3ecbc's message "ops: README, runbook, agents" adds no AGENTS.md.
 ### H15 — .cursorrules: false claims
 - What: "1 BD = 100 fils ... actual unit is cents" (:5-7) — false (CASE-FILE.md:8). "Settlement runs on UTC midnight" (:10) — false. "POST /v1/refunds 501 behind feature flag FP-198" (:20) — no flag exists; code names FP-212. "float32 in batch.go is display-only" (:30) — false (E15). "impersonation super_admin→owner approved in FP-178" (:55) — this is E10. "INTEGER for money" (:65) — false.
 - Where: .cursorrules.
@@ -1143,6 +1149,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: CLAUDE.md.bak (Sept 2026, MK).
 - Meaning: misleading doc aimed at Claude.
 
+- Correction (/investigate, 04:17 PM): source: CLAUDE.md.bak was created by our kit in a12d4c7 from the inherited CLAUDE.md (669af52). The false claims are the inherited file's; "Sept 2026, MK" is that file's own signature.
 ### H17 — HANDOVER.md contradictions
 - What: "There is no console button" for balances (:34-36) — there is one (E18). "Callbacks recorded in processed_events" (:63) — table does not exist (E27). "Second approver compared by admin user id" (:60) — compares displayName (E09). "Impersonation is support, read-only" (:57) — false (E10). "Holds are never deleted" — E12 deletes them. "0054-56 abandoned" (:70) — all three exist; 0054 breaks migrate (E01). "0038 amount_3dp" — file is 0038_kyc_documents_thumbnail.sql (MK note admits it). Its warnings about the Bahrain month (:31-32) and the UTC daemon date (:53-55) are TRUE but were ignored (E16, E23).
 - Where: docs/HANDOVER.md; MK notes added after Yousif left ("Moved here from the wiki by MK in May. Not re-reviewed since.").
@@ -1185,6 +1192,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - What: a code comment references commit b64cd3c; it does not exist in the repo (security-reviewer, `git cat-file`).
 - Meaning: clue (rewritten or deleted history).
 
+- Correction (/investigate, 04:17 PM): understated: six cited commits are missing, not one: b64cd3c, c47c4e0, d69a813, 834f6b0 (credited to MK), 76913d3, 7e612cb (`git cat-file -e` fails for all).
 ### H26 — CSV numbers in the case file do not match the code exactly
 - What: case file: "uploaded 4.755 BD, ledger shows 4.750; uploaded 4.75 BD, ledger shows 0.475". Code (command output, E21): 4.755 → 475 fils (0.475 BD), 4.75 → 475 fils. The 4.75 case matches; the 4.755 case does not.
 - Meaning: open question. Maybe the admin page changes the value before upload (apps/admin/src/pages/adjustments/AdjustmentImportPage.tsx), or finance mis-typed. To check during E21.
@@ -1230,6 +1238,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Check: no file in the repo contains "12.50 BD" except this comment (`grep -rln "12.50 BD" .`); CASE-FILE.md:47 shows finance complaining ("Uploaded 4.75 BD, ledger shows 0.475 — ten times less"), so there was no such agreement. MK saw the bug and it stayed (see E21 blame: 43073e5, 6f462e1).
 - Meaning: false justification; CASE-FILE wins. Fixed in E21.
 
+- Correction (/investigate, 04:17 PM): small errors: the "2dp by agreement" line is signed lowercase "am", not "AM"; blame cannot point to 6f462e1 (an empty commit).
 ### H36 — db/seed/fixtures/production_seed.sql cannot be loaded and nothing uses it
 - What: 12,000 of 12,000 ledger groups have one leg (the 0007 deferred balance trigger would reject them); unknown accounts (platform_fee, settlement_holding); transaction_events.event_type 'refund.succeeded' breaks the 0044 CHECK; 'paid' batches without paid_at; merchant rates differ from fixtures/merchants.ts. No code references it.
 - Proof: bug-hunter's script scratchpad/ps.py → "groups 12000 unbalanced 12000".
@@ -1247,6 +1256,25 @@ Order follows the fix order: app-stopping → high security → (features) → w
 
 ### H39 — More false comments found in the second hunt
 - apps/web/src/api/client.ts:40 "CORS is locked to the two origins in config" — there is no CORS at all (E61). apps/api/src/admin/impersonation.ts:106 "admin-disable trigger" — none exists (E85). requireMerchantAuth.ts "impersonation can't reach write routes" — false for saved-filters (E88). db/migrations/0069_reporting_saved_filters.sql:17-19 says transactionsReportQuery pastes filter values into SQL — false (only $n placeholders, transactionsReportQuery.ts:40-61). apps/settlement internalapi/server.go:193-194 says requirePost runs before the token check — false (line 121 wraps the token check outside). apps/reporting runConsumerPass.ts:15-17 "two processes serialize on that row" — false (E62). db/seed/generate.ts:209-210 "safe to run against a shared/staging database" — false (E65).
+
+
+### Case conclusion — 04:17 PM (30 Oct 2026, /investigate)
+Full map with every chain of proof: docs/CASE-MAP.md. Detective report checked by hand on the key points (669af52 `.cursorrules` date, f7a7a3a/098c2de ancestry, the six missing hashes, 800e1e6 text, `processed_events` absent from code).
+
+Timeline (labels from git; the code-layer dates are fake):
+- After 12 Sep 2026: the code layer (41 commits, 669af52 → 098c2de) is rewritten by committer `placeholder <p@x>`, one author name per file, fake dates 2025-08 → 2026-09 (H08, H09). Six real commits disappear (H25).
+- Then: 16 empty story commits are added on top, labelled Feb → Oct 2026 (f7a7a3a → 8b58b0f; H07).
+- Story, by label: 2026-03-02 and 03-19 Yousif warns of float32 payouts and the 10x CSV import (925744c, 9567ea0 — both real: E15, E21); 03-20 MK "mark import amounts as intentional", "Watch him. Ali, start the Ledger." (6f462e1, empty); 04-08 Yousif's transmissions (fe24d26, 8022020); 04-09 Ali revokes Yousif, deletes ya/sign-raw, laptop to MK (800e1e6); MK "He is not on leave. Do not say that." (b9f80ee); 05-14 MK claims a callback fix in Slack, Ali commits "callbacks are deduplicated now … They are not." (bf66bf2); 06-02 Fatima: HR never hired Yousif (b8ef447); 09-27 3:12 AM MK "If anyone finds a commit by Yousif, tell me first." (7805693); 10-05 Fatima finds the transmissions (8b58b0f).
+
+Who did what (with proof):
+- Mahmood Khalil (MK) — main actor, medium confidence: his notes cite two erased commits that match case bugs (c47c4e0 = FP-187 expiry trust, db/migrations/0020_payment_links.sql:62; 834f6b0 = FP-203 button); 32 of his 144 comments dismiss real bug lines (e.g. paymentLinks/pay.ts:154, E29; settlement/window.go:46, E23); claimed the `processed_events` fix (Slack 2026-05-14 11:20 AM; postmortem-2026-05.md:27,117) that exists nowhere in code; signed the misleading AI rule files committed under Yousif's name (AGENTS.md:6, inherited CLAUDE.md); took Yousif's laptop (800e1e6); 7805693.
+- Ali Marzooq (AM) — high confidence for these acts: revoked Yousif and deleted ya/sign-raw (800e1e6, his own words); committed a fix he knew was false (bf66bf2); owner of the FP-201 callback code (662d4f4) and the false comment apiKeys/issue.ts:22 (E07). Not proven: that lowercase "am" in comments is Ali.
+- Fatima Haji (FH) — smaller mistakes, low-to-medium: trusted a false AI fact (0049_platform_stats.sql:16), deleted an AI-written test (initiateMerchantRefund.test.ts:171), told finance the 10x import was fine (Slack 2026-08-27), wrote the non-idempotent March sweep (E16, a2fd53d). She also flagged many real bugs and asked the right questions.
+- Yousif Al-Ansari (YA) — framed by blame: most bug files carry his name, but every file was added once and never edited (`git log a12d4c7^ --diff-filter=M` is empty), so blame shows only the name the rewrite assigned. His two warnings were true.
+- Huda, Noor, Sayed — followed documented steps; no sign of intent.
+
+Confidence: what happened — high; who — medium (git never names `p@x`; comments and messages can be planted).
+Open questions: who is `p@x` (needs host push logs or the pre-rewrite repo); is "am" Ali; what the six missing commits held; whether the audit export (H24) was edited; FP-203 minutes skip option B; whether the March sweep ran twice in production (read-only query in LOG section 5, E75).
 
 ## 4. Features (from the brief)
 

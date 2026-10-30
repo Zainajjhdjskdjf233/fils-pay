@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 4:14 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 4:17 PM
 
 ## Contents
 1. Status now
@@ -32,7 +32,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:14 PM
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
 - ⬜ Deploy on Dilmune Cloud
-- ⬜ Investigation (CASE-MAP.md)
+- ✅ Investigation (CASE-MAP.md)
 - ⬜ Findings report (FINDINGS.md)
 - ⬜ Presentation and submission
 
@@ -46,7 +46,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 4:14 PM
 | docs/NOTES-PLAIN.md | Every fix in plain words |
 | docs/LOG.md | Full record: proof, decisions, test results, judge notes |
 | docs/ACTIONS.md | Every command and edit with the time, written by a hook |
-| docs/CASE-MAP.md ⬜ | Who did what, with proof |
+| docs/CASE-MAP.md ✅ | Who did what, with proof |
 | docs/FINDINGS.md ⬜ | Root cause of every problem |
 | docs/AI-SETUP.md ✅ | How we set up and checked the AI |
 | docs/SUBMISSION.md ⬜ | Live URL, capacity, 3 annotated transcript excerpts |

@@ -70,24 +70,30 @@ Every service has `restart: unless-stopped` and a health check (reporting has no
 **20. Is the hosting secure and reproducible?**
 Only nginx publishes ports; Postgres and the settlement API stay on private networks; each service has its own non-superuser DB role; the ledger and audit log are append-only for the app roles (0082). Secrets come from `ops/gen-env.sh` (random, gitignored, never printed). A fresh clone of the fork plus two commands gave a healthy stack and a working checkout (LOG section 6, "Reproducibility check").
 
-## D. The case story (draft — to be checked against docs/CASE-MAP.md)
+## D. The case story (docs/CASE-MAP.md; LOG section 3, "Case conclusion")
 
 **21. Who did it?**
-To be finalised from /investigate (docs/CASE-MAP.md). Evidence so far: a commit under Yousif Al-Ansari's name after his account was revoked (H05), history rewritten with committer "placeholder <p@x>" (H08), commit times out of order (H07), a June commit with September data (H09), and HR never hired Yousif (H28).
+The history was staged after 12 Sep 2026 (high confidence). Main actor: Mahmood Khalil (medium): his notes cite two erased commits that match case bugs (FP-187, FP-203), 32 of his comments dismiss real bugs, he claimed a callback fix (`processed_events`) that exists nowhere in code, and he wrote the misleading AI rule files. Ali revoked Yousif and committed a fix he knew was false (high). Fatima made smaller mistakes. Yousif's name on bug files proves little.
 
 **22. What was planted to mislead an AI?**
-The repo's AI rule files (H14-H16), tests that lock bugs in place (H13, H35), comments that dismiss real bugs ("Claude says", H12), false docs and ADRs (H17-H20), and "fix" commits that change nothing (H10).
+The repo's AI rule files (H14-H16), tests and comments that defend bugs (H13, H35), "Claude says" comments dismissed (H12), false docs and ADRs (H17-H20), empty "fix" commits (H10), postmortem "Done" items that never shipped, and puzzle bait (the transmissions). Full list in docs/CASE-MAP.md.
 
 **23. How do you know the history was rewritten?**
-41 commits have committer "placeholder <p@x>" while authors differ (H08), and commit dates do not follow commit order (H07). Proof: `git log --format='%h %an %cn %ad %cd'`.
+41 commits have committer "placeholder <p@x>" (H08); a commit dated Aug 2025 contains a file "Last updated: 2026-09-12" (`git show 669af52:.cursorrules`); a Feb 2026 commit sits on top of a Sep 2026 one (`git merge-base --is-ancestor 098c2de f7a7a3a`).
+
+**24. Why not just trust git blame?**
+Every inherited file was added once and never edited (`git log a12d4c7^ --diff-filter=M` is empty), so blame shows only which name the rewrite gave each file. MK-signed files carry Yousif's name.
+
+**25. Did your own investigation get anything wrong?**
+Yes, and we corrected it in place: nine hidden-thing entries had a wrong commit, a weaker claim or a missing detail (H05, H07, H09, H11, H13, H14, H16, H25, H35). Each now has a dated "Correction" line.
 
 ## E. Decisions
 
-**24. Which decisions did you make that the brief did not cover?**
+**26. Which decisions did you make that the brief did not cover?**
 Each is a "Decision" in LOG section 5 (what, why, alternative); those for Zainab to review are marked. Examples: refunds carried to the next batch, not a negative payout (F01); CSV imports capped at the two-person threshold (E119); MDR recalculation skips a batch instead of storing a negative payout (E120); 0055 suspense accounts as `asset` (E01, the second review disagrees).
 
-**25. Why this fix order?**
+**27. Why this fix order?**
 App-stopping errors first (E01 migrations), then High security, then the missing feature (F01 refunds), then wrong-result money errors, then Medium and Low. When Zainab changed the priority to "every High first", we did that (J24).
 
-**26. Why small fixes instead of rewrites?**
+**28. Why small fixes instead of rewrites?**
 The case file scores small working fixes higher (Item 01), and small fixes are easier to prove: one root cause, one test, one commit. Example: E62 is one line (`FOR UPDATE`) with a test that proves the race.
