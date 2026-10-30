@@ -29,10 +29,11 @@ test("testE75_sweepPostsAdr0002Legs", async () => {
          VALUES ($1, 'captured', $2, $2, $3, $4)`,
         [merchantId, fils, `acq-${randomUUID()}`, at],
       );
-    await tx(4759, "2026-03-10T10:00:00Z"); // residue 9
-    await tx(1003, "2026-03-15T10:00:00Z"); // residue 3
+    await tx(4759, "2026-05-10T10:00:00Z"); // residue 9
+    await tx(1003, "2026-05-15T10:00:00Z"); // residue 3
 
-    await runSweep(client, 2026, 3, new Date());
+    // May, not March: the E16 test sweeps March on the same DB (a shared-month race failed it once).
+    await runSweep(client, 2026, 5, new Date());
 
     const r = await client.query<{ account_id: string; direction: string; amount_fils: string }>(
       `SELECT account_id, direction, amount_fils FROM ledger_entries
