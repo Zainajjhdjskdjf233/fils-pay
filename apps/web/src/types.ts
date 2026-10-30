@@ -129,7 +129,7 @@ export type CaptureResponse = TransactionDto;
 export type VoidResponse = TransactionDto;
 
 // --- payment links ---
-export type PaymentLinkStatus = "active" | "reserved" | "paid" | "canceled";
+export type PaymentLinkStatus = "active" | "reserved" | "paid" | "canceled" | "expired"; // E107
 
 export interface PaymentLinkDto {
   id: string;

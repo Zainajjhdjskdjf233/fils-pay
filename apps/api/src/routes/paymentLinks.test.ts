@@ -361,3 +361,22 @@ test(
     assert.equal(finalLink.rows[0]!.transaction_id, txnId);
   },
 );
+
+// E107 [found later]: the merchant list showed an expired link as 'active'
+// (with a Cancel button), and the 'active' filter included it.
+test("testE107_expiredLinksAreShownAsExpired", async () => {
+  const { rawKey, merchantId } = await createApprovedMerchantWithApiKey("e107");
+  const live = await createLink(rawKey, merchantId, { reference: "e107-live" });
+  const old = await createLink(rawKey, merchantId, { reference: "e107-old" });
+  await pool.query(`UPDATE payment_links SET expires_at = now() - interval '1 minute' WHERE id = $1`, [old.id]);
+  const list = async (q: string) => {
+    const res = await app.inject({ method: "GET", url: `/v1/merchants/${merchantId}/payment-links${q}`, headers: authHeader(rawKey) });
+    assert.equal(res.statusCode, 200, res.body);
+    return (res.json() as { paymentLinks: Array<{ id: string; status: string }> }).paymentLinks;
+  };
+  const all = await list("");
+  assert.equal(all.find((l) => l.id === old.id)?.status, "expired");
+  assert.equal(all.find((l) => l.id === live.id)?.status, "active");
+  assert.deepEqual((await list("?status=active")).map((l) => l.id), [live.id]);
+  assert.deepEqual((await list("?status=expired")).map((l) => l.id), [old.id]);
+});

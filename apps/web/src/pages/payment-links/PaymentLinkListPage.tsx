@@ -12,7 +12,7 @@ import type { PaymentLinkDto, PaymentLinkStatus } from "../../types.js";
  *  list deliberately exposes it distinctly rather than collapsing it into the
  *  public enum's `processing`, because a merchant needs to see that a link is
  *  mid-payment-attempt. */
-const STATUSES: PaymentLinkStatus[] = ["active", "reserved", "paid", "canceled"];
+const STATUSES: PaymentLinkStatus[] = ["active", "reserved", "paid", "canceled", "expired"];
 
 const PAGE_SIZE = 25;
 

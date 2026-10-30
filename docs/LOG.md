@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 07:16 PM (30 Oct 2026)
-Summary: Errors 126/176 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 07:18 PM (30 Oct 2026)
+Summary: Errors 127/176 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -909,7 +909,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/web/src/pages/payment-links/PaymentLinkDetailPage.tsx:162; serialize.ts `status: row.status` ("expired" never stored)
 - Error: the merchant thinks a dead link is payable; the active filter includes expired links.
 - Proof: code read (web/admin bug-hunt agent (1:10 PM); checked by me).
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E107)
 
 ### E108 — [found later] List pages can append rows from an old filter (stale response race; suspected)
 - Where: TransactionListPage.tsx:48-72, PaymentLinkListPage.tsx:33-53, SettlementBatchListPage.tsx:31-52, WebhookEndpointDetailPage.tsx:51-73, admin MerchantListPage.tsx:33-54
@@ -2682,6 +2682,12 @@ ROLLBACK;
 - Changed: apps/reporting/src/consumer/runConsumerPass.ts describeParkError(): PoisonEventError → its own message (names the field, never the value: applyEvent.ts:190, :226, :231); a Postgres error → 'SQLSTATE <code> table=… column=… constraint=…'. Used for the dead-letter row and the console warning.
 - Before: the park stored err.message (up to 1000 chars), e.g. 22P02 'invalid input syntax for type bigint: "<value>"'. The new test apps/reporting/src/consumer/describeParkError.e98.test.ts first failed because the helper did not exist (the old code had no function to test; the behaviour is the err.message line it replaces). After: the value is gone, SQLSTATE 22P02 and the column are kept. Reporting consumer suites 18/18 on the DB.
 - Trade-off: less detail for debugging; the outbox_event_id in the row still points to the full event.
+- check.sh (clean environment): OK. Needs a redeploy.
+
+### E107 — 07:18 PM — the merchant dashboard shows expired payment links as expired, with no Cancel button
+- Changed: apps/api/src/paymentLinks/serialize.ts: a stored 'active' link past expires_at is returned as 'expired' (the same rule as the public status, status.ts:34). apps/api/src/paymentLinks/query.ts: the status filter uses that derived status, so ?status=active leaves expired links out and ?status=expired finds them. apps/web: 'expired' added to PaymentLinkStatus (types.ts) and to the list filter (PaymentLinkListPage.tsx); red label (dashboard.css). The detail page already shows Cancel only for 'active' (PaymentLinkDetailPage.tsx:162), so it disappears for expired links with no change there.
+- Before: testE107_expiredLinksAreShownAsExpired (paymentLinks.test.ts) failed — the expired link came back 'active' and in the active filter. After: 'expired', filters correct. Payment-link suites 30/30; web tsc clean, web tests 13/13.
+- Stored data unchanged ('expired' is still never stored).
 - check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy

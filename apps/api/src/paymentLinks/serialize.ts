@@ -53,7 +53,8 @@ export function serializePaymentLink(row: PaymentLinkRow, checkoutBaseUrl: strin
     currency: row.currency,
     reference: row.reference,
     description: row.description,
-    status: row.status,
+    // E107: 'expired' is never stored; an active link past its expiry is shown as expired.
+    status: row.status === "active" && row.expires_at.getTime() <= Date.now() ? "expired" : row.status,
     expiresAt: row.expires_at.toISOString(),
     transactionId: row.transaction_id,
     createdAt: row.created_at.toISOString(),
