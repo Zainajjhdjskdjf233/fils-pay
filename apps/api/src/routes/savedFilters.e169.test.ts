@@ -38,3 +38,29 @@ test("testE169_savedFilterNeedsAnObjectAndARealName", async () => {
   }
   assert.equal((await post({ name: "  March  ", filter: {} })).statusCode, 201);
 });
+
+// E171 [second review]: a merchant is capped at 50 saved filters (the old
+// comment claimed a CHECK that does not exist). Parallel saves must not pass the cap.
+test("testE171_savedFiltersAreCappedAt50", async () => {
+  const m = await pool.query<{ id: string }>(`INSERT INTO merchants (display_name, mdr_bps) VALUES ($1, 250) RETURNING id`, [`E171 ${randomUUID()}`]);
+  const u = await pool.query<{ id: string }>(
+    `INSERT INTO merchant_users (merchant_id, email, role, password_hash) VALUES ($1, $2, 'owner', 'unused') RETURNING id`,
+    [m.rows[0]!.id, `e171-${randomUUID()}@example.test`],
+  );
+  const { rawKey } = await issueApiKey(pool, config, { merchantId: m.rows[0]!.id, createdBy: u.rows[0]!.id, label: "e171" });
+  const h = { authorization: `Bearer ${rawKey}` };
+  await pool.query(
+    `INSERT INTO reporting_saved_filters (merchant_id, name, filter_json) SELECT $1, 'f' || g, '{}'::jsonb FROM generate_series(1, 45) g`,
+    [m.rows[0]!.id],
+  );
+  const results = await Promise.all(
+    Array.from({ length: 10 }, (_, i) =>
+      app.inject({ method: "POST", url: "/v1/reporting/saved-filters", headers: h, payload: { name: `p${i}`, filter: {} } }),
+    ),
+  );
+  const codes = results.map((r) => r.statusCode);
+  assert.equal(codes.filter((c) => c === 201).length, 5, `only 5 more fit under the cap: ${codes}`);
+  assert.ok(codes.every((c) => c === 201 || c === 409), `${codes}`);
+  const n = await pool.query(`SELECT count(*)::int AS n FROM reporting_saved_filters WHERE merchant_id = $1`, [m.rows[0]!.id]);
+  assert.equal(n.rows[0].n, 50);
+});

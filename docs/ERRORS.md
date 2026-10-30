@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 111 of 175 fixed.
+Summary: 112 of 175 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -66,7 +66,7 @@ Summary: 111 of 175 fixed.
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-## Medium (38 of 60 fixed)
+## Medium (39 of 60 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -129,7 +129,7 @@ Summary: 111 of 175 fixed.
 | E167 | [second review] Merchant OTP promotion keeps the pending session token (session fixation); the admin half is E47 | Fixed |
 | E168 | [second review] Webhook dispatch Step B still queues deliveries for disabled endpoints | Fixed |
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
-| E171 | [second review] No cap on saved filters per merchant; the list returns every row | Open |
+| E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
 ## Low (27 of 69 fixed)
 
