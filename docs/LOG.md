@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 08:15 PM (30 Oct 2026)
-Summary: Errors 152/176 fixed (+10 partly: E50, E92, E131, E145, E163, E48, E67, E78, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 08:16 PM (30 Oct 2026)
+Summary: Errors 154/176 fixed (+10 partly: E50, E92, E131, E145, E163, E48, E67, E78, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -683,7 +683,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 
 ### E68 — [found later] The seed still adds the lifetime payout estimate in float32
 - Where: db/seed/generate.ts:634-641 `Math.fround(...)` (0077 made the column BIGINT, E24).
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E68)
 
 ### E69 — [found later] Seeded fees ignore the seeded fee schedules (suspected)
 - Where: db/seed/generate.ts:817-829 uses fixture mdrBps 250 while alpha-retail has schedules 245/225 (fixtures/transactions.ts:451).
@@ -696,7 +696,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 
 ### E71 — [found later] Re-seeding leaves old dead letters with reused outbox ids
 - Where: db/seed/generate.ts:98-148 TABLES_TO_RESET lacks reporting_dead_letters (0078); outbox ids restart, so ON CONFLICT DO NOTHING hides a new bad event with a reused id.
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E68)
 
 ### E72 — [found later] reconcile_march picks transactions by authorization time and residue on running totals (suspected)
 - Where: scripts/reconcile_march.ts:48-53 (filter on transactions.occurred_at), :34-36 (`captured_fils % 10` on the running total, but scheme lines are cut per batch slice, batch.go:273).
@@ -2881,6 +2881,12 @@ ROLLBACK;
 - Still open: a merchant with no merchant_balances row yet has nothing to lock; a long rebuild can still exceed the API's 30 s call timeout (config.ts:244).
 - E74 (same commit, docs only): what the cached balance should mean is recorded with two options, for Zainab to review.
 - check.sh (clean environment): OK. Needs a redeploy (settlement image).
+
+### E68 + E71 — 08:16 PM — the seed adds the lifetime estimate in integer fils and resets reporting dead letters
+- Changed: db/seed/generate.ts: (E68) the lifetime payout estimate is summed as BigInt fils, not Math.fround float32 (the column is BIGINT since 0077, E24); (E71) reporting_dead_letters added to TABLES_TO_RESET, because outbox ids restart after a reseed and old dead letters would hide new bad events under reused ids (ON CONFLICT DO NOTHING).
+- Proof: db/seed/selfVerify.integration.test.ts on a fresh migrated DB (filspay_seed_201607_30531): 1/1, including its reseed-and-compare-checksum assertion. No separate failing test (dev seed only).
+- Two entries in one commit: both are lines in the same seed file.
+- check.sh (clean environment): OK. No redeploy needed (dev tool).
 
 ## 6. Deploy
 

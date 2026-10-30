@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 152 of 176 fixed.
+Summary: 154 of 176 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -131,7 +131,7 @@ Summary: 152 of 176 fixed.
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-## Low (56 of 70 fixed)
+## Low (58 of 70 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -148,10 +148,10 @@ Summary: 152 of 176 fixed.
 | E59 | Acquirer callback outcome is never validated | Fixed |
 | E66 | [found later] expire_holds can delete holds released between its SELECT and DELETE | Fixed |
 | E67 | [found later] refund_merchant_summary counts captured once per refund; never refreshed (my F01e bug) | Partly fixed |
-| E68 | [found later] Seed adds the lifetime payout estimate in float32 | Open |
+| E68 | [found later] Seed adds the lifetime payout estimate in float32 | Fixed |
 | E69 | [found later] Seeded fees ignore the seeded fee schedules (suspected) | Open |
 | E70 | [found later] Seeded outbox events do not match the seeded history | Open |
-| E71 | [found later] Re-seeding leaves old dead letters with reused outbox ids | Open |
+| E71 | [found later] Re-seeding leaves old dead letters with reused outbox ids | Fixed |
 | E72 | [found later] reconcile_march uses authorization time and running-total residue (suspected) | Open |
 | E77 | [found later] Float and toFixed on money in the batch detail page | Fixed |
 | E78 | [found later] Balance rebuild may hit the 30 s timeout; no row lock (suspected) | Partly fixed |

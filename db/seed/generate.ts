@@ -136,6 +136,10 @@ const TABLES_TO_RESET = [
   // fixture insert. CASCADE from here sweeps admin_sessions,
   // admin_otp_challenges, admin_audit_log and admin_impersonation_grants.
   "admin_users",
+  // E71: reporting's dead letters key on outbox ids, which restart at 1 after
+  // the outbox_events reset above; old rows would hide new bad events
+  // (ON CONFLICT DO NOTHING) under reused ids.
+  "reporting_dead_letters",
 ] as const;
 
 export interface SeedSummary {
@@ -632,15 +636,16 @@ export async function generate(pool: Pool): Promise<SeedSummary> {
         // apps/settlement would have left it: PayoutBatch adds each batch's
         // net payout to the running total as that batch is paid, so the
         // seed replays the same additions in the same chronological order.
-        // Math.fround matches the column's `real` precision, so the seeded
-        // figure is what a live run of apps/settlement would have left.
-        let lifetimeEstimate = Math.fround(0);
+        // E68: the column is BIGINT since 0077 (E24) and settlement adds in
+        // integer fils now, so the seed adds in integer fils too (the old
+        // Math.fround replayed the removed float32 "real" column).
+        let lifetimeEstimate = 0n;
         for (const batchNet of [...highVolumeDayNets, netFils]) {
-          lifetimeEstimate = Math.fround(lifetimeEstimate + Math.fround(Number(batchNet)));
+          lifetimeEstimate += BigInt(batchNet);
         }
         await client.query(`UPDATE merchants SET lifetime_net_payout_monitoring_estimate = $2 WHERE id = $1`, [
           merchantId,
-          lifetimeEstimate,
+          lifetimeEstimate.toString(),
         ]);
 
         // A few outbox events, enqueued inside this same transaction as the
