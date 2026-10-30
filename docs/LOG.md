@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 04:36 PM (30 Oct 2026)
-Summary: Errors 71/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 04:38 PM (30 Oct 2026)
+Summary: Errors 73/163 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1067,7 +1067,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/admin/creditRequestValidation.ts:75-81 checks only the format (its doc at :13 says future dates are rejected); credits.ts:157 books occurred_at on that date; credit_batch.go takeCredits pays only `occurred_at < windowEnd`.
 - Error: effectiveDate "2099-12-31" (or a typo "2062") → accepted; the cache shows it now, no batch pays it until 2099. "1900-01-01" is accepted into a closed period. "0000-01-01" passes JS.
 - Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
-- Severity: high · Status: open
+- Severity: high · Status: fixed (see section 5, E134)
 
 ### E135 — [coverage] Single-merchant KYC review approves a merchant in any state
 - Where: apps/api/src/onboarding/review.ts:53 `UPDATE merchants SET onboarding_status = $2, kyc_passed = $3 WHERE id = $1` (no state check); route routes/adminMerchants.ts:145-160.
@@ -1157,7 +1157,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/api/src/admin/creditRequestValidation.ts:29-32; credits.ts:238 `$7::date`.
 - Error: Suspected; covered by the E134 date range.
 - Proof: coverage review (04:21 PM; scratchpad/coverage-money.md, coverage-security.md, coverage-uploads.md); High ones re-checked by me in the code.
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E134)
 
 ### E150 — [coverage] Balance adjustment returns 404 for a merchant with no balance row yet
 - Where: apps/api/src/admin/balanceAdjustments.ts:35-37.
@@ -2232,6 +2232,14 @@ ROLLBACK;
 - fix-reviewer: APPROVE (parse runs before the E22 hash and the E119 cap, so a refused file writes nothing; admin page placeholder and docs/ADMIN.md:65-66 use the same header). Accepted side effects: a 2-column header and a trailing comma are now refused.
 - check.sh: OK.
 - Actual result: a finance upload can no longer post the wrong amount by a thousands comma.
+
+### E134 (+E149) — 04:38 PM — a credit's date must be today or up to 90 days back
+- Changed: apps/api/src/admin/creditRequestValidation.ts:93: after the format and calendar checks, effectiveDate must be ≤ today in Bahrain (UTC+3, no DST) and ≥ today − 90 days, else 400 `invalid_effective_date` (one clock read for both bounds). The doc line ":13 future dates are rejected" is now true. Also closes E149 ("0000-01-01").
+- Decision (for Zainab to review): 90 days back — Why: no settlement code defines a "closed period"; 90 days covers a quarter of corrections — Alternative: tie the floor to the last paid batch.
+- Test: apps/api/src/admin/creditRequestValidation.e134.test.ts. Before (old file via `git show HEAD:…`): `Missing expected exception … effectiveDate 2099-12-31`. After: PASS; credit tests 34/34.
+- fix-reviewer: APPROVE (today accepted at every hour, tomorrow refused, incl. 21:00-24:00 UTC; admin form defaults to the browser's local date, fine in Bahrain; approval path needs no re-check). Took its nit (one Date.now()). It also found a false comment: creditRequestValidation.test.ts:112 "YA: there's a 'not older than 35 days' test right below this one" — no such test exists (section 3 evidence).
+- check.sh: OK.
+- Actual result: a credit can no longer be parked years in the future or booked into ancient periods.
 
 ## 6. Deploy
 

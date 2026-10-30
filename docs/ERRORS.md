@@ -13,9 +13,9 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 71 of 163 fixed.
+Summary: 73 of 163 fixed.
 
-## High (43 of 46 fixed)
+## High (44 of 46 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -59,7 +59,7 @@ Summary: 71 of 163 fixed.
 | E123 | [deep review] Malformed card gives 500 after the link is claimed (link blocked 60 s) | Fixed |
 | E124 | [deep review] Capture replay credits the wrong discount (twice after a zero-discount capture) | Fixed |
 | E45 | [second review] /v1/reporting/export-summary had no login check (always 500) | Fixed |
-| E134 | [coverage] A credit's effectiveDate has no range: a future date holds the payout for years, an old date lands in a closed period | Open |
+| E134 | [coverage] A credit's effectiveDate has no range: a future date holds the payout for years, an old date lands in a closed period | Fixed |
 | E135 | [coverage] Single-merchant KYC review approves a merchant in any state | Fixed |
 | E136 | [coverage] Any admin role, including support, can resend all of a merchant's past webhooks, again and again | Fixed |
 | E137 | [coverage] KYC thumbnail: a 1 MB PNG decompression bomb can push the API past its 512 MB limit | Fixed |
@@ -125,7 +125,7 @@ Summary: 71 of 163 fixed.
 | E147 | [coverage] A broken image upload gives 500 and leaves an orphan file on disk | Open |
 | E148 | [coverage] No limit on KYC uploads per merchant: the shared disk can be filled | Open |
 
-## Low (3 of 63 fixed)
+## Low (4 of 63 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -178,7 +178,7 @@ Summary: 71 of 163 fixed.
 | E127 | [second review] Settlement date filters accept impossible dates | Open |
 | E132 | [deep review] Reconciliation reads its figures from different snapshots | Open |
 | E133 | [second review] Report filter JSON used without a shape check | Fixed |
-| E149 | [coverage] Credit effectiveDate "0000-01-01" passes validation; Postgres likely refuses it (500) | Open |
+| E149 | [coverage] Credit effectiveDate "0000-01-01" passes validation; Postgres likely refuses it (500) | Fixed |
 | E150 | [coverage] Balance adjustment returns 404 for a merchant with no balance row yet | Open |
 | E151 | [coverage] Defence in depth: validateRefundRequest trusts its caller's numbers | Open |
 | E152 | [coverage] Go ApplyRateFils: int64 overflow wraps silently (TS throws) | Open |

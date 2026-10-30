@@ -23,6 +23,9 @@ export interface CreditRequestDraft {
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+/** E134: how far back a credit may be dated (decision for Zainab to review). */
+const MAX_BACKDATE_DAYS = 90;
+
 /** True only for a date string that names a real day on the calendar:
  *  '2026-02-30' round-trips to March 2nd, so comparing the rendered UTC date
  *  back against the input rejects it instead of silently rolling it over. */
@@ -78,6 +81,20 @@ export function parseCreditRequestInput(body: unknown): CreditRequestDraft {
     throw new BadRequestError(
       "invalid_effective_date",
       "effectiveDate must be a real calendar date formatted YYYY-MM-DD",
+    );
+  }
+
+  // E134: a business date in range — not after today in Bahrain (UTC+3, no
+  // DST) and at most MAX_BACKDATE_DAYS back. A future date held the payout
+  // (credit_batch.go pays only occurred_at < window end); an ancient one went
+  // into long-closed periods ("0000-01-01" passed JS, E149).
+  const bahrainNow = Date.now() + 3 * 3600_000; // one clock read for both bounds
+  const bahrainToday = new Date(bahrainNow).toISOString().slice(0, 10);
+  const earliest = new Date(bahrainNow - MAX_BACKDATE_DAYS * 86_400_000).toISOString().slice(0, 10);
+  if (rawDate > bahrainToday || rawDate < earliest) {
+    throw new BadRequestError(
+      "invalid_effective_date",
+      `effectiveDate must be between ${earliest} and ${bahrainToday} (today, Bahrain time)`,
     );
   }
 
