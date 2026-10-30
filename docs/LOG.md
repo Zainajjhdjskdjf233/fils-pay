@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 06:34 PM (30 Oct 2026)
-Summary: Errors 109/175 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 06:36 PM (30 Oct 2026)
+Summary: Errors 110/175 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -584,7 +584,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: low (test problem, but it hides real backoff regressions)
 - Proposed fix: inject the jitter through config in the test, or assert a ±10 % range.
 - Expected result: test passes every run.
-- Status: open
+- Status: fixed (see section 5, E54)
 
 ### E55 — [found later] Seed prints API keys; API listens on every network interface
 - Where: db/seed/index.ts (prints `issued API key for ...: fp_test_...`); apps/api/src/index.ts (listen host)
@@ -2563,6 +2563,12 @@ ROLLBACK;
 - Changed: apps/api/src/routes/kyc.ts upload loop: a second file part → 400 too_many_files before it is read (a second file used to replace the first silently). The false MK comment at plugins/multipart.ts:13 ("one file per request is enforced in routes/kyc.ts") is marked.
 - Tried first: `limits.files: 1` in plugins/multipart.ts — the request stream then closed early (ERR_STREAM_PREMATURE_CLOSE → 500) instead of the plugin's FST_FILES_LIMIT, so I reverted it and used the check in the loop (the planner's Fix B).
 - Test: apps/api/src/routes/kyc.e157.test.ts (two PDFs). Before: 201 storing b.pdf. After: PASS (400 too_many_files, nothing stored); upload, onboarding and app tests 26/26.
+- check.sh: OK.
+
+### E54 — 06:36 PM — the webhook backoff test passes (it ignored the deliberate jitter)
+- Changed: apps/api/src/webhooks/dispatcher.test.ts:195, :215: backoffDelayMs(n, config, () => 0.5) — the neutral jitter (×1.0) gives the exact base the test asserts. The code is right (±10 % jitter is intended, dispatcher.ts:57-65); the test called it without the jitter argument and expected exactly 1000 ms.
+- Before: failed on every run (`actual: 1084, expected: 1000`). After: dispatcher tests 9/9, three runs in a row.
+- Full regression after the change: 0 failures — api 491/491, money 44/44, events 4/4, reporting 18/18, web 13/13, scripts 10/10, Go 80 pass. The comparison baseline (which held only this test) is now empty (scratchpad baseline-failing-v4).
 - check.sh: OK.
 
 ## 6. Deploy

@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 109 of 175 fixed.
+Summary: 110 of 175 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -131,7 +131,7 @@ Summary: 109 of 175 fixed.
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Open |
 
-## Low (26 of 69 fixed)
+## Low (27 of 69 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -141,7 +141,7 @@ Summary: 109 of 175 fixed.
 | E47 | Admin console: session not rotated after OTP; no CSP | Open |
 | E48 | Admin run-batch sends no payout notification; split payouts skip the lifetime estimate | Open |
 | E49 | settlement rebuild-balances --merchant never writes the cache | Fixed |
-| E54 | Webhook backoff test always fails: test expects no jitter, code adds random ±10 % | Open |
+| E54 | Webhook backoff test always fails: test expects no jitter, code adds random ±10 % | Fixed |
 | E55 | Seed prints API keys; API listens on every network interface | Open |
 | E56 | Go DB tests are flaky when packages run in parallel | Open |
 | E57 | Bad input gives 500 instead of 400 (invalid JSON body, malformed UUID) | Fixed |
