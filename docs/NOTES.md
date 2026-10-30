@@ -2071,4 +2071,4 @@ The server now refuses to approve a shop that is not waiting for review, whateve
 "Why fix it on the server if the screen bug caused it?"
 The server is the real gate: any client (or a crafted request) could send the wrong ids. The screen fix just avoids surprises.
 
-Commit: PENDING_N56
+Commit: 850275f
