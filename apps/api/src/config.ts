@@ -219,6 +219,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   if (nodeEnv === "production" && settlementInternalToken === "") {
     throw new Error("loadConfig: SETTLEMENT_INTERNAL_TOKEN is required when NODE_ENV=production");
   }
+  // E94: a weak shared token ("dev-token" in the docs) is refused in production.
+  if (nodeEnv === "production" && settlementInternalToken.length < 32) {
+    throw new Error("loadConfig: SETTLEMENT_INTERNAL_TOKEN must be at least 32 characters when NODE_ENV=production");
+  }
 
   const acquirerCallbackSigningSecret = env.ACQUIRER_CALLBACK_SIGNING_SECRET ?? "";
   // E13: this secret leaked in git history (669af52, ops/.env.docker). The

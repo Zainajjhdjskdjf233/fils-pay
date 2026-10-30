@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 08:30 PM (30 Oct 2026)
-Summary: Errors 161/177 fixed (+8 partly: E50, E92, E131, E48, E67, E78, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 08:32 PM (30 Oct 2026)
+Summary: Errors 162/177 fixed (+8 partly: E50, E92, E131, E48, E67, E78, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -835,7 +835,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/settlement/internal/internalapi/server.go:135 (binds "":8091); apps/api/src/config.ts:185-187 (only empty token rejected); docs say the token is "dev-token" (ARCHITECTURE.md:90, ops/README.md:61)
 - Error: any container on the network with the shared token can run money operations; no admin identity or audit on the Go side. Token compare itself is constant-time (fine).
 - Proof: code read (backend security-review agent (1:03 PM); checked by me).
-- Severity: low · Status: partly fixed (settlement only on the private `internal` network with the API; 32-byte random token from ops/gen-env.sh; still plain HTTP inside the network)
+- Severity: low · Status: partly fixed (token strength checked; plain HTTP inside the private network kept by decision)
 
 ### E95 — [found later] Internal settlement errors are returned to admin browsers
 - Where: apps/api/src/admin/settlementClient.ts:124-154 (path, fetch error, 500 bytes of body in AppError.message); plugins/errorHandler.ts:17
@@ -2942,6 +2942,13 @@ ROLLBACK;
 - Before: apps/api/src/admin/appendOnly.e92.test.ts (as the postgres superuser) → UPDATE/DELETE of a ledger row and a rewrite of an audit action succeeded. After migration 0086: refused; outcome/metadata update still works. Full regression on a fresh DB with the triggers: api 525/525, money 44/44, events 4/4, reporting 22/22, web 13/13, scripts 11/11, Go 84, failing 0.
 - With the earlier part (0082) E92 is now fully fixed.
 - check.sh (clean environment): OK. Needs a redeploy (migration; allowed on the live server).
+
+### E94 — 08:32 PM — (more) a weak settlement internal token is refused (daemon boot and API in production) — plain HTTP inside the private network kept by decision
+- Changed: apps/settlement/internal/config/config.go RequireInternalToken: at least 32 characters (was: only non-empty). apps/api/src/config.ts: the same minimum when NODE_ENV=production. The docs show 'dev-token' (ARCHITECTURE.md:90, ops/README.md:61).
+- Before: apps/settlement/internal/config/token_e94_test.go and apps/api/src/config.e94.test.ts — 'dev-token' was accepted. After: refused; a 32+ character token works; NODE_ENV=test keeps the short test token. Go config ok; API config suites 7/7.
+- Live check: the server's token is 64 characters (`awk` printed only the length, never the value), so the next redeploy passes the new check.
+- Decision (Zainab to review): plain HTTP between the API and settlement stays — both are on the private Docker network 'internal' only (no published port, LOG §6 proxy check). Alternative: mutual TLS inside the network.
+- check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy
 

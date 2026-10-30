@@ -118,6 +118,11 @@ func (c Config) RequireInternalToken() error {
 	if c.InternalToken == "" {
 		return fmt.Errorf("config: SETTLEMENT_INTERNAL_TOKEN environment variable is not set")
 	}
+	// E94: refuse a weak token (the docs show "dev-token"); ops/gen-env.sh
+	// writes 64 hex characters.
+	if len(c.InternalToken) < 32 {
+		return fmt.Errorf("config: SETTLEMENT_INTERNAL_TOKEN must be at least 32 characters")
+	}
 	return nil
 }
 
