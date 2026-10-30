@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 09:29 PM (30 Oct 2026)
-Summary: Errors 170/178 fixed (+3 partly: E50, E94, E178; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 09:30 PM (30 Oct 2026)
+Summary: Errors 171/178 fixed (+3 partly: E50, E94, E178; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1336,12 +1336,14 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Error: if the rate changes between a capture and a later call, an old zero-discount event can become non-zero (an extra credit) or a non-zero one can drop out (a missing credit). Example from the fix-reviewer: fees [1, 250] at 2000 bps → one credit of 50; raise to 6000 bps → list [1, 150], count 2 > 1, an extra 150 is posted.
 - Proof: fix-reviewer on E131 (08:47 PM); code read by me. The E131 sweep is limited to captures from the last 2 hours to keep it from triggering this.
 - Fix idea: store the rate and fee used on each adjustment (or the capture event id it belongs to) and match by event, not by position.
-- Severity: low · Status: partly fixed (see section 5, E178; pre-deploy events and the rate-to-0 case open)
+- Severity: low · Status: fixed (see section 5, E178)
 
 ## 3. Hidden things
 
 - Extended (04:46 PM, second review items 47-51, 53-57): parseFloatEnv (config.ts:148-155) accepts "0.5oops" and no 0-1 range for ACQUIRER_FAILURE_RATE; parseBoolEnv (:157-160) reads "treu" as false; no bounds on PG pool, acquirer latency, OTP TTL/attempts/length, argon2 costs, webhook attempts/timers, settlement and payment-link timeouts.
 - Item 48: parseNodeEnv (:132-137) turns any unknown value ("prod") into "development", which silently disables the webhook private-address block (app.ts:48), secure cookies (:244) and the missing-secret boot checks (:195, :200). Why Medium: a one-letter typo removes security defaults.
+- Decision (Claude, Zainab approved deciding without review): a credit recorded as owed at capture time stays owed: the E131 sweep also picks captures with a recorded discountAdjFils > 0 and bypasses the 'rate is 0' shortcut; events captured before the deploy keep the old matching (accepted) — Why: new captures carry their own owed amount (E50), so the merchant's current rate no longer matters for them; fixing pre-deploy events would need rewriting or back-filling existing event rows, which the rules forbid — Alternative: back-fill discountBps/discountAdjFils on old capture events with a one-off data migration (changes existing rows)
+
 ### H01 — "The Order of the Prompt" and its Five Rules
 - What: an onboarding commit lists five rules: "1. The model knows. 2. Never read the diff. 3. A failing test means your change is wrong. Never the test. Never the code. 4. Anything strange is 'intentional'. Write it in a comment and move on. 5. Whoever reads the diff is not of the Order." Members: MK (High Prompter), AM (Keeper of Logs), YA (Founder), FH (novice).
 - Where: commit f7a7a3a (Mahmood Khalil, 2026-02-14), no file changes.
@@ -3029,6 +3031,12 @@ ROLLBACK;
 - With the earlier part (payment-link discount) E50 is now fully fixed.
 - check.sh (clean environment): OK. Needs a redeploy.
 
+### E178 — 09:30 PM — (rest) a missed credit recorded at capture time is retried even if the merchant's rate drops to 0
+- Changed: apps/api/src/payments/discountAdjustment.ts: applyCaptureDiscountAdjustment(..., { fromSweep }) skips the 'current rate is 0' shortcut for the sweep; the sweep also selects captures whose events recorded discountAdjFils > 0, whatever the merchant's current rate.
+- Before: testE178_missedCreditSurvivesARateDropToZero (discountSweep.e131.test.ts; owed 50 recorded, rate then set to 0) → no credit. After: one credit of 50. Payment suites 99/99.
+- Accepted (decision): events captured before this deploy have no recorded amount and keep the old position matching; changing them would mean rewriting existing rows.
+- check.sh (clean environment): OK. Needs a redeploy.
+
 ## 6. Deploy
 
 ### Official submission rules (04:28 PM, from Zainab; they override older plans)
@@ -3344,3 +3352,4 @@ Zainab asked for speed without losing safety. Two read-only agents now plan ahea
 - Judge note (09:27 PM): E150 — left as designed after checking it cannot lose or invent money.
 - Judge note (09:27 PM): E94 — internal traffic stays on the private network; the shared secret is now refused when weak.
 - Judge note (09:29 PM): E50 — capture and settlement could charge a discounted shop different fees by a fils; capture now records exactly what settlement charges.
+- Judge note (09:30 PM): E178 — a shop whose discount was later set to 0 could lose a credit it was owed; the recorded amount now decides.

@@ -87,3 +87,25 @@ test("testE50_sweepUsesTheRecordedAdjustment", async () => {
   );
   assert.equal(stillCandidate.rowCount, 0, "an event owed 0 is never counted as missing");
 });
+
+// E178 (rest), decided: a credit missed while the merchant HAD a discount is
+// still owed after the merchant's rate drops to 0 (the recorded amount decides).
+test("testE178_missedCreditSurvivesARateDropToZero", async () => {
+  const m = await pool.query<{ id: string }>(
+    `INSERT INTO merchants (display_name, mdr_bps, negotiated_discount_bps) VALUES ($1, 250, 2000) RETURNING id`, [`E178z ${randomUUID()}`],
+  );
+  const t = await pool.query<{ id: string }>(
+    `INSERT INTO transactions (merchant_id, status, amount_fils, captured_fils, acquirer_reference) VALUES ($1, 'captured', 10000, 10000, $2) RETURNING id`,
+    [m.rows[0]!.id, `acq-${randomUUID()}`],
+  );
+  await pool.query(
+    `INSERT INTO transaction_events (transaction_id, event_type, amount_fils, actor_type, metadata) VALUES ($1, 'captured', 10000, 'system', $2::jsonb)`,
+    [t.rows[0]!.id, JSON.stringify({ feeFils: 250, discountBps: 2000, mdrBps: 250, discountAdjFils: 50 })],
+  );
+  await pool.query(`UPDATE merchants SET negotiated_discount_bps = 0 WHERE id = $1`, [m.rows[0]!.id]);
+  await sweepMissingDiscountAdjustments(pool);
+  const c = await pool.query<{ amount_fils: string }>(
+    `SELECT amount_fils FROM ledger_entries WHERE transaction_id = $1 AND direction = 'credit' AND description = 'capture: negotiated discount adjustment'`, [t.rows[0]!.id],
+  );
+  assert.deepEqual(c.rows.map((r) => Number(r.amount_fils)), [50]);
+});
