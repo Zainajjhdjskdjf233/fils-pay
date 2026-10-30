@@ -156,7 +156,7 @@ test("testF01e_refundCarriedToNextDayIsExplainedOnBothDays", async () => {
 
 test("testF01e_refundSummaryViewJoinsTheRightTransaction", async () => {
   const { merchantId } = await merchantWithRefund("view");
-  await pool.query(`REFRESH MATERIALIZED VIEW refund_merchant_summary`);
+  // E67: a plain view since 0087 — always current, no REFRESH needed.
   const r = await pool.query<{ refund_count: string; total_refunded_fils: string; original_captured_fils: string }>(
     `SELECT refund_count, total_refunded_fils, original_captured_fils FROM refund_merchant_summary WHERE merchant_id = $1`,
     [merchantId],
@@ -210,7 +210,7 @@ test("testE67_summaryCountsCapturedOncePerTransaction", async () => {
     payload: { transactionId, amountFils: 750, reason: "e67" },
   });
   assert.equal(second.statusCode, 200, second.body);
-  await pool.query(`REFRESH MATERIALIZED VIEW refund_merchant_summary`);
+  // E67: a plain view since 0087 — always current, no REFRESH needed.
   const r = await pool.query<{ refund_count: string; total_refunded_fils: string; original_captured_fils: string }>(
     `SELECT refund_count, total_refunded_fils, original_captured_fils FROM refund_merchant_summary WHERE merchant_id = $1`,
     [merchantId],

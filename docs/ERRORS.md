@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 163 of 177 fixed.
+Summary: 164 of 177 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -131,7 +131,7 @@ Summary: 163 of 177 fixed.
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-## Low (63 of 71 fixed)
+## Low (64 of 71 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -147,7 +147,7 @@ Summary: 163 of 177 fixed.
 | E57 | Bad input gives 500 instead of 400 (invalid JSON body, malformed UUID) | Fixed |
 | E59 | Acquirer callback outcome is never validated | Fixed |
 | E66 | [found later] expire_holds can delete holds released between its SELECT and DELETE | Fixed |
-| E67 | [found later] refund_merchant_summary counts captured once per refund; never refreshed (my F01e bug) | Partly fixed |
+| E67 | [found later] refund_merchant_summary counts captured once per refund; never refreshed (my F01e bug) | Fixed |
 | E68 | [found later] Seed adds the lifetime payout estimate in float32 | Fixed |
 | E69 | [found later] Seeded fees ignore the seeded fee schedules (suspected) | Open |
 | E70 | [found later] Seeded outbox events do not match the seeded history | Open |

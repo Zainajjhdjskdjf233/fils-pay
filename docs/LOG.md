@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 08:36 PM (30 Oct 2026)
-Summary: Errors 163/177 fixed (+6 partly: E50, E131, E48, E67, E78, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 08:40 PM (30 Oct 2026)
+Summary: Errors 164/177 fixed (+6 partly: E50, E131, E48, E67, E78, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -679,7 +679,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: db/migrations/0074_refund_reporting.sql:21 `SUM(t.captured_fils)` over refunds JOIN transactions; no `REFRESH MATERIALIZED VIEW` outside a test (grep).
 - Error: two refunds of one transaction on one day → original_captured_fils doubled; the view stays empty in real use. I wrote 0074 today (9afd98d) and tested only one refund.
 - Proof: code read (second bug hunt, bug-hunter agent (12:55 PM); checked by me in the code).
-- Severity: low · Status: partly fixed (see section 5, E67; refresh job open)
+- Severity: low · Status: fixed (see section 5, E67)
 
 ### E68 — [found later] The seed still adds the lifetime payout estimate in float32
 - Where: db/seed/generate.ts:634-641 `Math.fround(...)` (0077 made the column BIGINT, E24).
@@ -701,7 +701,8 @@ Order follows the fix order: app-stopping → high security → (features) → w
 ### E72 — [found later] reconcile_march picks transactions by authorization time and residue on running totals (suspected)
 - Where: scripts/reconcile_march.ts:48-53 (filter on transactions.occurred_at), :34-36 (`captured_fils % 10` on the running total, but scheme lines are cut per batch slice, batch.go:273).
 - Proof: suspected — a transaction captured in two batches (1005 + 1005) would sweep 0 while the scheme lines lost 10.
-- Severity: low · Status: open
+- Severity: low · Status: open — for Zainab to review (08:37 PM)
+- Analysis: confirmed in the code. computeResidueFils (scripts/reconcile_march.ts:34) takes captured_fils % 10 on each transaction's running total, but the scheme file truncates per batch slice (settlement/batch.go:273), so a transaction captured as 1005 + 1005 in two batches sweeps 0 while the scheme lines lost 10. A correct sweep must sum, per scheme line, the slice amount minus its truncated amount (scheme_export_lines with the matching capture events), not the transaction total. Not changed tonight: it is a money script and needs its own tests; the live server never runs scripts (LOG §6 rules).
 
 ### E73 — [found later] CloseBatch never journals the scheme rounding residue (ADR-0002 not implemented)
 - Where: apps/settlement/internal/settlement/batch.go:272-284 (scheme line loop); only scripts/reconcile_march.ts wrote scheme_rounding_residue (grep)
@@ -2963,6 +2964,13 @@ ROLLBACK;
 - With the earlier part (a6027dc) E78 is now fully fixed.
 - check.sh (clean environment): OK. Needs a redeploy (api, settlement, nginx).
 
+### E67 — 08:40 PM — (rest) refund_merchant_summary is a plain view, always current — no refresh job needed
+- Changed: new db/migrations/0087_refund_summary_plain_view.sql replaces the materialized view with a plain view (same columns, captured amount once per transaction as in 0085). apps/api/src/routes/refundReports.f01e.test.ts: the two REFRESH lines are gone (not valid on a plain view).
+- First attempt, abandoned before commit: refresh the materialized view from the reporting worker, with a migration giving the view to filspay_reporting. A check of ops/docker-compose.yml showed migrations run as filspay_owner (NOSUPERUSER, NOCREATEROLE, ops/postgres/01-roles.sh:11), which cannot hand ownership to another role, so that migration would have failed on the live server and the API would not have started after the redeploy. My test databases run as a superuser and could not show it. The consumer change was restored from HEAD (`git show HEAD:… > …`, `git diff --quiet` clean); the untracked migration file was renamed and rewritten, not deleted.
+- Proof: apps/reporting/src/consumer/refundSummaryRefresh.e67.test.ts (refund event, no manual REFRESH → the summary holds the refund) failed on the old code (fresh DB filspay_e67_203820_19792) and passes now; fresh DB filspay_e67b_203957_27216 applies 81/81 migrations; refund report suites 6/6; reporting consumer suites 21/21.
+- With the earlier part (797a8b2) E67 is now fully fixed.
+- check.sh (clean environment): OK. Needs a redeploy (migration).
+
 ## 6. Deploy
 
 ### Official submission rules (04:28 PM, from Zainab; they override older plans)
@@ -3088,6 +3096,9 @@ A fresh clone of the fork, built and started from nothing but the repo.
 - Networks (`docker inspect`): nginx edge; api db+edge+internal; settlement db+internal; reporting db; postgres db.
 - Host listeners (`ss -ltn`): 0.0.0.0:22 sshd, 0.0.0.0:80 and 0.0.0.0:8081 docker-proxy; everything else on 127.0.0.x.
 - SUBMISSION section 2 states it in one sentence next to the diagram, with this evidence.
+
+### Deadline extended — 08:38 PM (organizers' written announcement, from Zainab)
+- Deadline: 12:00 AM. Code freeze: 11:00 PM (was 10:00 PM). Fixes continue until then, quickest first, one per commit, tests green; the final regression, CONTRIBUTIONS, SUBMISSION counts and the redeploy move to the new freeze.
 
 ## 7. Judge notes
 
@@ -3258,4 +3269,5 @@ The inherited `.gitignore` had `.claude/` on line 8, added in the very first com
 Zainab asked for speed without losing safety. Two read-only agents now plan ahead (next open entry each): they read the code and write a fix plan and the failing test into the scratchpad, and never edit the repo. Only Claude Code edits code, one entry at a time: check the plan against the code, run the test red, fix, run the full regression, commit. If a fix breaks a test that cannot be fixed in a few minutes, only that entry's files are restored (`git show HEAD:<file> > <file>`, because `git checkout --` is not allowed) and the entry is marked skipped. Low entries get a one-paragraph note. First result: E62 planned by an agent, verified and committed.
 - Judge note (07:03 PM): check.sh said TESTS FAILED three times (E47, E90, E88). I first wrote 'possible flaky test'. The real cause was my own shell: DATABASE_URL was still set, so check.sh ran the full suite on a dirty shared test DB. Clean runs and a fresh-DB regression (0 failures) prove the code was fine. Lesson: run check.sh in a clean environment.
 - Judge note (07:33 PM): the fix-reviewer stopped a regression in my own E139 fix. I changed the status rule in capture, but two later lines still used the status label to mean "fully captured"; a card hold would have stayed active. Fixed before the commit, with asserts on the hold and the event.
-- Judge note (08:37 PM): a one-line nginx change of mine (a second proxy_read_timeout in the same location) crashed the local nginx into a restart loop. Because every nginx change is rebuilt and checked locally before a redeploy, the live site was never affected. Fixed by editing the existing line; nginx -t and both ports verified.
+- Judge note (08:36 PM): a one-line nginx change of mine (a second proxy_read_timeout in the same location) crashed the local nginx into a restart loop. Because every nginx change is rebuilt and checked locally before a redeploy, the live site was never affected. Fixed by editing the existing line; nginx -t and both ports verified.
+- Judge note (08:41 PM): before committing a migration that changed a view's owner, I checked which database user runs migrations on the live server. It is a non-superuser that cannot give ownership away, so that migration would have failed at the redeploy and kept the API down. My superuser test databases could not show this. I switched to a plain view, which needs no special rights.
