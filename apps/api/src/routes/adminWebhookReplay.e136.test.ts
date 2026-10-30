@@ -42,7 +42,9 @@ async function admin(role: "support" | "finance"): Promise<{ cookie: string; id:
     payload: { code: (login.json() as { devOtpCode: string }).devOtpCode },
   });
   assert.equal(verify.statusCode, 200, verify.body);
-  return { cookie, id: u.rows[0]!.id };
+  // E47: verify issues a new admin session token; the login cookie stops working.
+  const sessionCookie = ([] as string[]).concat(verify.headers["set-cookie"] ?? []).find((h) => h.startsWith(`${config.adminCookieName}=`))!.split(";")[0]!;
+  return { cookie: sessionCookie, id: u.rows[0]!.id };
 }
 
 test("testE136_replayIsFinanceOnlyAndAnArchiveReplaysOnce", async () => {

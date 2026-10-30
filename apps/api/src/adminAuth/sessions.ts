@@ -64,17 +64,23 @@ export async function createPendingAdminSession(
  */
 // YA: token not rotated on promote -> fixation. FP-198 (repro: copy the pending cookie into a 2nd browser before OTP)
 // MK: the 2nd browser still needs the OTP. unresolved
+// E47/E113: YA was right. Promotion now issues a NEW token (the pending one
+// stops working) and only promotes a still-pending, live session; else null.
 export async function promoteAdminSession(
   client: PoolClient,
   adminSessionId: string,
   sessionTtlHours: number,
-): Promise<Date> {
+): Promise<{ expiresAt: Date; rawToken: string } | null> {
   const expiresAt = new Date(Date.now() + sessionTtlHours * 3_600_000);
-  await client.query(
-    `UPDATE admin_sessions SET authenticated = true, authenticated_at = now(), expires_at = $2 WHERE id = $1`,
-    [adminSessionId, expiresAt],
+  const rawToken = randomToken(32);
+  const result = await client.query(
+    `UPDATE admin_sessions SET authenticated = true, authenticated_at = now(), expires_at = $2, token_hash = $3
+      WHERE id = $1 AND authenticated = false AND revoked_at IS NULL AND expires_at > now()
+      RETURNING id`,
+    [adminSessionId, expiresAt, sha256Hex(rawToken)],
   );
-  return expiresAt;
+  if ((result.rowCount ?? 0) === 0) return null;
+  return { expiresAt, rawToken };
 }
 
 /**

@@ -13,7 +13,7 @@ One line per error. Claude updates this file after every fix and every new error
 - Skipped: cannot be proven here yet (for example, it needs Docker).
 - Open: not started.
 
-Summary: 113 of 175 fixed.
+Summary: 114 of 175 fixed.
 
 ## High (46 of 46 fixed)
 
@@ -131,14 +131,14 @@ Summary: 113 of 175 fixed.
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-## Low (27 of 69 fixed)
+## Low (28 of 69 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
 | E38 | Public payment link page exposes the merchant's API key hash and prefix | Fixed |
 | E40 | withTransaction: a failing ROLLBACK hides the real error | Open |
 | E46 | KYC "PDF only" rule checks the filename, not the content | Open |
-| E47 | Admin console: session not rotated after OTP; no CSP | Open |
+| E47 | Admin console: session not rotated after OTP; no CSP | Partly fixed |
 | E48 | Admin run-batch sends no payout notification; split payouts skip the lifetime estimate | Open |
 | E49 | settlement rebuild-balances --merchant never writes the cache | Fixed |
 | E54 | Webhook backoff test always fails: test expects no jitter, code adds random ±10 % | Fixed |
@@ -176,7 +176,7 @@ Summary: 113 of 175 fixed.
 | E110 | [second review] Streaming CSV export pages on occurred_at only (unused code) | Open |
 | E111 | [second review] CSV quoting ignores carriage returns | Fixed |
 | E112 | [second review] Invalid date filters reach the DB (500 instead of 400) | Fixed |
-| E113 | [second review] Session promotion after OTP updates by id only (defence in depth) | Open |
+| E113 | [second review] Session promotion after OTP updates by id only (defence in depth) | Fixed |
 | E114 | [second review] Concurrent OTP resends can rotate the challenge twice | Open |
 | E115 | [second review] Impossible dates like 2026-02-30 are accepted | Fixed |
 | E116 | [second review] Writer actor does not reject impersonation (defence in depth) | Fixed |

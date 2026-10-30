@@ -41,7 +41,9 @@ async function financeCookie(): Promise<string> {
     payload: { code: (login.json() as { devOtpCode: string }).devOtpCode },
   });
   assert.equal(verify.statusCode, 200, verify.body);
-  return cookie;
+  // E47: verify issues a new admin session token; the login cookie stops working.
+  const sessionCookie = ([] as string[]).concat(verify.headers["set-cookie"] ?? []).find((h) => h.startsWith(`${config.adminCookieName}=`))!.split(";")[0]!;
+  return sessionCookie;
 }
 
 async function merchantIn(status: string): Promise<string> {

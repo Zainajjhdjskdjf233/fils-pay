@@ -141,7 +141,9 @@ async function loginAdmin(email: string): Promise<string> {
     payload: { code: loginBody.devOtpCode },
   });
   assert.equal(verifyRes.statusCode, 200, verifyRes.body);
-  return cookie;
+  // E47: verify issues a new admin session token; the login cookie stops working.
+  const sessionCookie = ([] as string[]).concat(verifyRes.headers["set-cookie"] ?? []).find((h) => h.startsWith(`${config.adminCookieName}=`))!.split(";")[0]!;
+  return sessionCookie;
 }
 
 async function signedInAdmin(role: AdminRole, label: string) {
@@ -1671,4 +1673,23 @@ test("testE10_financeAndSuperAdminImpersonationCannotWrite", async () => {
     });
     assert.equal(write.statusCode, 403, `${role} impersonation must not write: ${write.statusCode} ${write.body}`);
   }
+});
+
+// E47/E113 [second review]: admin OTP verify must issue a NEW session token
+// (session fixation, YA's FP-198). The login-step token must not open the console.
+test("testE47_adminVerifyRotatesTheSessionToken", async () => {
+  const { email } = await createAdminUser("support", "e47");
+  const loginRes = await app.inject({ method: "POST", url: "/v1/admin/auth/login", payload: { email, password: ADMIN_PASSWORD } });
+  const cookie = parseCookie(loginRes.headers["set-cookie"], config.adminCookieName);
+  const verify = await app.inject({
+    method: "POST", url: "/v1/admin/auth/otp/verify", headers: { cookie },
+    payload: { code: (loginRes.json() as { devOtpCode: string }).devOtpCode },
+  });
+  assert.equal(verify.statusCode, 200, verify.body);
+  const fresh = parseCookie(verify.headers["set-cookie"], config.adminCookieName);
+  assert.notEqual(fresh, cookie, "verify must hand out a different token");
+  const oldMe = await app.inject({ method: "GET", url: "/v1/admin/auth/me", headers: { cookie } });
+  assert.equal(oldMe.statusCode, 401, `the pre-login token must not authenticate: ${oldMe.body}`);
+  const newMe = await app.inject({ method: "GET", url: "/v1/admin/auth/me", headers: { cookie: fresh } });
+  assert.equal(newMe.statusCode, 200, newMe.body);
 });

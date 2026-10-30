@@ -79,8 +79,10 @@ async function signedInAdmin(role: AdminRole, label: string) {
     payload: { code: loginBody.devOtpCode },
   });
   assert.equal(verifyRes.statusCode, 200, verifyRes.body);
+  // E47: verify issues a new admin session token; the login cookie stops working.
+  const sessionCookie = ([] as string[]).concat(verifyRes.headers["set-cookie"] ?? []).find((h) => h.startsWith(`${config.adminCookieName}=`))!.split(";")[0]!;
 
-  return { id: inserted.rows[0]!.id, email, cookie };
+  return { id: inserted.rows[0]!.id, email, cookie: sessionCookie };
 }
 
 async function createMerchant(label: string, mdrBps = 250): Promise<string> {
