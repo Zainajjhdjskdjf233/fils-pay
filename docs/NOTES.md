@@ -1250,3 +1250,38 @@ updated := current + batchGrossFils
 The volume counter is not only monitoring: it decides the 0.15% fee discount for every shop. A negative value would silently remove it.
 
 Commit: effaf33
+
+## N34 — The same bank message is saved only once
+
+### The idea
+The bank (acquirer) sends messages later about a payment, like a fraud check result. FilsPay saves each one as a note on the payment.
+
+### The problem
+The bank sometimes sends the same message twice, and the code also retries.
+- Each copy became a new note, so one payment showed two identical notes (FP-201, "fixed" in 1.9.0 but not really).
+- A commit called "callbacks are deduplicated now" changed no files.
+
+### The fix
+- callbacks.ts: a lock per message id, then save only if that message id is not saved yet.
+
+### The code
+Before (apps/api/src/acquirer/callbacks.ts:37-40):
+```sql
+INSERT INTO acquirer_callback_notes (...) VALUES ($1, ..., $7)
+```
+After:
+```sql
+INSERT INTO acquirer_callback_notes (...) SELECT $1, ..., $7
+ WHERE NOT EXISTS (SELECT 1 FROM acquirer_callback_notes WHERE callback_id = $3)
+```
+A second copy finds the first one and is skipped.
+
+### The proof
+- Before: two copies at once plus one later made 3 notes.
+- After: 1 note.
+
+### If the judges ask
+"Why not a unique index?"
+Production already has duplicate notes, so the index would fail to create until someone deletes them. That clean-up needs a human.
+
+Commit: PENDING_N34

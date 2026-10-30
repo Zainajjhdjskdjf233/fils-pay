@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 11:23 AM (30 Oct 2026)
-Summary: Errors 31/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
+Updated: 11:25 AM (30 Oct 2026)
+Summary: Errors 32/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -325,7 +325,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: medium
 - Proposed fix: `UNIQUE(callback_id)` + `ON CONFLICT DO NOTHING`.
 - Expected result: second identical callback → one row.
-- Status: open
+- Status: fixed (see section 5)
 
 ### E28 — FP-209 refunds: double refund, refund more than captured, other merchant's refund
 - Where: apps/api/src/payments/processRefund.ts:73-78, :86, :90, :165, :199; refunds/initiateMerchantRefund.ts:62-73
@@ -1183,6 +1183,14 @@ ROLLBACK;
 - Regression: full-db-test.sh = baseline (5 known failures); Go 73 pass.
 - Review: types only → no fix-reviewer.
 - Actual result: matches expected (exact total; no negative value).
+
+### E27 — 11:25 AM — the same acquirer callback is stored once (FP-201)
+- Changed: apps/api/src/acquirer/callbacks.ts: the insert runs in a transaction with `pg_advisory_xact_lock(hashtext('acquirer_callback:' || callbackId))` and `INSERT … SELECT … WHERE NOT EXISTS (… callback_id = $3)`.
+- Decision (for Zainab to review): advisory lock instead of `UNIQUE(callback_id)` — same reason as E30: FP-201 says duplicates already exist in production, so creating the index would fail there until a human removes them — Alternative: clean up, then add the unique index.
+- Test: apps/api/src/acquirer/callbacks.e27.test.ts (two copies at once + one later). Before: `actual: 3` notes. After: PASS (1). Existing callback tests pass (11 total).
+- Regression: full-db-test.sh = baseline (5 known failures).
+- Review: same pattern as E30 → no fix-reviewer.
+- Actual result: matches expected (second identical callback → one row).
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)

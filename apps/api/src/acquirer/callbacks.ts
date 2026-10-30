@@ -34,20 +34,37 @@ export async function applyAcquirerCallback(pool: Pool, callback: AcquirerCallba
     throw new NotFoundError("transaction_not_found");
   }
 
-  await pool.query(
-    `INSERT INTO acquirer_callback_notes
-        (transaction_id, merchant_id, callback_id, callback_type, outcome, note, received_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-    [
-      callback.transactionId,
-      txnRow.merchant_id,
-      callback.callbackId,
-      callback.type,
-      callback.outcome,
-      callback.note,
-      callback.occurredAt,
-    ],
-  );
+  // E27 (FP-201): store each callback_id once. The bank resends callbacks,
+  // and withCallbackRetry may re-run this. A per-callback advisory lock makes
+  // check-then-insert safe for two copies arriving at once. (HANDOVER.md's
+  // processed_events table does not exist; a unique index could not be
+  // created where duplicates already exist — Decision in LOG.md.)
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(`SELECT pg_advisory_xact_lock(hashtext('acquirer_callback:' || $1))`, [callback.callbackId]);
+    await client.query(
+      `INSERT INTO acquirer_callback_notes
+          (transaction_id, merchant_id, callback_id, callback_type, outcome, note, received_at)
+       SELECT $1, $2, $3, $4, $5, $6, $7
+        WHERE NOT EXISTS (SELECT 1 FROM acquirer_callback_notes WHERE callback_id = $3)`,
+      [
+        callback.transactionId,
+        txnRow.merchant_id,
+        callback.callbackId,
+        callback.type,
+        callback.outcome,
+        callback.note,
+        callback.occurredAt,
+      ],
+    );
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK").catch(() => undefined);
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 /**
