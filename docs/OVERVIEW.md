@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 2:57 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 2:59 PM
 
 ## Contents
 1. Status now
@@ -14,8 +14,8 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:57 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 59 of 127 fixed.
-  - High: 35 of 39 fixed
+- Errors: 60 of 127 fixed.
+  - High: 36 of 39 fixed
   - Medium: 22 of 40 fixed
   - Low: 2 of 48 fixed
 - Missing feature (refunds, F01): done
@@ -27,7 +27,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:57 PM
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 59 of 127 fixed.
+- 🔄 Fix: 60 of 127 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ⬜ UI and UX, before/after screenshots
@@ -91,7 +91,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:57 PM
 - ad4a77b fix(E60): reconciliation ledger figure excludes payout lines — next-day payouts looked like a gap
 
 ## 7. All errors
-## High (35 of 39 fixed)
+## High (36 of 39 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -133,7 +133,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:57 PM
 | E121 | [deep review] Manual credits and CSV adjustments are never paid out | Open |
 | E122 | [deep review] Failed DB connect in link pay leaks the lock slot forever | Fixed |
 | E123 | [deep review] Malformed card gives 500 after the link is claimed (link blocked 60 s) | Fixed |
-| E124 | [deep review] Replayed capture can credit the negotiated discount twice | Open |
+| E124 | [deep review] Capture replay credits the wrong discount (twice after a zero-discount capture) | Fixed |
 
 ### Medium (22 of 40 fixed)
 
@@ -234,7 +234,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 2:57 PM
 | E127 | [second review] Settlement date filters accept impossible dates | Open |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65
 
 ### N01 — Database setup stopped halfway
 
@@ -2611,4 +2611,42 @@ The card is checked and cleaned (spaces removed) before the link is touched.
 It has the same gap (only checks that a card exists), and a crash there is also a 500. One shared helper fixes both.
 
 Commit: 93d09b2
+
+### N65 — Each card capture gets its own discount, exactly once
+
+#### The idea
+Some shops have a negotiated discount on our fee. After each capture we give back part of the fee, like a cashback receipt for each purchase.
+
+#### The problem
+The code gave back money using the newest capture's fee every time.
+- If one cashback was lost, the next ones used the wrong amount.
+- A capture with a tiny fee (cashback 0) made a replay pay the next cashback twice.
+
+#### The fix
+- discountAdjustment.ts: list every capture in order, work out each one's own cashback, and write only the ones not written yet.
+
+#### The code
+Before (apps/api/src/payments/discountAdjustment.ts):
+```ts
+if (counts && Number(counts.adjustments) >= Number(counts.capture_events)) return;
+// ... ORDER BY occurred_at DESC LIMIT 1   (always the newest fee)
+```
+After:
+```ts
+const discounts = events.rows
+  .map((e) => applyRateFils(toFils(Math.max(0, e.metadata?.feeFils ?? 0)), discountBps))
+  .filter((d) => d > 0);
+for (const discountFils of discounts.slice(adjustmentsSoFar)) { /* write one */ }
+```
+Each capture's cashback comes from its own fee, and a replay finds nothing new to write.
+
+#### The proof
+- Before: [10, 10] instead of [10, 20]; and [20, 20] instead of [20] (paid twice).
+- After: both tests pass; all 18 discount tests pass.
+
+#### If the judges ask
+"How do you know which cashback belongs to which capture without an id?"
+Cashbacks are only written here, in capture order, under a row lock, and only when above 0. So the N-th such capture owns the N-th cashback.
+
+Commit: PENDING_N65
 

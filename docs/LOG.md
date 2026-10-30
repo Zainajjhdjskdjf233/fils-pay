@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 02:57 PM (30 Oct 2026)
-Summary: Errors 59/127 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
+Updated: 02:59 PM (30 Oct 2026)
+Summary: Errors 60/127 fixed (+5 partly: E13, E50, E86, E92, E94; same count as docs/ERRORS.md) · Hidden 39 found · Features 1/2 done (F01 done; F02 hosting open) · Deploy: local Docker stack done, capacity ~15 checkouts/s (LOG §6); Dilmune Cloud not yet · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -1023,11 +1023,11 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Proof: red test `routes/pay.e123.test.ts`: `link pay with card {}: {"error":"internal_error"}`.
 - Severity: high · Status: fixed (see section 5)
 
-### E124 — [deep review] A replayed capture can credit the negotiated discount twice
+### E124 — [deep review] A capture replay credits the wrong discount amount (twice after a zero-discount capture)
 - Where: apps/api/src/payments/discountAdjustment.ts:53-58 compares the count of capture events with the count of discount adjustments for the transaction, and always reads the latest capture's fee.
 - Error: after two partial captures where only one adjustment was written (e.g. a crash between capture and adjustment), a replay of either capture writes an adjustment sized from the latest fee; the counts never tie a credit to its capture. Merchant fee revenue is wrong.
-- Proof: deep-review agent (payments, 2:45 PM); confirmed by reading :34-90.
-- Severity: high · Status: open
+- Proof: deep-review agent (payments, 2:45 PM); red tests `payments/discountAdjustment.e124.test.ts`: `actual: [ 10, 10 ]` (want [10, 20]) and `actual: [ 20, 20 ]` (want [20], a double credit).
+- Severity: high · Status: fixed (see section 5)
 
 ## 3. Hidden things
 
@@ -1886,6 +1886,13 @@ ROLLBACK;
 - Test: apps/api/src/routes/pay.e123.test.ts (7 bad shapes on both routes, then a real pay with a spaced PAN). Before: `link pay with card {}: {"error":"internal_error"}`. After: PASS (400 `invalid_card` for all 7 on both routes; the link pays 200 right after).
 - Regression: same as baseline v3 (api 441/442, the known E54 test; Go 77 pass).
 - Actual result: bad card input no longer reaches the database or blocks a link.
+
+### E124 — 02:59 PM — each capture gets the discount of its own fee, once
+- Changed: apps/api/src/payments/discountAdjustment.ts:70: under the same row lock, read every capture event in id order, compute each one's discount from its own fee, keep those above 0, and write one adjustment for each one past the existing count. Before: one adjustment per call, always sized from the latest capture's fee; a zero-discount capture shifted the count so a replay wrote a second credit.
+- Decision: no migration and no new description format (only a test reads that text) — the "N-th positive-discount event owns the N-th adjustment" rule holds because adjustments are only written here, in order, under the lock — Alternative: store the capture event id on each adjustment (needs a ledger column).
+- Test: apps/api/src/payments/discountAdjustment.e124.test.ts (2 tests). Before (old file via `git show HEAD:…`): `actual: [ 10, 10 ]` and `actual: [ 20, 20 ]`. After: PASS; all discount tests (18) pass.
+- Regression: same as baseline v3 (api 443/444, the known E54 test).
+- Actual result: replays and lost adjustments now give exactly one correct discount per capture.
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04) — not yet. Local Docker stack done (01:48 PM, see section 5 E02).

@@ -2377,3 +2377,41 @@ The card is checked and cleaned (spaces removed) before the link is touched.
 It has the same gap (only checks that a card exists), and a crash there is also a 500. One shared helper fixes both.
 
 Commit: 93d09b2
+
+## N65 — Each card capture gets its own discount, exactly once
+
+### The idea
+Some shops have a negotiated discount on our fee. After each capture we give back part of the fee, like a cashback receipt for each purchase.
+
+### The problem
+The code gave back money using the newest capture's fee every time.
+- If one cashback was lost, the next ones used the wrong amount.
+- A capture with a tiny fee (cashback 0) made a replay pay the next cashback twice.
+
+### The fix
+- discountAdjustment.ts: list every capture in order, work out each one's own cashback, and write only the ones not written yet.
+
+### The code
+Before (apps/api/src/payments/discountAdjustment.ts):
+```ts
+if (counts && Number(counts.adjustments) >= Number(counts.capture_events)) return;
+// ... ORDER BY occurred_at DESC LIMIT 1   (always the newest fee)
+```
+After:
+```ts
+const discounts = events.rows
+  .map((e) => applyRateFils(toFils(Math.max(0, e.metadata?.feeFils ?? 0)), discountBps))
+  .filter((d) => d > 0);
+for (const discountFils of discounts.slice(adjustmentsSoFar)) { /* write one */ }
+```
+Each capture's cashback comes from its own fee, and a replay finds nothing new to write.
+
+### The proof
+- Before: [10, 10] instead of [10, 20]; and [20, 20] instead of [20] (paid twice).
+- After: both tests pass; all 18 discount tests pass.
+
+### If the judges ask
+"How do you know which cashback belongs to which capture without an id?"
+Cashbacks are only written here, in capture order, under a row lock, and only when above 0. So the N-th such capture owns the N-th cashback.
+
+Commit: PENDING_N65

@@ -50,37 +50,37 @@ export async function applyCaptureDiscountAdjustment(
     // credit the merchant twice for one capture. The row lock serializes
     // this count against a concurrent capture's own adjustment.
     await client.query(`SELECT id FROM transactions WHERE id = $1 FOR UPDATE`, [input.transactionId]);
-    const countRow = await client.query<{ capture_events: string; adjustments: string }>(
-      `SELECT (SELECT count(*) FROM transaction_events
-                WHERE transaction_id = $1 AND event_type IN ('captured', 'partially_captured')) AS capture_events,
-              (SELECT count(*) FROM ledger_entries
-                WHERE transaction_id = $1 AND direction = 'credit'
-                  AND description = 'capture: negotiated discount adjustment') AS adjustments`,
+    // E124: adjustments are only ever written here, in capture-event order,
+    // under the row lock, and only for events whose discount is above 0. So
+    // the N-th such event owns the N-th adjustment. Every event past the
+    // existing adjustments gets one, sized from ITS OWN fee (the old code
+    // sized each missing one from the latest capture's fee).
+    const countRow = await client.query<{ adjustments: string }>(
+      `SELECT count(*) AS adjustments FROM ledger_entries
+        WHERE transaction_id = $1 AND direction = 'credit'
+          AND description = 'capture: negotiated discount adjustment'`,
       [input.transactionId],
     );
-    const counts = countRow.rows[0];
-    if (counts && Number(counts.adjustments) >= Number(counts.capture_events)) return;
-
-    const eventRow = await client.query<{ metadata: { feeFils?: number } }>(
+    const events = await client.query<{ metadata: { feeFils?: number } }>(
       `SELECT metadata FROM transaction_events
         WHERE transaction_id = $1 AND event_type IN ('captured', 'partially_captured')
-        ORDER BY occurred_at DESC, id DESC LIMIT 1`,
+        ORDER BY id`,
       [input.transactionId],
     );
-    const feeBeforeDiscount = toFils(eventRow.rows[0]?.metadata?.feeFils ?? 0);
-    if (feeBeforeDiscount <= 0) return;
+    const discounts = events.rows
+      .map((e) => applyRateFils(toFils(Math.max(0, e.metadata?.feeFils ?? 0)), discountBps))
+      .filter((d) => d > 0);
 
-    const discountFils = applyRateFils(feeBeforeDiscount, discountBps);
-    if (discountFils <= 0) return;
-
-    const entryGroupId = randomUUID();
-    await client.query(
-      `INSERT INTO ledger_entries
-         (entry_group_id, merchant_id, transaction_id, account_id, direction, amount_fils, occurred_at, description)
-       VALUES
-         ($1, $2, $3, 'platform_fee_revenue', 'debit',  $4, now(), 'capture: negotiated discount adjustment'),
-         ($1, $2, $3, 'merchant_payable',     'credit', $4, now(), 'capture: negotiated discount adjustment')`,
-      [entryGroupId, input.merchantId, input.transactionId, discountFils],
-    );
+    for (const discountFils of discounts.slice(Number(countRow.rows[0]?.adjustments ?? 0))) {
+      const entryGroupId = randomUUID();
+      await client.query(
+        `INSERT INTO ledger_entries
+           (entry_group_id, merchant_id, transaction_id, account_id, direction, amount_fils, occurred_at, description)
+         VALUES
+           ($1, $2, $3, 'platform_fee_revenue', 'debit',  $4, now(), 'capture: negotiated discount adjustment'),
+           ($1, $2, $3, 'merchant_payable',     'credit', $4, now(), 'capture: negotiated discount adjustment')`,
+        [entryGroupId, input.merchantId, input.transactionId, discountFils],
+      );
+    }
   });
 }

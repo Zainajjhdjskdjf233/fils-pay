@@ -385,3 +385,9 @@ Where: apps/api/src/paymentLinks/pay.ts:141 · Commit: c06b7eb
 When someone sent a card with missing parts, the server crashed after it had already reserved the payment link. The buyer saw an error, and the link stayed "busy" for a minute so the real buyer could not pay. Now both payment routes check the card first and answer "bad card" (400) before touching anything. Card numbers typed with spaces still work. A test sends seven broken cards to both routes and then pays normally.
 
 Where: apps/api/src/routes/paymentLinks.ts:163 · Commit: 93d09b2
+
+## N65 — Each card capture gets its own discount, exactly once
+
+Shops with a negotiated discount get part of our fee back after each capture. The old code always used the newest capture's fee, so when one refund-of-fee was missed, the next ones were the wrong size. In one case (a tiny first capture) a repeated request paid the discount twice. Now every capture's discount is worked out from its own fee and only the missing ones are written. Two tests show the wrong amounts before and the right ones after.
+
+Where: apps/api/src/payments/discountAdjustment.ts:70 · Commit: PENDING_N65
