@@ -6,7 +6,7 @@
 
 **Members and what each owned**
 <!-- members:start (copied from docs/CONTRIBUTIONS.md, built at the code freeze) -->
-- Zainab — built the AI setup: 24 files in .claude/ and CLAUDE.md (`git ls-files .claude CLAUDE.md`); directed and checked the fixes: 299 commits after the inherited history (`git shortlog -sn a12d4c7^..HEAD`); led the case investigation (docs/CASE-MAP.md); her setup recorded 149 of 176 error entries (docs/ERRORS.md minus the second-review entries in docs/CONTRIBUTIONS.md section 4).
+- Zainab — built the AI setup: 24 files in .claude/ and CLAUDE.md (`git ls-files .claude CLAUDE.md`); directed and checked the fixes: 374 commits after the inherited history, counted before the final docs commit (`git shortlog -sn a12d4c7^..HEAD`); led the case investigation (docs/CASE-MAP.md); her setup recorded 152 of 179 error entries (docs/ERRORS.md minus the second-review entries in docs/CONTRIBUTIONS.md section 4).
 - Lulwa — reviewed the code independently in a separate copy: 91 items (docs/COMPARE.md); its findings that were new to us became 27 entries in this fork (items with one root cause share an entry; listed by ID in docs/CONTRIBUTIONS.md section 4); her code changes are not in this fork: 0 commits (`git shortlog -sn a12d4c7^..HEAD`); her notes state her tests could not be run.
 <!-- members:end -->
 
@@ -14,13 +14,15 @@
 - Checkout and merchant dashboard: http://139.59.57.26/ (dashboard login: http://139.59.57.26/dashboard/login)
 - Public API: http://139.59.57.26/v1/… (health: http://139.59.57.26/healthz)
 - Admin console: http://139.59.57.26:8081/
+- Demo checkout link (unpaid, 4.750 BHD): http://139.59.57.26/pay/plink_YBZmrrqbXxSjaQ3VhxmRcJ — the 90-second walk-through is docs/DEMO.md
+- Deployed version: the live server runs the last deployed commit (d3e4fd1, LOG.md section 6); later fixes and the UX pass reach it with the code-freeze redeploy (`bash ~/fils-pay/ops/deploy.sh`).
 - Demo accounts: a demo merchant owner and a super_admin exist on the server. Their passwords are not in this document or in git; they are in a mode-600 file on the server and are handed to the organizers on request.
 
 - Access is by IP over plain HTTP: the organizers confirmed no domain and no SSL are needed.
 
 **Fork:** https://github.com/Zainajjhdjskdjf233/fils-pay
 
-**Last commit ID:** TODO at the code freeze (draft written at d3e4fd1)
+**Last commit:** see the cover of the submitted PDF
 
 ---
 

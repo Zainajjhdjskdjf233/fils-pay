@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 10:01 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 11:03 PM
 
 ## Contents
 1. Status now
@@ -14,10 +14,10 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 10:01 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 176 of 178 fixed.
+- Errors: 177 of 179 fixed.
   - High: 46 of 46 fixed
   - Medium: 59 of 60 fixed
-  - Low: 71 of 72 fixed
+  - Low: 72 of 73 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
@@ -27,7 +27,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 10:01 PM
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 176 of 178 fixed.
+- 🔄 Fix: 177 of 179 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -207,7 +207,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 10:01 PM
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-### Low (71 of 72 fixed)
+### Low (72 of 73 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -283,6 +283,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 10:01 PM
 | E176 | [deep review] A redeploy stops settlement after 10 s, although it waits 30 s for a running batch | Fixed |
 | E177 | [deep review] Admin login and admin invites match emails case-sensitively | Fixed |
 | E178 | [deep review] Discount adjustments are matched to capture events by position, at today's rate | Fixed |
+| E179 | [deep review] Admin credits: "Load more" works only once per list load | Fixed |
 
 ## 8. Every fix explained
 Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101 · N102 · N103 · N104 · N105 · N106 · N107 · N108 · N109 · N110 · N111 · N112 · N113 · N114 · N115 · N116 · N117 · N118 · N119 · N120 · N121 · N122 · N123 · N124 · N125 · N126 · N127 · N128 · N129 · N130 · N131 · N132 · N133 · N134 · N135 · N136 · N137 · N138 · N139 · N140 · N141 · N142 · N143 · N144 · N145 · N146 · N147 · N148 · N149 · N150 · N151 · N152 · N153 · N154 · N155 · N156 · N157 · N158 · N159 · N160 · N161 · N162 · N163 · N164 · N165 · N166 · N167 · N168 · N169 · N170 · N171 · N172 · N173 · N174 · N175 · N176 · N177 · N178 · N179 · N180 · N181 · N182 · N183 · N184 · N185 · N186 · N187 · N188 · N189 · N190
