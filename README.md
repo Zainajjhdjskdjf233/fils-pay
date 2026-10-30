@@ -54,7 +54,7 @@ Plus 11 new database migrations, 71 new test files, and changes to 105 existing 
 ### Zainab
 - Designed and built the AI setup: the rules (CLAUDE.md), the hooks that enforce them, the agent team and the commands (.claude/).
 - Ran the full audit: found 122 of the 133 errors, plus 39 hidden things in the docs and git history.
-- Wrote every fix in this repository: 70 fixes and features, each with a test that failed first. All 175 commits here are hers.
+- Every fix was planned, checked and approved by Zainab, made with Claude Code: 70 fixes and features, each with a test that failed first. All commits after the inherited history are hers.
 - Built the missing refunds feature end to end (API, ledger, fees, settlement, webhook, reports, reconciliation, dashboard).
 - Added 71 new test files.
 - Built the Docker hosting within the 1 vCPU / 2 GB limits, load shedding, the k6 load test and the capacity estimate.
