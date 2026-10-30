@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 07:18 PM (30 Oct 2026)
-Summary: Errors 127/176 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
+Updated: 07:19 PM (30 Oct 2026)
+Summary: Errors 128/176 fixed (+8 partly: E50, E92, E131, E145, E163, E47, E86, E94; same count as docs/ERRORS.md) · Hidden 40 found · Features 2/2 done (F01 done; F02 live at d3e4fd1) · Deploy: local Docker stack done, capacity ~15 checkouts/s; live on Dilmune at http://139.59.57.26/ (commit d3e4fd1, redeploy 2 at 07:12 PM, LOG §6) · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -753,7 +753,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Where: apps/admin/src/pages/settlement/SettlementPage.tsx:19-22 `toISOString().slice(0, 10)`
 - Error: between 00:00 and 03:00 Bahrain it pre-fills two days ago.
 - Proof: code read (ADR check agent (12:58 PM); checked by me).
-- Severity: low · Status: open
+- Severity: low · Status: fixed (see section 5, E81)
 
 ### E82 — [found later] Admin "rotate API key" hands staff a working merchant key with full merchant power
 - Where: apps/api/src/routes/adminMerchants.ts:176-205 (returns rawKey to finance/super_admin, :198); requireMerchantAuth.ts:155 (API keys skip role checks)
@@ -2688,6 +2688,12 @@ ROLLBACK;
 - Changed: apps/api/src/paymentLinks/serialize.ts: a stored 'active' link past expires_at is returned as 'expired' (the same rule as the public status, status.ts:34). apps/api/src/paymentLinks/query.ts: the status filter uses that derived status, so ?status=active leaves expired links out and ?status=expired finds them. apps/web: 'expired' added to PaymentLinkStatus (types.ts) and to the list filter (PaymentLinkListPage.tsx); red label (dashboard.css). The detail page already shows Cancel only for 'active' (PaymentLinkDetailPage.tsx:162), so it disappears for expired links with no change there.
 - Before: testE107_expiredLinksAreShownAsExpired (paymentLinks.test.ts) failed — the expired link came back 'active' and in the active filter. After: 'expired', filters correct. Payment-link suites 30/30; web tsc clean, web tests 13/13.
 - Stored data unchanged ('expired' is still never stored).
+- check.sh (clean environment): OK. Needs a redeploy.
+
+### E81 — 07:19 PM — the admin Run batch date defaults to yesterday in Bahrain
+- Changed: new apps/admin/src/lib/bahrainDate.ts bahrainYesterdayIso() (UTC+3, no DST, like the API and settlement); apps/admin/src/pages/settlement/SettlementPage.tsx uses it instead of the browser-local setDate + toISOString (UTC) mix. apps/admin/tsconfig.json excludes *.test.ts from the app typecheck (the admin app has no node types; check.sh still runs the test).
+- Before: the old rule at 01:30 Bahrain (29 Oct 22:30 UTC, TZ=Asia/Bahrain) gave 2026-10-28 — two days back (command output). After: apps/admin/src/lib/bahrainDate.e81.test.ts — 2026-10-29, also at noon and across 29 Feb 2028. 1/1; admin tsc clean.
+- Not changed: MerchantDetailPage.tsx:18 todayIso uses the browser's local date (comment 'fine for bahrain staff — am'); correct only for a browser set to Bahrain time.
 - check.sh (clean environment): OK. Needs a redeploy.
 
 ## 6. Deploy
