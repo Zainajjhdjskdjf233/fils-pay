@@ -1931,7 +1931,7 @@ The money display no longer throws on −1.250 BD, so refund rows can be shown.
 "Why keep the same request key on retry?"
 If the first request reached the server but the answer was lost, the retry with the same key gets the first answer back instead of refunding again.
 
-Commit: PENDING_N52
+Commit: e5eb890
 
 ## N53 — The dashboard and admin console can reach the API
 
@@ -1967,4 +1967,4 @@ const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?
 "Why not just turn on CORS?"
 CORS with cookies would let the session cookie go to another address; keeping everything on one address needs no exception at all.
 
-Commit: PENDING_N53
+Commit: e5eb890
