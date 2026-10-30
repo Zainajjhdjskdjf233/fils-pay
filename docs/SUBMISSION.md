@@ -283,7 +283,7 @@ Not changed (recorded): money columns are still left-aligned (29 cells in 10 fil
 ### Every error entry
 
 <!-- errors:start (generated from docs/ERRORS.md) -->
-All 176 entries from docs/ERRORS.md (133 of 176 fixed.). Each ID has its error (section 2) and, when fixed, its fix (section 5) in docs/LOG.md.
+All 176 entries from docs/ERRORS.md (137 of 176 fixed.). Each ID has its error (section 2) and, when fixed, its fix (section 5) in docs/LOG.md.
 
 | ID | Title | Level | Status |
 |---|---|---|---|
@@ -351,7 +351,7 @@ All 176 entries from docs/ERRORS.md (133 of 176 fixed.). Each ID has its error (
 | E62 | [found later] Two reporting passes at the same time count every event twice | Medium | Fixed |
 | E63 | [found later] Admin reporting rebuild double-counts events the worker has not reached | Medium | Open |
 | E64 | [found later] Payout trends never show "paid" (settlement.paid not consumed) | Medium | Fixed |
-| E65 | [found later] The seed wipes real tables (incl. admin audit log) with no environment check | Medium | Open |
+| E65 | [found later] The seed wipes real tables (incl. admin audit log) with no environment check | Medium | Fixed |
 | E66 | [found later] expire_holds can delete holds released between its SELECT and DELETE | Low | Fixed |
 | E67 | [found later] refund_merchant_summary counts captured once per refund; never refreshed (my F01e bug) | Low | Open |
 | E68 | [found later] Seed adds the lifetime payout estimate in float32 | Low | Open |
@@ -395,8 +395,8 @@ All 176 entries from docs/ERRORS.md (133 of 176 fixed.). Each ID has its error (
 | E106 | [found later] Reconciliation and batch pages leave out refund parts | Medium | Fixed |
 | E107 | [found later] Expired payment links shown as active with Cancel | Low | Fixed |
 | E108 | [found later] List pages can append rows from an old filter (suspected) | Low | Open |
-| E109 | [found later] Small admin/checkout display bugs | Low | Open |
-| E110 | [second review] Streaming CSV export pages on occurred_at only (unused code) | Low | Open |
+| E109 | [found later] Small admin/checkout display bugs | Low | Partly fixed |
+| E110 | [second review] Streaming CSV export pages on occurred_at only (unused code) | Low | Fixed |
 | E111 | [second review] CSV quoting ignores carriage returns | Low | Fixed |
 | E112 | [second review] Invalid date filters reach the DB (500 instead of 400) | Low | Fixed |
 | E113 | [second review] Session promotion after OTP updates by id only (defence in depth) | Low | Fixed |
@@ -425,7 +425,7 @@ All 176 entries from docs/ERRORS.md (133 of 176 fixed.). Each ID has its error (
 | E136 | [coverage] Any admin role, including support, can resend all of a merchant's past webhooks, again and again | High | Fixed |
 | E137 | [coverage] KYC thumbnail: a 1 MB PNG decompression bomb can push the API past its 512 MB limit | High | Fixed |
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | High | Fixed |
-| E139 | [coverage] Capture and the status recompute disagree on a refunded, partly captured transaction | Medium | Open |
+| E139 | [coverage] Capture and the status recompute disagree on a refunded, partly captured transaction | Medium | Fixed |
 | E140 | [coverage] Balance adjustment: a huge deltaFils gives 500, and there is no upper limit | Medium | Fixed |
 | E141 | [coverage] Credit: a huge baseAmountFils with reverseFee gives 500 | Medium | Fixed |
 | E142 | [coverage] Control characters in credit memos and adjustment reasons are accepted; a NUL byte likely gives 500 | Medium | Fixed |
@@ -437,7 +437,7 @@ All 176 entries from docs/ERRORS.md (133 of 176 fixed.). Each ID has its error (
 | E148 | [coverage] No limit on KYC uploads per merchant: the shared disk can be filled | Medium | Fixed |
 | E149 | [coverage] Credit effectiveDate "0000-01-01" passes validation; Postgres likely refuses it (500) | Low | Fixed |
 | E150 | [coverage] Balance adjustment returns 404 for a merchant with no balance row yet | Low | Skipped |
-| E151 | [coverage] Defence in depth: validateRefundRequest trusts its caller's numbers | Low | Open |
+| E151 | [coverage] Defence in depth: validateRefundRequest trusts its caller's numbers | Low | Fixed |
 | E152 | [coverage] Go ApplyRateFils: int64 overflow wraps silently (TS throws) | Low | Fixed |
 | E153 | [coverage] A fully refunded, partly captured row refunded again with no amount gives 422 instead of 409 | Low | Fixed |
 | E154 | [coverage] adjustMerchantBalanceJournaled is dead code | Low | Open |

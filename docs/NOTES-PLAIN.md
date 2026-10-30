@@ -835,3 +835,33 @@ Where: apps/api/src/onboarding/kyc.ts:70 · Commit: 3ef0efb
 Very large amounts could make the fee math wrap around to a wrong number with no warning. Now it stops with a clear error, without crashing the payout service. Tests prove both.
 
 Where: apps/settlement/internal/money/fils.go · Commit: ecd0bf8
+
+## N140 — One rule for a payment's status
+
+After a refund, taking the rest of a payment set the wrong status. Now capture uses the same rule as refunds. The reviewer caught a mistake in my first version, a card hold left open, and we fixed it before committing. A test checks the status, the hold and the event.
+
+Where: apps/api/src/payments/capture.ts · Commit: 640afe2
+
+## N141 — Small screen fixes
+
+Checkout showed the paid time as raw computer text, a double click loaded credits twice, and an import message used a misleading word. All three are fixed. One small issue on the webhook replay page is still open.
+
+Where: apps/web/src/pages/checkout/CheckoutPage.tsx · Commit: 7c4a68d
+
+## N142 — The seed asks first
+
+The sample-data script emptied real tables, including the audit log, without asking. Now it refuses unless a special flag is set, and never runs in production. Running it without the flag shows a clear warning.
+
+Where: db/seed/guard.ts · Commit: 319790f
+
+## N143 — Refund checks trust nothing
+
+The refund check trusted the numbers it was given, so 1.5 fils or a wrong total could pass. Now it caps at what was captured and needs whole fils. A test proves both, and real refunds are unchanged.
+
+Where: apps/api/src/payments/refundValidation.ts · Commit: c0350b1
+
+## N144 — No row skipped in the export
+
+The streaming export could skip rows that share the same time at a page edge. Now it uses time plus id as its bookmark. A test with three same-time rows proves none is lost.
+
+Where: apps/api/src/transactions/exportCsv.ts · Commit: 9d753ab

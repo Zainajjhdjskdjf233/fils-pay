@@ -1,7 +1,7 @@
 # OVERVIEW — start here
 
 The one file that holds everything: status, stages, files, judging, hand-in, every error, and every fix explained.
-Built automatically by `docs/tools/build_overview.py`. Updated: 7:29 PM
+Built automatically by `docs/tools/build_overview.py`. Updated: 7:38 PM
 
 ## Contents
 1. Status now
@@ -14,20 +14,20 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:29 PM
 8. Every fix explained
 
 ## 1. Status now
-- Errors: 133 of 176 fixed.
+- Errors: 137 of 176 fixed.
   - High: 46 of 46 fixed
-  - Medium: 42 of 60 fixed
-  - Low: 45 of 70 fixed
+  - Medium: 44 of 60 fixed
+  - Low: 47 of 70 fixed
 - Missing feature (refunds, F01): done
 - Docker (E02): done
 - Capacity estimate: about 15 checkouts per second (≈ 900 per minute)
 - Dilmune Cloud: live
-- Decisions waiting for Zainab: 34 (search "for Zainab to review" in LOG.md)
+- Decisions waiting for Zainab: 36 (search "for Zainab to review" in LOG.md)
 - Fork: needs a push (VS Code: Git: Push to... → mine)
 
 ## 2. Stages
 - ✅ Understand
-- 🔄 Fix: 133 of 176 fixed.
+- 🔄 Fix: 137 of 176 fixed.
 - ✅ Docker and limits
 - ✅ Load shedding, load test, capacity estimate
 - ✅ UI and UX, before/after screenshots
@@ -74,6 +74,11 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:29 PM
 - ⬜ Slide deck
 
 ## 6. Latest fixes
+- 9d753ab fix(E110): streaming CSV export pages on (occurred_at, id); no row skipped
+- c0350b1 fix(E151): refund validation caps refundable at captured and refuses fractional fils; E63 marked for review
+- 319790f fix(E65): the seed refuses to wipe tables without FILSPAY_ALLOW_SEED_RESET=1, never in production
+- 7c4a68d fix(E109): checkout paid time readable, credits load-more guarded, import total worded correctly (partly fixed)
+- 640afe2 fix(E139): capture uses the shared refund status rule; hold release and event type use the captured amount
 - ecd0bf8 fix(E152): Go fee math refuses int64 overflow with an error in settlement paths
 - 3ef0efb fix(E46): KYC PDF-only rule checks the bytes, not the filename
 - fed085a fix(E66): expire_holds re-checks status in the DELETE; a released hold is kept
@@ -84,11 +89,6 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:29 PM
 - 2a8a534 fix(E98): parked reporting events store error codes and names, not raw Postgres messages
 - bf1cbb7 fix(E97): reporting settings must be whole numbers in a range
 - 287b2c0 fix(E95): settlement errors no longer show internal paths, hosts or upstream bodies to admins
-- d3e4fd1 fix(E176): settlement gets 40 s to finish a running batch when a redeploy stops it
-- dacc5f8 fix(E114): parallel OTP resends issue exactly one new code
-- 5e4a32a fix(E93): sqlFilter refuses an unfiltered DELETE and non-identifier names
-- 35c9921 fix(E59): acquirer callback outcome must be cleared or confirmed_fraud
-- 8b391fe fix(E160): adjustment-import list pages on (created_at, id) timestamps; no import skipped
 
 ## 7. All errors
 ## High (46 of 46 fixed)
@@ -142,7 +142,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:29 PM
 | E138 | [coverage] [my E39 fix] The 50,000-row export cap still lets 4 concurrent exports crash the heap | Fixed |
 | E162 | [second review] The adjustment CSV ignores extra columns, so an amount written with a thousands comma posts the wrong amount silently | Fixed |
 
-### Medium (42 of 60 fixed)
+### Medium (44 of 60 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -171,7 +171,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:29 PM
 | E62 | [found later] Two reporting passes at the same time count every event twice | Fixed |
 | E63 | [found later] Admin reporting rebuild double-counts events the worker has not reached | Open |
 | E64 | [found later] Payout trends never show "paid" (settlement.paid not consumed) | Fixed |
-| E65 | [found later] The seed wipes real tables (incl. admin audit log) with no environment check | Open |
+| E65 | [found later] The seed wipes real tables (incl. admin audit log) with no environment check | Fixed |
 | E74 | [found later] Balance cache and ledger rebuild measure different things (drift after rebuild) | Open |
 | E75 | [found later] March sweep posts the opposite legs from ADR-0002, charging merchants | Fixed |
 | E76 | [found later] Dashboard date filter uses UTC days, not Bahrain days | Open |
@@ -190,7 +190,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:29 PM
 | E129 | [deep review] Capture idempotency hash ignores the transaction id | Fixed |
 | E130 | [deep review] Failed link capture leaves the card authorization open | Fixed |
 | E131 | [deep review] Discount error after a paid link gives the buyer a 500 | Partly fixed |
-| E139 | [coverage] Capture and the status recompute disagree on a refunded, partly captured transaction | Open |
+| E139 | [coverage] Capture and the status recompute disagree on a refunded, partly captured transaction | Fixed |
 | E140 | [coverage] Balance adjustment: a huge deltaFils gives 500, and there is no upper limit | Fixed |
 | E141 | [coverage] Credit: a huge baseAmountFils with reverseFee gives 500 | Fixed |
 | E142 | [coverage] Control characters in credit memos and adjustment reasons are accepted; a NUL byte likely gives 500 | Fixed |
@@ -207,7 +207,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:29 PM
 | E170 | [second review] [regression from my E133 fix] the report filter refuses the valid status partially_refunded | Fixed |
 | E171 | [second review] No cap on saved filters per merchant; the list returns every row | Fixed |
 
-### Low (45 of 70 fixed)
+### Low (47 of 70 fixed)
 
 | ID | What is wrong | Status |
 |---|---|---|
@@ -248,8 +248,8 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:29 PM
 | E98 | [found later] Raw Postgres error text in logs and dead letters (my E53 code) | Fixed |
 | E107 | [found later] Expired payment links shown as active with Cancel | Fixed |
 | E108 | [found later] List pages can append rows from an old filter (suspected) | Open |
-| E109 | [found later] Small admin/checkout display bugs | Open |
-| E110 | [second review] Streaming CSV export pages on occurred_at only (unused code) | Open |
+| E109 | [found later] Small admin/checkout display bugs | Partly fixed |
+| E110 | [second review] Streaming CSV export pages on occurred_at only (unused code) | Fixed |
 | E111 | [second review] CSV quoting ignores carriage returns | Fixed |
 | E112 | [second review] Invalid date filters reach the DB (500 instead of 400) | Fixed |
 | E113 | [second review] Session promotion after OTP updates by id only (defence in depth) | Fixed |
@@ -262,7 +262,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:29 PM
 | E133 | [second review] Report filter JSON used without a shape check | Fixed |
 | E149 | [coverage] Credit effectiveDate "0000-01-01" passes validation; Postgres likely refuses it (500) | Fixed |
 | E150 | [coverage] Balance adjustment returns 404 for a merchant with no balance row yet | Skipped |
-| E151 | [coverage] Defence in depth: validateRefundRequest trusts its caller's numbers | Open |
+| E151 | [coverage] Defence in depth: validateRefundRequest trusts its caller's numbers | Fixed |
 | E152 | [coverage] Go ApplyRateFils: int64 overflow wraps silently (TS throws) | Fixed |
 | E153 | [coverage] A fully refunded, partly captured row refunded again with no amount gives 422 instead of 409 | Fixed |
 | E154 | [coverage] adjustMerchantBalanceJournaled is dead code | Open |
@@ -283,7 +283,7 @@ Built automatically by `docs/tools/build_overview.py`. Updated: 7:29 PM
 | E176 | [deep review] A redeploy stops settlement after 10 s, although it waits 30 s for a running batch | Fixed |
 
 ## 8. Every fix explained
-Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101 · N102 · N103 · N104 · N105 · N106 · N107 · N108 · N109 · N110 · N111 · N112 · N113 · N114 · N115 · N116 · N117 · N118 · N119 · N120 · N121 · N122 · N123 · N124 · N125 · N126 · N127 · N128 · N129 · N130 · N131 · N132 · N133 · N134 · N135 · N136 · N137 · N138 · N139
+Index: N01 · N02 · N03 · N04 · N05 · N06 · N07 · N08 · N09 · N10 · N11 · N12 · N13 · N14 · N15 · N16 · N17 · N18 · N19 · N20 · N21 · N22 · N23 · N24 · N25 · N26 · N27 · N28 · N29 · N30 · N31 · N32 · N33 · N34 · N35 · N36 · N37 · N38 · N39 · N40 · N41 · N42 · N43 · N44 · N45 · N46 · N47 · N48 · N49 · N50 · N51 · N52 · N53 · N54 · N55 · N56 · N57 · N58 · N59 · N60 · N61 · N62 · N63 · N64 · N65 · N66 · N67 · N68 · N69 · N70 · N71 · N72 · N73 · N74 · N75 · N76 · N77 · N78 · N79 · N80 · N81 · N82 · N83 · N84 · N85 · N86 · N87 · N88 · N89 · N90 · N91 · N92 · N93 · N94 · N95 · N96 · N97 · N98 · N99 · N100 · N101 · N102 · N103 · N104 · N105 · N106 · N107 · N108 · N109 · N110 · N111 · N112 · N113 · N114 · N115 · N116 · N117 · N118 · N119 · N120 · N121 · N122 · N123 · N124 · N125 · N126 · N127 · N128 · N129 · N130 · N131 · N132 · N133 · N134 · N135 · N136 · N137 · N138 · N139 · N140 · N141 · N142 · N143 · N144
 
 ### N01 — Database setup stopped halfway
 
@@ -5179,4 +5179,177 @@ A too-large amount stops with a clear error.
 A crash inside the daemon would repeat on every restart and block all shops; an error is logged and handled.
 
 Commit: ecd0bf8
+
+### N140 — One rule for a payment's status
+
+#### The idea
+A payment has a status like "captured" or "partially refunded". Like a parcel tracker, every part of the system should show the same state.
+
+#### The problem
+Taking the rest of the money after a refund set "captured".
+- The refund code and the admin recompute said "partially refunded".
+- The status changed depending on which code ran last.
+
+#### The fix
+- capture.ts: use the same status rule as refunds.
+- A separate "fully captured" check drives the card hold release and the event name.
+
+#### The code
+Before (apps/api/src/payments/capture.ts:200):
+```ts
+const newStatus = compareFils(newCapturedFils, amountAuthorized) === 0 ? "captured" : "partially_captured";
+```
+After:
+```ts
+const fullyCaptured = compareFils(newCapturedFils, amountAuthorized) === 0;
+const newStatus = nextStatusAfterRefund({ amountFils: amountAuthorized, capturedFils: newCapturedFils, refundedTotalFils: ... });
+```
+The status follows one rule everywhere; the hold is still released when all money is taken.
+
+#### The proof
+- Before: "captured".
+- After: "partially_refunded"; hold released; last event "captured".
+
+#### If the judges ask
+"Did the reviewer find anything?"
+Yes: my first version would have left the card hold active; we fixed it before the commit.
+
+Commit: 640afe2
+
+### N141 — Small screen fixes
+
+#### The idea
+Small screens should say exactly what happened, like a clear receipt.
+
+#### The problem
+Three small display bugs.
+- Checkout showed the paid time as raw computer text.
+- A double click on "Load more" showed credits twice.
+- The import message called a total of both directions a "posting".
+
+#### The fix
+- CheckoutPage.tsx: readable time.
+- CreditsPage.tsx: ignore a second click while loading.
+- AdjustmentImportPage.tsx: clearer words.
+
+#### The code
+Before (apps/web/src/pages/checkout/CheckoutPage.tsx:118):
+```tsx
+<dd>{payState.result.paidAt}</dd>
+```
+After:
+```tsx
+<dd>{dateTime(payState.result.paidAt)}</dd>
+```
+The buyer sees a normal date and time.
+
+#### The proof
+- Before: "2026-10-30T15:12:03.120Z" style text.
+- After: web and admin typecheck clean; web tests 13/13.
+
+#### If the judges ask
+"Is everything in E109 fixed?"
+Three of four; the webhook replay page still keeps an old result when the merchant changes.
+
+Commit: 7c4a68d
+
+### N142 — The seed asks first
+
+#### The idea
+The seed script fills a test database with sample data. It is like a reset button: it first empties tables.
+
+#### The problem
+It emptied real tables with no question.
+- That includes the admin audit log.
+- A comment said it was safe on shared databases; it is not.
+
+#### The fix
+- New guard.ts: refuse unless FILSPAY_ALLOW_SEED_RESET=1; always refuse in production.
+- index.ts calls it first; the false comment and the runbook are corrected.
+
+#### The code
+Before (db/seed/index.ts:13): no check.
+After:
+```ts
+assertSeedResetAllowed(process.env);
+```
+Nobody wipes a database by accident.
+
+#### The proof
+- Before: the seed ran with no question.
+- After: without the flag it stops with a clear message.
+
+#### If the judges ask
+"Why a flag and not a database-name check?"
+The local and live databases have the same name; an explicit flag is the only safe signal.
+
+Commit: 319790f
+
+### N143 — Refund checks trust nothing
+
+#### The idea
+Before a refund, a helper checks the amount is allowed. Like a cashier who counts the money, not just the receipt.
+
+#### The problem
+The helper trusted the numbers it was given.
+- 1.5 fils passed.
+- A wrong "refundable" figure could allow more than was captured.
+
+#### The fix
+- refundValidation.ts: cap at what was captured; amount must be a whole number.
+
+#### The code
+Before (apps/api/src/payments/refundValidation.ts:39):
+```ts
+const refundable = refundableAmount(txn);
+```
+After:
+```ts
+const raw = refundableAmount(txn);
+const refundable = compareFils(raw, txn.capturedFils) > 0 ? txn.capturedFils : raw;
+```
+Even a wrong input cannot refund more than was taken.
+
+#### The proof
+- Before: 1.5 passed; 6000 allowed on a 4000 capture.
+- After: both refused; real refunds unchanged.
+
+#### If the judges ask
+"The route already checks. Why here too?"
+Defence in depth: the next caller may forget, and this is money.
+
+Commit: c0350b1
+
+### N144 — No row skipped in the export
+
+#### The idea
+A long export is read in pages. Like a bookmark, each page must start exactly where the last ended.
+
+#### The problem
+The bookmark was only the time.
+- Rows with the same time at a page edge were skipped.
+
+#### The fix
+- exportCsv.ts: the bookmark is time plus id.
+
+#### The code
+Before (apps/api/src/transactions/exportCsv.ts:113):
+```sql
+AND occurred_at > $5 ORDER BY occurred_at ASC
+```
+After:
+```sql
+AND (occurred_at, id) > ($5::timestamptz, $6::uuid) ORDER BY occurred_at ASC, id ASC
+```
+Every row is exported once.
+
+#### The proof
+- Before: with pages of 2, one of 3 same-time rows was missing.
+- After: all 3 rows.
+
+#### If the judges ask
+"This code is not used. Why fix it?"
+It is the obvious way to stream a big export later; it should not lose rows when someone wires it.
+
+Commit: 9d753ab
 

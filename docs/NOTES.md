@@ -4896,3 +4896,176 @@ A too-large amount stops with a clear error.
 A crash inside the daemon would repeat on every restart and block all shops; an error is logged and handled.
 
 Commit: ecd0bf8
+
+## N140 — One rule for a payment's status
+
+### The idea
+A payment has a status like "captured" or "partially refunded". Like a parcel tracker, every part of the system should show the same state.
+
+### The problem
+Taking the rest of the money after a refund set "captured".
+- The refund code and the admin recompute said "partially refunded".
+- The status changed depending on which code ran last.
+
+### The fix
+- capture.ts: use the same status rule as refunds.
+- A separate "fully captured" check drives the card hold release and the event name.
+
+### The code
+Before (apps/api/src/payments/capture.ts:200):
+```ts
+const newStatus = compareFils(newCapturedFils, amountAuthorized) === 0 ? "captured" : "partially_captured";
+```
+After:
+```ts
+const fullyCaptured = compareFils(newCapturedFils, amountAuthorized) === 0;
+const newStatus = nextStatusAfterRefund({ amountFils: amountAuthorized, capturedFils: newCapturedFils, refundedTotalFils: ... });
+```
+The status follows one rule everywhere; the hold is still released when all money is taken.
+
+### The proof
+- Before: "captured".
+- After: "partially_refunded"; hold released; last event "captured".
+
+### If the judges ask
+"Did the reviewer find anything?"
+Yes: my first version would have left the card hold active; we fixed it before the commit.
+
+Commit: 640afe2
+
+## N141 — Small screen fixes
+
+### The idea
+Small screens should say exactly what happened, like a clear receipt.
+
+### The problem
+Three small display bugs.
+- Checkout showed the paid time as raw computer text.
+- A double click on "Load more" showed credits twice.
+- The import message called a total of both directions a "posting".
+
+### The fix
+- CheckoutPage.tsx: readable time.
+- CreditsPage.tsx: ignore a second click while loading.
+- AdjustmentImportPage.tsx: clearer words.
+
+### The code
+Before (apps/web/src/pages/checkout/CheckoutPage.tsx:118):
+```tsx
+<dd>{payState.result.paidAt}</dd>
+```
+After:
+```tsx
+<dd>{dateTime(payState.result.paidAt)}</dd>
+```
+The buyer sees a normal date and time.
+
+### The proof
+- Before: "2026-10-30T15:12:03.120Z" style text.
+- After: web and admin typecheck clean; web tests 13/13.
+
+### If the judges ask
+"Is everything in E109 fixed?"
+Three of four; the webhook replay page still keeps an old result when the merchant changes.
+
+Commit: 7c4a68d
+
+## N142 — The seed asks first
+
+### The idea
+The seed script fills a test database with sample data. It is like a reset button: it first empties tables.
+
+### The problem
+It emptied real tables with no question.
+- That includes the admin audit log.
+- A comment said it was safe on shared databases; it is not.
+
+### The fix
+- New guard.ts: refuse unless FILSPAY_ALLOW_SEED_RESET=1; always refuse in production.
+- index.ts calls it first; the false comment and the runbook are corrected.
+
+### The code
+Before (db/seed/index.ts:13): no check.
+After:
+```ts
+assertSeedResetAllowed(process.env);
+```
+Nobody wipes a database by accident.
+
+### The proof
+- Before: the seed ran with no question.
+- After: without the flag it stops with a clear message.
+
+### If the judges ask
+"Why a flag and not a database-name check?"
+The local and live databases have the same name; an explicit flag is the only safe signal.
+
+Commit: 319790f
+
+## N143 — Refund checks trust nothing
+
+### The idea
+Before a refund, a helper checks the amount is allowed. Like a cashier who counts the money, not just the receipt.
+
+### The problem
+The helper trusted the numbers it was given.
+- 1.5 fils passed.
+- A wrong "refundable" figure could allow more than was captured.
+
+### The fix
+- refundValidation.ts: cap at what was captured; amount must be a whole number.
+
+### The code
+Before (apps/api/src/payments/refundValidation.ts:39):
+```ts
+const refundable = refundableAmount(txn);
+```
+After:
+```ts
+const raw = refundableAmount(txn);
+const refundable = compareFils(raw, txn.capturedFils) > 0 ? txn.capturedFils : raw;
+```
+Even a wrong input cannot refund more than was taken.
+
+### The proof
+- Before: 1.5 passed; 6000 allowed on a 4000 capture.
+- After: both refused; real refunds unchanged.
+
+### If the judges ask
+"The route already checks. Why here too?"
+Defence in depth: the next caller may forget, and this is money.
+
+Commit: c0350b1
+
+## N144 — No row skipped in the export
+
+### The idea
+A long export is read in pages. Like a bookmark, each page must start exactly where the last ended.
+
+### The problem
+The bookmark was only the time.
+- Rows with the same time at a page edge were skipped.
+
+### The fix
+- exportCsv.ts: the bookmark is time plus id.
+
+### The code
+Before (apps/api/src/transactions/exportCsv.ts:113):
+```sql
+AND occurred_at > $5 ORDER BY occurred_at ASC
+```
+After:
+```sql
+AND (occurred_at, id) > ($5::timestamptz, $6::uuid) ORDER BY occurred_at ASC, id ASC
+```
+Every row is exported once.
+
+### The proof
+- Before: with pages of 2, one of 3 same-time rows was missing.
+- After: all 3 rows.
+
+### If the judges ask
+"This code is not used. Why fix it?"
+It is the obvious way to stream a big export later; it should not lose rows when someone wires it.
+
+Commit: 9d753ab
