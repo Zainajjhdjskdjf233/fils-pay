@@ -13,6 +13,12 @@ export interface Config {
   databaseUrl: string;
 
   pgPoolMax: number;
+  /** Load shedding: requests handled at once before new ones get 503. */
+  maxInFlightRequests: number;
+  /** Load shedding: event-loop p99 delay (ms) above which new requests get 503; 0 = off. */
+  shedEventLoopDelayMs: number;
+  /** Fastify log level ("info" logs every request; use "warn" under load). */
+  logLevel: string;
   pgPoolMin: number;
   pgPoolIdleTimeoutMs: number;
   pgPoolConnectionTimeoutMs: number;
@@ -198,6 +204,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     databaseUrl,
 
     pgPoolMax: parseIntEnv(env.PG_POOL_MAX, 5),
+    maxInFlightRequests: parseIntEnv(env.MAX_IN_FLIGHT_REQUESTS, 64),
+    shedEventLoopDelayMs: parseIntEnv(env.SHED_EVENT_LOOP_DELAY_MS, 0),
+    logLevel: env.LOG_LEVEL ?? "info",
     pgPoolMin: parseIntEnv(env.PG_POOL_MIN, 0),
     pgPoolIdleTimeoutMs: parseIntEnv(env.PG_POOL_IDLE_TIMEOUT_MS, 30_000),
     pgPoolConnectionTimeoutMs: parseIntEnv(env.PG_POOL_CONNECTION_TIMEOUT_MS, 5_000),

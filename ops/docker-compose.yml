@@ -11,8 +11,9 @@
 # is a superuser (E91, ops/postgres/01-roles.sh).
 #
 # CPU / memory budget (long-running services):
-#   api 0.50 / 512M · postgres 0.25 / 768M · settlement 0.08 / 128M
-#   reporting 0.08 / 192M · nginx 0.09 / 64M        = 1.00 vCPU / 1664M
+#   api 0.50 / 512M · postgres 0.35 / 768M · settlement 0.05 / 128M
+#   reporting 0.05 / 192M · nginx 0.05 / 64M        = 1.00 vCPU / 1664M
+#   (k6 showed postgres, not the API, was the bottleneck at 0.25 — LOG §6)
 
 name: filspay
 
@@ -51,7 +52,7 @@ services:
       retries: 20
     deploy:
       resources:
-        limits: { cpus: "0.25", memory: 768M }
+        limits: { cpus: "0.35", memory: 768M }
 
   migrate:
     build: { context: .., dockerfile: ops/Dockerfile.node }
@@ -75,7 +76,10 @@ services:
       NODE_ENV: production
       PORT: "3000"
       DATABASE_URL: postgres://filspay_api:${FILSPAY_API_DB_PASSWORD}@postgres:5432/filspay?sslmode=disable
-      PG_POOL_MAX: "10"
+      PG_POOL_MAX: "20"
+      LOG_LEVEL: warn                  # "info" logs every request: real CPU at 0.5 vCPU
+      MAX_IN_FLIGHT_REQUESTS: ${MAX_IN_FLIGHT_REQUESTS:-24}     # load shedding: above this → 503 + Retry-After
+      SHED_EVENT_LOOP_DELAY_MS: ${SHED_EVENT_LOOP_DELAY_MS:-300}  # load shedding: event loop saturated → 503
       WEBHOOK_SECRET_ENCRYPTION_KEY: ${WEBHOOK_SECRET_ENCRYPTION_KEY:?run ops/gen-env.sh}
       ACQUIRER_CALLBACK_SIGNING_SECRET: ${ACQUIRER_CALLBACK_SIGNING_SECRET:?run ops/gen-env.sh}
       SETTLEMENT_INTERNAL_URL: http://settlement:8091
@@ -119,7 +123,7 @@ services:
       retries: 3
     deploy:
       resources:
-        limits: { cpus: "0.08", memory: 128M }
+        limits: { cpus: "0.05", memory: 128M }
 
   reporting:
     image: filspay-node:local
@@ -134,7 +138,7 @@ services:
     networks: [db]
     deploy:
       resources:
-        limits: { cpus: "0.08", memory: 192M }
+        limits: { cpus: "0.05", memory: 192M }
 
   nginx:
     build: { context: .., dockerfile: ops/Dockerfile.web }
@@ -153,7 +157,7 @@ services:
       retries: 3
     deploy:
       resources:
-        limits: { cpus: "0.09", memory: 64M }
+        limits: { cpus: "0.05", memory: 64M }
 
   seed:   # dev data only — truncates tables (E65); never on a hosted box
     image: filspay-node:local

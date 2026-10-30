@@ -349,3 +349,9 @@ Where: apps/web/src/api/idempotencyKey.ts:11 · Commit: 0cf9a60
 The instructions said to start the app with Docker, but the files it needed were missing, the database password was in plain sight, and the database was open to the internet. We wrote the missing files and set each part's CPU and memory so the whole app fits the competition's small server. Parts restart by themselves after a crash, data is kept on disk, and only the website is reachable from outside. We crashed the database and the API on purpose and both came back with no data lost.
 
 Where: ops/docker-compose.yml · Commit: d7d17b2
+
+## N59 — Too many buyers at once get "busy, retry" instead of a crash, and we know our capacity
+
+When too many buyers paid at the same moment, the server used to let them all queue, so everyone waited longer and longer. Now it serves as many as it can quickly and tells the rest "busy, try again in a second". We tested it with a load-testing tool: it handles about 15 checkouts per second on the competition's small server size, survives three times that load without crashing, and goes straight back to normal afterwards. After about 11,000 test payments, no buyer was charged twice and the books balanced exactly.
+
+Where: apps/api/src/plugins/loadShedding.ts:42 · Commit: PENDING_N59

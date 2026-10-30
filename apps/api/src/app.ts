@@ -1,3 +1,4 @@
+import { installLoadShedding } from "./plugins/loadShedding.js";
 import Fastify, { type FastifyInstance } from "fastify";
 import type { Pool } from "pg";
 import type { Config } from "./config.js";
@@ -39,13 +40,15 @@ export interface BuildAppOptions {
  * tests use `app.inject(...)` against this — no real socket needed.
  */
 export function buildApp(config: Config, pool: Pool, options: BuildAppOptions = {}): FastifyInstance {
-  const app = Fastify({ logger: true });
+  const app = Fastify({ logger: { level: config.logLevel } });
 
   app.decorate("db", pool);
   app.decorate("config", config);
   app.decorate("acquirer", createAcquirerSimulator(config));
   app.decorate("webhookTransport", options.webhookTransport ?? createFetchTransport({ blockPrivateAddresses: config.nodeEnv === "production" }));
 
+  // Load shedding first, so a request turned away costs almost nothing.
+  installLoadShedding(app, { maxInFlight: config.maxInFlightRequests, maxEventLoopDelayMs: config.shedEventLoopDelayMs });
   app.register(cookiesPlugin);
   app.register(multipartPlugin, { config });
   app.setErrorHandler(errorHandler);

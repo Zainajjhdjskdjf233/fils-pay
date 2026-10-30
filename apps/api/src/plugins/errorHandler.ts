@@ -31,6 +31,15 @@ export function errorHandler(
     return;
   }
 
+  // Load shedding: the DB pool had no free connection within its timeout —
+  // the server is overloaded, not broken. Answer like the in-flight cap does.
+  if (/timeout exceeded when trying to connect/i.test(err.message)) {
+    request.log.warn({ path: request.url }, "db pool exhausted; request shed");
+    reply.header("Retry-After", "1");
+    reply.code(503).send({ error: "overloaded", message: "The server is busy. Please retry in a moment." });
+    return;
+  }
+
   request.log.error({ err, occurredOn: formatIsoDate(new Date()) }, "unhandled error");
   reply.code(500).send({ error: "internal_error" });
 }

@@ -2151,3 +2151,41 @@ No password in the file, no open database port, and fixed limits per service.
 docker inspect shows them on each running container (0.50 CPU and 512 MB for the API), and the load test runs against exactly this stack.
 
 Commit: d7d17b2
+
+## N59 — Too many buyers at once get "busy, retry" instead of a crash, and we know our capacity
+
+### The idea
+A small server can only work on so many payments at the same time. When too many arrive, it is better to say "busy, try again in a second" to some of them than to make everyone wait until the server falls over, like a restaurant that stops seating people when the kitchen is full.
+
+### The problem
+- The API accepted every request. Under heavy load they queued, everything slowed down (5-6 seconds), and the database pool ran out.
+- Nobody knew how many checkouts the hosted size could handle.
+
+### The fix
+- loadShedding.ts (new): above 24 requests in progress, or when the server is clearly overloaded, new requests get 503 with "Retry-After: 1" at once. Health checks always answer.
+- errorHandler.ts: "no free database connection" is also a 503, not a 500.
+- Compose: the database got more of the CPU budget (it was the real bottleneck).
+- A k6 load test of the checkout (open link + pay).
+
+### The code
+Before: no limit — every request was accepted and queued.
+After (apps/api/src/plugins/loadShedding.ts):
+```ts
+if (inFlight >= options.maxInFlight || lagging) {
+  reply.header("Retry-After", "1");
+  reply.code(503).send({ error: "overloaded", message: "The server is busy. Please retry in a moment." });
+  return reply;
+}
+```
+Excess requests are turned away in microseconds, so the ones being served stay fast.
+
+### The proof
+- Capacity: about 15 checkouts per second within the limits (p95 under 2 s); up to 20 per second in the open-arrival test.
+- At 3× the limit: 72 % turned away, no crash, no restart; right after, back to normal.
+- After about 11,000 checkouts: no double charges, every ledger group balanced, shop balance correct to the fil.
+
+### If the judges ask
+"Why not just give the API more CPU?"
+The API used only 15 % of one CPU. The database was at its limit, so we moved CPU to the database inside the same 1-CPU budget.
+
+Commit: PENDING_N59
