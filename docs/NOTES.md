@@ -994,3 +994,37 @@ One source of truth for the balance: the ledger.
 Nothing calls it now. We do not delete code without Zainab's OK; it is recorded in the log.
 
 Commit: b15f944
+
+## N27 — Fee recalculation no longer changes paid batches
+
+### The idea
+When finance changes a shop's fee, a tool recalculates fees on recent batches. A batch that was already paid is history, like a receipt already handed over.
+
+### The problem
+The tool picked every batch that was not "open".
+- That includes "paid" batches.
+- So it rewrote the fee and payout of money already sent, and posted ledger rows against them.
+
+### The fix
+- recalculate_mdr.go: pick only "closed" batches (closed but not yet paid).
+
+### The code
+Before (apps/settlement/internal/settlement/recalculate_mdr.go:67):
+```sql
+AND status <> 'open'
+```
+After:
+```sql
+AND status = 'closed' -- E19: never a paid batch ('<> open' included paid)
+```
+"Not open" meant "closed or paid". Now it means only "closed".
+
+### The proof
+- Before: a paid batch's fee went from 250 to 300 fils and 2 ledger rows were posted against it.
+- After: the paid batch stays the same; the unpaid batch is still recalculated.
+
+### If the judges ask
+"Does it now use the right fee table?"
+Not yet. That part (fee schedules and volume tier) is still open and linked to E20. We fixed the part the settlement team said must never happen.
+
+Commit: PENDING_N27

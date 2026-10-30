@@ -1,7 +1,7 @@
 # LOG
 Mode: Competition
-Updated: 11:02 AM (30 Oct 2026)
-Summary: Errors 23/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
+Updated: 11:04 AM (30 Oct 2026)
+Summary: Errors 24/60 fixed · Hidden 35 found · Features 0/2 done (F01: only the web refund page left) · Deploy: not started · CHECKPOINT reached
 
 Phase: understand (no source code changed). Scratch proof files: /private/tmp/claude-501/-Users-zainab-hackathon-kit-fils-pay/380d5025-87ca-4250-b0ca-a4415a0fd0cf/scratchpad/ (gitlog.txt, typecheck.txt, test.txt, api-run.txt, blame.txt).
 
@@ -247,7 +247,7 @@ Order follows the fix order: app-stopping → high security → (features) → w
 - Severity: high
 - Proposed fix: `status = 'closed'` only; same rate lookup as CloseBatch.
 - Expected result: paid batches unchanged after recalculation.
-- Status: open
+- Status: paid-batch part fixed (see section 5); rate-source part open
 
 ### E20 — Dashboard shows 245 bps, payments charge 225 bps
 - Where: apps/api/src/fees/currentFeeScheduleDisplay.ts:33-37 vs fees/feeSchedule.ts:29-32; Go fee_schedule.go:32; payments/capture.ts:196
@@ -1115,6 +1115,15 @@ ROLLBACK;
 - Not changed: YA's TODO in RebuildAllBalances (no row lock against a concurrent CloseBatch increment) — a separate race; recorded here as open.
 - Review: two small call/SQL changes → no fix-reviewer; Copilot CLI not installed.
 - Actual result: matches expected.
+
+### E19 — 11:04 AM — MDR recalculation never touches a paid batch
+- Changed: apps/settlement/internal/settlement/recalculate_mdr.go:67 `AND status <> 'open'` → `AND status = 'closed'`.
+- Test: recalculate_mdr_e19_test.go. Before: `paid batch changed: fee 250 -> 300, net 9750 -> 9700`; `RecalculateMDR reported an adjustment for the paid batch`; `2 MDR adjustment ledger rows posted against the paid batch`. After: PASS; existing RecalculateMDR and F01d tests pass.
+- Regression: full-db-test.sh = baseline (5 known failures); Go 69 pass.
+- Decision (for Zainab to review): fix only the paid-batch part now; leave the rate source (recalc uses merchants.mdr_bps, CloseBatch uses fee_schedules + volume tier) open — Why: the tier bonus is not stored per batch, so an old batch's rate cannot be reproduced exactly; it overlaps E20 (two fee tables) — Alternative: copy CloseBatch's lookup with today's tier (would change old fees whenever platform volume crosses a tier).
+- Checked and false: YA's comment at recalculate_mdr.go:184 "a fee decrease still debits merchant_payable" — the next lines swap the accounts when diff < 0 (:186-188), so a decrease credits the shop.
+- Review: one-line filter → no fix-reviewer; Copilot CLI not installed.
+- Actual result: matches expected (paid batches unchanged after recalculation).
 
 ## 6. Deploy
 - Platform: Dilmune Cloud (CASE-FILE.md Item 04)

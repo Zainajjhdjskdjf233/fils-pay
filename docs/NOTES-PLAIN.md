@@ -157,3 +157,9 @@ Where: scripts/reconcile_march.ts:86 · Commit: d69061a
 The admin site's "Recalculate cached balances" button and the command-line tool gave different balances, because they added up different records. The button only counted the payment lines sent to the card network, not fees or payouts, which is how a 135K balance became 7K. Now the button uses the same full ledger as the tool, and the tool's single-shop mode also saves its result. A test shows both now give the same number.
 
 Where: apps/settlement/internal/internalapi/server.go:270 · Commit: b15f944
+
+## N27 — Fee recalculation no longer changes paid batches
+
+The tool that recalculates fees after a rate change also changed batches that had already been paid out, which should never happen. It picked every batch that was "not open", and that included "paid" ones. Now it only picks batches that are closed but not yet paid. A test shows a paid batch stays exactly the same while an unpaid one is still updated.
+
+Where: apps/settlement/internal/settlement/recalculate_mdr.go:67 · Commit: PENDING_N27
